@@ -1,0 +1,644 @@
+# ==============================================================================
+#   bashrc — Perfil unificado Kevin Charpentier (bash)
+#   Portable: Git Bash (Windows) / Linux nativo
+# ==============================================================================
+
+# ==============================================================================
+# OS DETECTION
+# ==============================================================================
+
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        IS_WINDOWS=true
+        ;;
+    *)
+        IS_WINDOWS=false
+        ;;
+esac
+
+# ==============================================================================
+# PROMPT — oh-my-posh con tema spaceship
+# ==============================================================================
+
+if command -v oh-my-posh &>/dev/null; then
+    if [[ "$IS_WINDOWS" == true ]]; then
+        _omp_theme="${POSH_THEMES_PATH:-$HOME/AppData/Local/Programs/oh-my-posh/themes}/claude-code.omp.json"
+        _omp_fallback="${POSH_THEMES_PATH:-$HOME/AppData/Local/Programs/oh-my-posh/themes}/spaceship.omp.json"
+    else
+        _omp_theme="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes/claude-code.omp.json"
+        _omp_fallback=""
+    fi
+    if [[ -f "$_omp_theme" ]]; then
+        eval "$(oh-my-posh init bash --config "$_omp_theme")"
+    elif [[ -n "$_omp_fallback" && -f "$_omp_fallback" ]]; then
+        eval "$(oh-my-posh init bash --config "$_omp_fallback")"
+    else
+        eval "$(oh-my-posh init bash --config spaceship)"
+    fi
+    unset _omp_theme _omp_fallback
+else
+    echo "oh-my-posh no instalado"
+    echo "  Windows: winget install JanDeDobbeleer.OhMyPosh"
+    echo "  Linux:   curl -s https://ohmyposh.dev/install.sh | bash -s"
+fi
+
+# ==============================================================================
+# COLORS — LS_COLORS & EZA_COLORS
+# ==============================================================================
+
+# Paleta Claude Code — 256-color (38;5;N): orange=172, cyan=73, purple=141, green=114, blue=75, yellow=220
+export LS_COLORS='di=38;5;172:ln=38;5;73:so=38;5;141:pi=38;5;214:ex=38;5;114:bd=38;5;172;40:cd=38;5;172;40:su=37;41:sg=30;43:tw=30;42:ow=38;5;172'
+export EZA_COLORS="di=38;5;172:ln=38;5;73:so=38;5;141:pi=38;5;214:ex=38;5;114:bd=38;5;172;40:cd=38;5;172;40:su=37;41:sg=30;43:tw=30;42:ow=38;5;172:\
+*.rs=38;5;209:*.py=38;5;148:*.js=38;5;220:*.ts=38;5;220:*.mjs=38;5;220:*.cjs=38;5;220:\
+*.lua=38;5;75:*.sh=38;5;114:*.bash=38;5;114:*.ps1=38;5;141:*.psm1=38;5;141:\
+*.md=38;5;253:*.json=38;5;220:*.yaml=38;5;148:*.yml=38;5;148:*.toml=38;5;172:\
+*.go=38;5;75:*.rb=38;5;196:*.java=38;5;214:*.kt=38;5;214:*.cs=38;5;141:\
+*.html=38;5;209:*.css=38;5;75:*.scss=38;5;141:*.sql=38;5;214:\
+*.zip=38;5;214:*.tar=38;5;214:*.gz=38;5;214:*.bz2=38;5;214:*.xz=38;5;214:\
+*.png=38;5;141:*.jpg=38;5;141:*.jpeg=38;5;141:*.gif=38;5;141:*.svg=38;5;141:\
+*.mp4=38;5;73:*.mkv=38;5;73:*.mp3=38;5;73:*.flac=38;5;73"
+
+# ==============================================================================
+# HISTORY
+# ==============================================================================
+
+HISTSIZE=5000
+HISTFILESIZE=10000
+HISTTIMEFORMAT="%F %T  "
+HISTCONTROL=ignoredups:erasedups
+
+shopt -s histappend
+
+# ==============================================================================
+# SHELL OPTIONS
+# ==============================================================================
+
+shopt -s checkwinsize   # actualizar LINES/COLUMNS despues de cada comando
+shopt -s globstar 2>/dev/null  # ** recursivo (bash 4+)
+shopt -s cdspell        # corregir errores menores en cd
+
+# ==============================================================================
+# AUTOCOMPLETION
+# ==============================================================================
+
+if [[ "$IS_WINDOWS" == true ]]; then
+    # Git Bash: completions vienen con git-for-windows
+    if [[ -f /usr/share/bash-completion/bash_completion ]]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [[ -f /etc/bash_completion ]]; then
+        . /etc/bash_completion
+    fi
+else
+    if [[ -f /usr/share/bash-completion/bash_completion ]]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [[ -f /etc/bash_completion ]]; then
+        . /etc/bash_completion
+    fi
+fi
+
+# ==============================================================================
+# EDITOR DE TERMINAL
+# ==============================================================================
+
+export EDITOR=nvim
+export VISUAL=nvim
+alias vi='nvim'
+alias vim='nvim'
+alias nano='nvim'
+
+# ==============================================================================
+# RUTAS BASE
+# ==============================================================================
+
+repos="$HOME/repositorios"
+personal="$repos/personal"
+work="$repos/work"
+cei_walle="$repos/cei_walle"
+
+export repos personal work cei_walle
+
+# ==============================================================================
+# UTILIDADES GENERALES
+# ==============================================================================
+
+# --- open: abrir directorio o archivo ---
+open() {
+    local target="${1:-.}"
+    if [[ "$IS_WINDOWS" == true ]]; then
+        cmd.exe //c start "" "$(cygpath -w "$target")" 2>/dev/null \
+            || start "" "$target" 2>/dev/null
+    else
+        xdg-open "$target" 2>/dev/null &
+    fi
+}
+
+# --- which: tipo completo ---
+alias which='type -a'
+
+# --- grep: color por defecto ---
+alias grep='grep --color=auto'
+alias egrep='egrep --color=auto'
+alias fgrep='fgrep --color=auto'
+
+# --- df/du legibles ---
+alias df='df -h'
+alias du='du -h'
+
+# --- mkdirp: mkdir -p ---
+alias mkdirp='mkdir -p'
+
+# ==============================================================================
+# EZA / LS ALIASES (con fallback a ls nativo)
+# ==============================================================================
+
+if command -v eza &>/dev/null; then
+    alias ls='eza --icons --group-directories-first'
+    alias la='eza --icons --group-directories-first -a'
+    alias ll='eza --icons --group-directories-first -la --git'
+else
+    alias ls='ls --color=auto --group-directories-first 2>/dev/null || ls --color=auto'
+    alias la='ls -A'
+    alias ll='ls -lAh'
+fi
+
+# ==============================================================================
+# ZOXIDE (cd inteligente con memoria)
+# ==============================================================================
+
+if command -v zoxide &>/dev/null; then
+    eval "$(zoxide init bash)"
+fi
+
+# ==============================================================================
+# FZF (busqueda difusa — Ctrl+R para historial)
+# ==============================================================================
+
+if command -v fzf &>/dev/null; then
+    # Cargar keybindings de fzf si estan disponibles
+    if [[ -f /usr/share/fzf/key-bindings.bash ]]; then
+        . /usr/share/fzf/key-bindings.bash
+    elif [[ -f /usr/share/doc/fzf/examples/key-bindings.bash ]]; then
+        . /usr/share/doc/fzf/examples/key-bindings.bash
+    elif [[ -f ~/.fzf.bash ]]; then
+        . ~/.fzf.bash
+    fi
+
+    export FZF_DEFAULT_OPTS="--height 40% --border rounded --layout=reverse --prompt ' ' \
+--color=bg+:#3A2E2A,bg:#1E1A18,spinner:#D4874E,hl:#C79BFF \
+--color=fg:#E8E0D4,header:#7AB8FF,info:#FFDF61,pointer:#D4874E \
+--color=marker:#86E89A,fg+:#E8E0D4,prompt:#D4874E,hl+:#E8935A \
+--color=border:#5C4A44,label:#A89890,query:#E8E0D4"
+    export FZF_CTRL_R_OPTS='--prompt " historial> "'
+fi
+
+# ==============================================================================
+# GIT ALIASES — basicos
+# ==============================================================================
+
+alias g='git'
+alias gs='git status'
+alias gst='git status -sb'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias ga='git add'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gcmm='git commit -m'
+alias gca='git commit --amend'
+alias gcam='git commit --amend -m'
+alias gl='git log --oneline --graph --decorate -n 15'
+alias glo='git log --oneline --graph --decorate -n 30'
+alias glg='git log --oneline --graph --all --decorate'
+alias gpl='git pull'
+alias gp='git push'
+alias gpf='git push --force-with-lease'
+alias gpo='git push origin'
+alias grh='git reset HEAD'
+alias grs='git reset --soft'
+alias gcl='git clone'
+alias gb='git branch'
+alias gbd='git branch -d'
+alias gsta='git stash'
+alias gstp='git stash pop'
+alias gbr='git branch -vv'
+alias gbra='git branch -a -vv'
+alias grls='git remote -v'
+alias gnew='git checkout -b'
+
+# ==============================================================================
+# GIT ALIASES — avanzados (funciones)
+# ==============================================================================
+
+# --- gup: set upstream de la rama actual ---
+gup() {
+    local branch
+    branch="$(git rev-parse --abbrev-ref HEAD)"
+    git branch --set-upstream-to="origin/$branch" "$branch"
+}
+
+# --- gpsu: push inicial con tracking ---
+gpsu() {
+    local branch
+    branch="$(git rev-parse --abbrev-ref HEAD)"
+    git push -u origin "$branch"
+}
+
+# --- gsync: fetch + pull rebase + autostash ---
+gsync() {
+    git fetch --all --prune
+    git pull --rebase --autostash
+}
+
+# --- gsw: smart switch (crea rama si no existe local ni remota) ---
+gsw() {
+    local branch="$1"
+    if [[ -z "$branch" ]]; then
+        echo "Uso: gsw <rama>"
+        return 1
+    fi
+
+    git fetch --prune &>/dev/null
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+        git switch "$branch"
+    elif git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+        git switch -t "origin/$branch"
+    else
+        git switch -c "$branch"
+    fi
+}
+
+# --- gfixup: commit fixup ---
+gfixup() {
+    git commit --fixup "${1:-HEAD}"
+}
+
+# --- gundo: deshacer ultimo commit (mantiene cambios) ---
+gundo() {
+    git reset --soft HEAD~1
+}
+
+# --- gclean: limpiar archivos untracked ---
+gclean() {
+    echo "Archivos que se eliminarian:"
+    git clean -fd --dry-run
+    read -rp "Continuar? [y/N] " confirm
+    [[ "$confirm" =~ ^[yY]$ ]] && git clean -fd
+}
+
+# --- gprune: limpiar ramas locales mergeadas ---
+gprune() {
+    git fetch --prune
+    git branch --merged | grep -v '\*\|main\|master\|develop' | xargs -r git branch -d
+}
+
+# --- gcleanbranches: borrar ramas locales cuyo remote tracking ya no existe ---
+gcleanbranches() {
+    git fetch --prune
+    local gone
+    gone=$(git branch -vv | awk '/: gone\]/{print $1}')
+    if [[ -z "$gone" ]]; then
+        echo "Sin branches para limpiar."
+        return 0
+    fi
+    echo "$gone" | xargs -r git branch -d
+}
+
+# --- gcoi: checkout interactivo con fzf ---
+gcoi() {
+    if ! command -v fzf &>/dev/null; then
+        echo "fzf no esta instalado"
+        return 1
+    fi
+    local branch
+    branch=$(git branch --all | fzf --height 40% --border | sed 's/^[* ]*//' | sed 's|remotes/origin/||')
+    [[ -n "$branch" ]] && git checkout "$branch"
+}
+
+# --- gwork: ir al directorio de trabajo ---
+gwork() {
+    local dir="${1:-$work}"
+    cd "$dir" || return 1
+}
+
+# ==============================================================================
+# PUERTOS (dev workflow)
+# ==============================================================================
+
+# --- port: lista el proceso escuchando en un puerto ---
+port() {
+    local p="${1:?Uso: port <numero>}"
+    if command -v lsof &>/dev/null; then
+        lsof -nP -iTCP:"$p" -sTCP:LISTEN
+    else
+        ss -ltnp "sport = :$p"
+    fi
+}
+
+# --- killport: mata el proceso que escucha en un puerto ---
+killport() {
+    local p="${1:?Uso: killport <numero>}"
+    local pid
+    if command -v lsof &>/dev/null; then
+        pid=$(lsof -nP -iTCP:"$p" -sTCP:LISTEN -t | head -n1)
+    else
+        pid=$(ss -ltnp "sport = :$p" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -n1)
+    fi
+    if [[ -z "$pid" ]]; then
+        echo "Nada escuchando en puerto $p"
+        return 0
+    fi
+    kill -9 "$pid" && echo "Killed PID $pid (puerto $p)"
+}
+
+# --- killdev: mata procesos en puertos comunes de desarrollo ---
+killdev() {
+    local devports=(3000 3001 4200 5173 8080 8090 8443)
+    for p in "${devports[@]}"; do
+        killport "$p"
+    done
+}
+
+# ==============================================================================
+# GIT — CLONE + PERFILES DE IDENTIDAD
+# ==============================================================================
+
+# Identidades (nombre/email por perfil) viven en el vault privado.
+# El bootstrap las copia a ~/.config/git-identities.sh. Si no estan, las
+# funciones gclone/gset-profile/ginit avisan que falta el vault.
+_GIT_IDENTITIES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
+declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL
+if [[ -f "$_GIT_IDENTITIES_FILE" ]]; then
+    . "$_GIT_IDENTITIES_FILE"
+fi
+
+# Resuelve nombre/email de un perfil en las vars _gi_name/_gi_email.
+# Devuelve 1 si el perfil no existe o el vault no esta cargado.
+_resolve_identity() {
+    local perfil="$1"
+    _gi_name="${GIT_IDENTITIES_NAME[$perfil]:-}"
+    _gi_email="${GIT_IDENTITIES_EMAIL[$perfil]:-}"
+    if [[ -z "$_gi_name" || -z "$_gi_email" ]]; then
+        if [[ ${#GIT_IDENTITIES_EMAIL[@]} -eq 0 ]]; then
+            echo "Error: identidades git no cargadas (falta el vault: $_GIT_IDENTITIES_FILE)" >&2
+        else
+            echo "Error: perfil desconocido '$perfil'" >&2
+            echo "Perfiles validos: ${!GIT_IDENTITIES_EMAIL[*]}" >&2
+        fi
+        return 1
+    fi
+    return 0
+}
+
+# Clonar repo y configurar identidad local automaticamente.
+# Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]
+# Perfiles: cei_walle, work, kevincharp, kevincharp-gl
+# Ejemplo: gclone -p work -u git@gitlab.com-xxx:grupo/repo.git
+gclone() {
+    local perfil="" remote_url="" target_dir=""
+
+    # Parsear argumentos
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -p|--perfil)  perfil="$2";     shift 2 ;;
+            -u|--url)     remote_url="$2"; shift 2 ;;
+            -d|--dir)     target_dir="$2"; shift 2 ;;
+            *)
+                echo "Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]"
+                echo "Perfiles: cei_walle, work, kevincharp, kevincharp-gl"
+                return 1
+                ;;
+        esac
+    done
+
+    # Validar parametros
+    if [[ -z "$perfil" || -z "$remote_url" ]]; then
+        echo "Error: -p <perfil> y -u <remoteUrl> son obligatorios"
+        echo "Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]"
+        return 1
+    fi
+
+    # Identidades (desde el vault via _resolve_identity)
+    local name="" email=""
+    _resolve_identity "$perfil" || return 1
+    name="$_gi_name"; email="$_gi_email"
+
+    # Determinar directorio destino
+    local repo_name
+    repo_name="$(basename "$remote_url" .git)"
+    local clone_dir="${target_dir:-$(pwd)/$repo_name}"
+
+    if [[ -d "$clone_dir" ]] && [[ -n "$(ls -A "$clone_dir" 2>/dev/null)" ]]; then
+        echo "Error: el destino ya existe y no esta vacio: $clone_dir"
+        return 1
+    fi
+
+    # Clonar
+    echo "Clonando $remote_url en $clone_dir ..."
+    if ! git clone "$remote_url" "$clone_dir"; then
+        echo "Error: fallo el clone"
+        return 1
+    fi
+
+    # Configurar identidad local
+    (
+        cd "$clone_dir" || return 1
+        git config --local user.useConfigOnly true
+        git config --local user.name          "$name"
+        git config --local user.email         "$email"
+        git config --local core.autocrlf      input
+        git config --local pull.rebase        true
+        git config --local rebase.autostash   true
+    )
+
+    echo ""
+    echo "Repositorio: $repo_name"
+    echo "Path:        $clone_dir"
+    echo "Perfil:      $perfil"
+    echo "User:        $name <$email>"
+    echo "Remote:      $(cd "$clone_dir" && git remote get-url origin 2>/dev/null)"
+}
+
+# --- gset-profile: aplicar perfil git a repo ya existente ---
+# Uso: gset-profile <perfil>
+gset-profile() {
+    local perfil="$1"
+    if [[ -z "$perfil" ]]; then
+        echo "Uso: gset-profile <perfil>"
+        echo "Perfiles: cei_walle, work, kevincharp, kevincharp-gl"
+        return 1
+    fi
+
+    if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+        echo "Error: no es un repo Git"
+        return 1
+    fi
+
+    local name="" email=""
+    _resolve_identity "$perfil" || return 1
+    name="$_gi_name"; email="$_gi_email"
+
+    git config --local user.name  "$name"
+    git config --local user.email "$email"
+    echo "Perfil '$perfil' aplicado: $name <$email>"
+}
+
+# Uso: ginit <perfil> [path]
+# Inicia un repo git nuevo y aplica el perfil de identidad indicado.
+ginit() {
+    local perfil="$1"
+    local path="${2:-$PWD}"
+
+    if [[ -z "$perfil" ]]; then
+        echo "Uso: ginit <perfil> [path]"
+        echo "Perfiles: cei_walle, work, kevincharp, kevincharp-gl"
+        return 1
+    fi
+
+    if [[ ! -d "$path" ]]; then
+        echo "Error: $path no existe"
+        return 1
+    fi
+
+    (
+        cd "$path" || exit 1
+        if [[ ! -d .git ]]; then
+            git init -b main >/dev/null
+        fi
+        gset-profile "$perfil" || exit 1
+        git config --local --unset-all pull.rebase        2>/dev/null
+        git config --local --unset-all init.defaultbranch 2>/dev/null
+        git config --local --unset-all core.autocrlf      2>/dev/null
+        git config --local --unset-all core.editor        2>/dev/null
+    )
+}
+
+# Uso: gremote <alias-ssh> <namespace/repo> [nombre-remote]
+# Agrega o actualiza un remote usando un host alias SSH.
+# Ejemplo: gremote gitlab.com-<mi-alias> mi-grupo/proyecto origin
+gremote() {
+    local alias_host="$1"
+    local path_ns="$2"
+    local name="${3:-origin}"
+
+    if [[ -z "$alias_host" || -z "$path_ns" ]]; then
+        echo "Uso: gremote <alias-ssh> <namespace/repo> [nombre-remote]"
+        return 1
+    fi
+
+    local ssh="git@${alias_host}:${path_ns}.git"
+
+    if git remote get-url "$name" &>/dev/null; then
+        git remote set-url "$name" "$ssh"
+    else
+        git remote add "$name" "$ssh"
+    fi
+    echo "Remote '$name' → $ssh"
+}
+
+# ==============================================================================
+# .ENV LOADER — cargar tokens desde ~/.env
+# ==============================================================================
+
+_load_dotenv() {
+    local env_file="${1:-$HOME/.env}"
+    [[ -f "$env_file" ]] || return 0
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Ignorar lineas vacias y comentarios
+        line="${line#"${line%%[![:space:]]*}"}"  # trim leading whitespace
+        [[ -z "$line" || "$line" == \#* ]] && continue
+
+        local key="${line%%=*}"
+        local val="${line#*=}"
+        # Trim comillas
+        val="${val%\"}"
+        val="${val#\"}"
+        val="${val%\'}"
+        val="${val#\'}"
+
+        export "$key=$val"
+    done < "$env_file"
+}
+
+_load_dotenv
+
+# Tokens especificos (se cargan si existen en ~/.env)
+# GITLAB_TOKEN_KECHARPEN, GITLAB_TOKEN_CEI_WALLE, GITLAB_TOKEN_KEVINCHARP, GITHUB_TOKEN_KEVINCHARP
+
+# ==============================================================================
+# AWS / CLAUDE CODE SMG
+# ==============================================================================
+
+# --- claude-smg: lanzar Claude Code con perfil Bedrock de SMG ---
+claude-smg() {
+    # El perfil AWS se toma de $CLAUDE_SMG_AWS_PROFILE (defini en ~/.env); fallback 'default'
+    export CLAUDE_CODE_USE_BEDROCK="1"
+    export AWS_PROFILE="${CLAUDE_SMG_AWS_PROFILE:-default}"
+    export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
+
+    if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then
+        echo "Sesion SSO caducada o ausente, ejecutando: aws sso login --profile $AWS_PROFILE"
+        aws sso login --profile "$AWS_PROFILE" || {
+            echo "Fallo el login SSO, abortando." >&2
+            unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION
+            return 1
+        }
+    fi
+
+    claude "$@"
+    unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION
+}
+
+# ==============================================================================
+# SPF — listado de funciones/aliases del bashrc
+# ==============================================================================
+
+# Listar funciones y aliases definidos en este bashrc.
+# Uso: spf [filtro]
+# Ejemplo: spf git   (filtra por nombre)
+# Ejemplo: spf       (lista todo)
+spf() {
+    local filter="${1:-}"
+    local bashrc_file="${BASH_SOURCE[0]:-$HOME/.bashrc}"
+
+    echo "=== Funciones ==="
+    echo ""
+
+    # Extraer funciones con su comentario precedente (linea # --- ...)
+    local in_block=false
+    local desc=""
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^#\ ---\ (.+)\ ---$ ]]; then
+            desc="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^([a-zA-Z_][a-zA-Z0-9_-]*)\(\) ]]; then
+            local fname="${BASH_REMATCH[1]}"
+            if [[ -z "$filter" ]] || [[ "$fname" == *"$filter"* ]] || [[ "$desc" == *"$filter"* ]]; then
+                printf "  %-16s %s\n" "$fname" "$desc"
+            fi
+            desc=""
+        else
+            if [[ ! "$line" =~ ^# ]]; then
+                desc=""
+            fi
+        fi
+    done < "$bashrc_file"
+
+    echo ""
+    echo "=== Aliases ==="
+    echo ""
+
+    # Extraer aliases
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^alias\ ([a-zA-Z_][a-zA-Z0-9_-]*)=\'(.+)\'$ ]] || [[ "$line" =~ ^alias\ ([a-zA-Z_][a-zA-Z0-9_-]*)=\"(.+)\"$ ]]; then
+            local aname="${BASH_REMATCH[1]}"
+            local aval="${BASH_REMATCH[2]}"
+            if [[ -z "$filter" ]] || [[ "$aname" == *"$filter"* ]] || [[ "$aval" == *"$filter"* ]]; then
+                printf "  %-16s → %s\n" "$aname" "$aval"
+            fi
+        fi
+    done < "$bashrc_file"
+}
+
+# ==============================================================================
+# FIN
+# ==============================================================================

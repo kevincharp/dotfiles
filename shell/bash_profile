@@ -1,0 +1,3 @@
+# Carga .profile y .bashrc (compatible con Git for Windows y Linux)
+test -f ~/.profile && . ~/.profile
+test -f ~/.bashrc && . ~/.bashrc

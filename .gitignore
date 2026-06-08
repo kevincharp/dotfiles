@@ -1,0 +1,14 @@
+*.bak*
+.env
+.DS_Store
+
+# Claude Code: versionar config importante, excluir temporal/sensible
+.claude/*
+!.claude/settings.json
+!.claude/plugins/
+.claude/plugins/*
+!.claude/plugins/installed_plugins.json
+!.claude/worktrees/
+
+# Lo sensible (ssh keys, identidades git, bookmarks) vive en el repo
+# privado dotfiles-vault, NO en este repo publico.

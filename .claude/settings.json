@@ -1,0 +1,8 @@
+{
+  "model": "sonnet",
+  "effortLevel": "medium",
+  "theme": "auto",
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true
+  }
+}

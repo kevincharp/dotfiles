@@ -1,0 +1,258 @@
+{
+    "$help": "https://aka.ms/terminal-documentation",
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "actions": 
+    [
+        {
+            "command": 
+            {
+                "action": "copy",
+                "singleLine": false
+            },
+            "id": "User.copy.644BA8F2"
+        },
+        {
+            "command": 
+            {
+                "action": "swapPane",
+                "direction": "left"
+            },
+            "id": "User.swapPane.2A0DA8E0"
+        },
+        {
+            "command": "paste",
+            "id": "User.paste"
+        },
+        {
+            "command": 
+            {
+                "action": "splitPane",
+                "split": "auto",
+                "splitMode": "duplicate"
+            },
+            "id": "User.splitPane.A6751878"
+        },
+        {
+            "command": 
+            {
+                "action": "swapPane",
+                "direction": "up"
+            },
+            "id": "User.swapPane.6CD791B"
+        },
+        {
+            "command": "find",
+            "id": "User.find"
+        },
+        {
+            "command": 
+            {
+                "action": "swapPane",
+                "direction": "down"
+            },
+            "id": "User.swapPane.F747588A"
+        },
+        {
+            "command": 
+            {
+                "action": "swapPane",
+                "direction": "right"
+            },
+            "id": "User.swapPane.87C324ED"
+        },
+        {
+            "command": 
+            {
+                "action": "openSettings",
+                "target": "settingsFile"
+            },
+            "id": "User.openSettings.D3F0B923"
+        },
+        {
+            "command": 
+            {
+                "action": "sendInput",
+                "input": "\u001b\r"
+            },
+            "id": "User.sendInput.ShiftEnter"
+        },
+        {
+            "command": "openTabRenamer",
+            "id": "User.openTabRenamer"
+        }
+    ],
+    "alwaysShowTabs": true,
+    "autoHideWindow": false,
+    "centerOnLaunch": true,
+    "compatibility.enableUnfocusedAcrylic": true,
+    "copyFormatting": "none",
+    "copyOnSelect": false,
+    "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+    "keybindings": 
+    [
+        {
+            "id": "Terminal.CopyToClipboard",
+            "keys": "ctrl+c"
+        },
+        {
+            "id": "Terminal.PasteFromClipboard",
+            "keys": "ctrl+v"
+        },
+        {
+            "id": "User.find",
+            "keys": "ctrl+shift+f"
+        },
+        {
+            "id": "Terminal.DuplicatePaneAuto",
+            "keys": "alt+shift+d"
+        },
+        {
+            "id": "User.swapPane.F747588A",
+            "keys": "ctrl+down"
+        },
+        {
+            "id": "User.swapPane.87C324ED",
+            "keys": "ctrl+right"
+        },
+        {
+            "id": "User.swapPane.2A0DA8E0",
+            "keys": "ctrl+left"
+        },
+        {
+            "id": "User.swapPane.6CD791B",
+            "keys": "ctrl+up"
+        },
+        {
+            "id": "User.sendInput.ShiftEnter",
+            "keys": "shift+enter"
+        },
+        {
+            "id": "Terminal.ClosePane",
+            "keys": "alt+w"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+w"
+        },
+        {
+            "id": "User.openTabRenamer",
+            "keys": "ctrl+alt+r"
+        }
+    ],
+    "newTabMenu": 
+    [
+        {
+            "type": "remainingProfiles"
+        }
+    ],
+    "profiles": 
+    {
+        "defaults": 
+        {
+            "adjustIndistinguishableColors": "always",
+            "colorScheme": "Claude Code",
+            "cursorHeight": 21,
+            "cursorShape": "filledBox",
+            "elevate": true,
+            "experimental.retroTerminalEffect": false,
+            "font": 
+            {
+                "cellHeight": "1",
+                "face": "FiraCode Nerd Font Mono",
+                "size": 7
+            },
+            "intenseTextStyle": "all",
+            "opacity": 90,
+            "padding": "4",
+            "scrollbarState": "hidden",
+            "startingDirectory": "%USERPROFILE%",
+            "useAcrylic": true
+        },
+        "list": 
+        [
+            {
+                "commandline": "C:\\Program Files\\PowerShell\\7\\pwsh.exe -nologo",
+                "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+                "hidden": false,
+                "name": "PowerShell",
+                "source": "Windows.Terminal.PowershellCore",
+                "suppressApplicationTitle": true,
+                "tabTitle": "Terminal"
+            },
+            {
+                "commandline": "C:/Program Files/Git/bin/bash.exe",
+                "guid": "{654333ba-3389-480f-8380-bfe48955f3c2}",
+                "hidden": false,
+                "icon": "C:/Program Files/Git/mingw64/share/git/git-for-windows.ico",
+                "name": "Git Bash",
+                "tabTitle": "Git Bash"
+            },
+            {
+                "guid": "{17bf3de4-5353-5709-bcf9-835bd952a95e}",
+                "hidden": false,
+                "name": "Linux",
+                "source": "Windows.Terminal.Wsl",
+                "tabTitle": "Linux"
+            },
+            {
+                "guid": "{4ff56d04-d9cf-57ea-bae2-ad396374e7e3}",
+                "hidden": false,
+                "name": "Ubuntu",
+                "source": "CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc",
+                "tabTitle": "Ubuntu"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\cmd.exe",
+                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+                "hidden": false,
+                "name": "S\u00edmbolo del sistema"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "hidden": false,
+                "name": "Windows PowerShell"
+            },
+            {
+                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
+                "hidden": false,
+                "name": "Azure Cloud Shell",
+                "source": "Windows.Terminal.Azure"
+            }
+        ]
+    },
+    "schemes": 
+    [
+        {
+            "background": "#2B2322",
+            "black": "#1E1A18",
+            "blue": "#7A9BBF",
+            "brightBlack": "#5C4A44",
+            "brightBlue": "#9AB5D4",
+            "brightCyan": "#92C4BF",
+            "brightGreen": "#A3C290",
+            "brightPurple": "#C79BFF",
+            "brightRed": "#E8826A",
+            "brightWhite": "#F5EFE7",
+            "brightYellow": "#E8A76A",
+            "cursorColor": "#E8E0D4",
+            "cyan": "#7AADA8",
+            "foreground": "#E8E0D4",
+            "green": "#8BA87A",
+            "name": "Claude Code",
+            "purple": "#B08ABF",
+            "red": "#D4654B",
+            "selectionBackground": "#4A3A35",
+            "white": "#E8E0D4",
+            "yellow": "#D4874E"
+        }
+    ],
+    "showTabsFullscreen": false,
+    "showTabsInTitlebar": true,
+    "showTerminalTitleInTitlebar": false,
+    "tabWidthMode": "compact",
+    "themes": [],
+    "useAcrylicInTabRow": true,
+    "warning.confirmCloseAllTabs": false,
+    "windowingBehavior": "useAnyExisting"
+}

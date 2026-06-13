@@ -315,10 +315,10 @@ if ($SkipWinget) {
 }
 
 # ==============================================================================
-# 3. INSTALAR CODEX CLI (via winget)
+# 3. INSTALAR CODEX CLI Y CLAUDE CODE (via winget)
 # ==============================================================================
 
-Write-Log "--- [3/9] Instalando Codex CLI ---" 'SECTION'
+Write-Log "--- [3/9] Instalando Codex CLI y Claude Code ---" 'SECTION'
 
 if (Test-CommandAvailable 'codex') {
     Write-Log "Codex CLI ya instalado" 'SKIP'
@@ -327,6 +327,14 @@ if (Test-CommandAvailable 'codex') {
 }
 
 Write-Log "  Nota: para instalar Codex Desktop ejecuta 'codex app' (descarga el instalador automaticamente)" 'INFO'
+
+if (Test-CommandAvailable 'claude') {
+    Write-Log "Claude Code ya instalado" 'SKIP'
+} else {
+    # Claude Code: instalacion manual por ahora (winget ID pendiente de confirmar)
+    Write-Log "Claude Code no instalado — instalar manualmente desde https://claude.ai/download" 'WARN'
+    $WARNINGS.Add("Claude Code no instalado — descargar desde https://claude.ai/download")
+}
 
 # ==============================================================================
 # 4. INSTALAR MODULOS DE POWERSHELL
@@ -458,12 +466,12 @@ if ($SkipDotfiles) {
 } else {
     foreach ($df in $DOTFILES) {
         # Resolver raiz: 'vault' (privado) o repo publico por defecto
-        $root = if ($df.Root -eq 'vault') { $VAULT_DIR } else { $REPO_ROOT }
+        $root = if ($df.PSObject.Properties['Root'] -and $df.Root -eq 'vault') { $VAULT_DIR } else { $REPO_ROOT }
         $src = Join-Path $root $df.Src
         $dst = $df.Dst
 
         if (-not (Test-Path $src)) {
-            if ($df.Root -eq 'vault') {
+            if ($df.PSObject.Properties['Root'] -and $df.Root -eq 'vault') {
                 $msg = "Vault no disponible: $($df.Src) (falta $VAULT_DIR)"
             } else {
                 $msg = "Origen no encontrado: $src"

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n '^$DOTFILES\\\\s*=' /c/Users/kecharpen/.dotfiles/bootstrap.ps1 -A 30)",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)"
+    ]
+  }
+}

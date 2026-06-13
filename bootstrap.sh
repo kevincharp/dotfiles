@@ -245,7 +245,7 @@ else
     # Codex CLI (OpenAI)
     if ! has_cmd codex; then
         if has_cmd node; then
-            run_step "Instalar Codex CLI" npm install -g @openai/codex
+            run_step "Instalar Codex CLI" sudo npm install -g @openai/codex
         else
             log "Node.js no disponible, no se puede instalar Codex CLI" "WARN"
             WARNINGS+=("Codex CLI no instalado — requiere Node.js")
@@ -254,6 +254,13 @@ else
         log "Codex CLI ya instalado" "SKIP"
     fi
     log "  Nota: para instalar Codex Desktop ejecuta 'codex app' (descarga el instalador automaticamente)" "INFO"
+
+    # Claude Code CLI
+    if ! has_cmd claude; then
+        run_step "Instalar Claude Code CLI" bash -c 'curl -fsSL https://claude.ai/download/linux | bash'
+    else
+        log "Claude Code ya instalado" "SKIP"
+    fi
 
     # opencode (SST)
     if ! has_cmd opencode; then
@@ -304,6 +311,21 @@ else
         fi
     else
         log "age ya instalado" "SKIP"
+    fi
+
+    # Nerd Fonts (FiraCode como default)
+    if ! fc-list | grep -qi "FiraCode Nerd Font"; then
+        run_step "Instalar FiraCode Nerd Font" bash -c '
+            FONT_DIR="$HOME/.local/share/fonts"
+            mkdir -p "$FONT_DIR"
+            NERD_FONTS_VERSION=$(curl -s "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
+            curl -Lo /tmp/FiraCode.zip "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip"
+            unzip -qo /tmp/FiraCode.zip -d "$FONT_DIR"
+            rm /tmp/FiraCode.zip
+            fc-cache -fv > /dev/null
+        '
+    else
+        log "FiraCode Nerd Font ya instalado" "SKIP"
     fi
 fi
 

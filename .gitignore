@@ -5,6 +5,7 @@
 # Claude Code: versionar config importante, excluir temporal/sensible
 .claude/*
 !.claude/settings.json
+!.claude/settings.local.json
 !.claude/plugins/
 .claude/plugins/*
 !.claude/plugins/installed_plugins.json

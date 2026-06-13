@@ -268,6 +268,36 @@ El script automaticamente:
 - Ejecuta `bootstrap.sh` con los mismos parametros (`--with-aws`, `--skip-packages`, etc.)
 - Usa HTTPS si no tenes SSH configurado (ideal para instalacion inicial)
 
+### Desinstalación (Linux)
+
+Si necesitás desinstalar los dotfiles completamente (útil para testing o migración):
+
+```bash
+# Desinstalación completa (remueve symlinks, restaura backups, borra repos)
+bash ~/.dotfiles/uninstall.sh
+
+# Preview sin ejecutar
+bash ~/.dotfiles/uninstall.sh --dry-run
+
+# Desinstalar + remover paquetes instalados
+bash ~/.dotfiles/uninstall.sh --remove-packages
+
+# Sin confirmación (peligroso)
+bash ~/.dotfiles/uninstall.sh --force
+```
+
+Flags disponibles:
+- `--remove-packages` — Desinstala paquetes instalados por el bootstrap (neovim, ripgrep, etc.)
+- `--keep-backups` — No borra `~/.local/backups/bootstrap/`
+- `--dry-run` — Muestra qué haría sin ejecutar
+- `--force` — No pide confirmación (peligroso)
+
+El script automáticamente:
+- Remueve todos los symlinks creados por el bootstrap
+- Restaura archivos desde el backup más reciente
+- Opcionalmente desinstala paquetes (con `--remove-packages`)
+- Borra `.dotfiles` y `.dotfiles-vault`
+
 ### Windows
 
 En Windows usas `bootstrap.ps1` directamente:

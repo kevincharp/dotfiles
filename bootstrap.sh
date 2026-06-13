@@ -269,9 +269,14 @@ else
         log "opencode ya instalado" "SKIP"
     fi
 
-    # AWS CLI (opcional)
+    # AWS CLI (requerido para claude-smg con Bedrock)
     if ! has_cmd aws; then
-        log "AWS CLI no instalado — se instalara si se usa --with-aws" "INFO"
+        run_step "Instalar AWS CLI" bash -c '
+            curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+            unzip -qo /tmp/awscliv2.zip -d /tmp
+            sudo /tmp/aws/install --update
+            rm -rf /tmp/aws /tmp/awscliv2.zip
+        '
     else
         log "AWS CLI ya instalado" "SKIP"
     fi
@@ -576,30 +581,20 @@ unset _omp_themes_dst _omp_src
 # 5. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================
 
-log "--- [6/7] Configuracion AWS ---" "SECTION"
+log "--- [6/7] Configuracion AWS SSO ---" "SECTION"
 
 if [[ "$WITH_AWS" != true ]]; then
-    log "Saltando configuracion AWS (usa --with-aws para incluirla)" "SKIP"
+    log "Saltando configuracion AWS SSO (usa --with-aws para incluirla)" "SKIP"
+    log "  Nota: AWS CLI ya esta instalado para claude-smg, pero SSO requiere --with-aws" "INFO"
 else
-    # Instalar AWS CLI si no existe
-    if ! has_cmd aws; then
-        log "AWS CLI no instalado, instalando..." "INFO"
-        run_step "Instalar AWS CLI" bash -c '
-            curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
-            unzip -qo /tmp/awscliv2.zip -d /tmp
-            sudo /tmp/aws/install --update
-            rm -rf /tmp/aws /tmp/awscliv2.zip
-        '
-    fi
-
     if has_cmd aws; then
         log "Para completar la configuracion de AWS SSO ejecuta manualmente:" "WARN"
         log "  aws configure sso" "WARN"
         log "  SSO start URL : https://<tu-org>.awsapps.com/start/#" "WARN"
         log "  SSO region    : us-east-1" "WARN"
     else
-        log "AWS CLI no se pudo instalar" "ERROR"
-        WARNINGS+=("AWS CLI no instalado — instalalo manualmente")
+        log "AWS CLI no disponible — error inesperado" "ERROR"
+        WARNINGS+=("AWS CLI deberia estar instalado pero no se encuentra")
     fi
 fi
 

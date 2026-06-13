@@ -588,10 +588,32 @@ if [[ "$WITH_AWS" != true ]]; then
     log "  Nota: AWS CLI ya esta instalado para claude-smg, pero SSO requiere --with-aws" "INFO"
 else
     if has_cmd aws; then
-        log "Para completar la configuracion de AWS SSO ejecuta manualmente:" "WARN"
-        log "  aws configure sso" "WARN"
-        log "  SSO start URL : https://<tu-org>.awsapps.com/start/#" "WARN"
-        log "  SSO region    : us-east-1" "WARN"
+        # Pre-configurar perfil default con valores de SMG
+        log "Configurando perfil AWS SSO default para Swiss Medical..." "INFO"
+
+        aws configure set sso_start_url "https://<tu-org>.awsapps.com/start/#" --profile default
+        aws configure set sso_region "us-east-1" --profile default
+        aws configure set region "us-east-1" --profile default
+        aws configure set output "json" --profile default
+
+        log "Perfil default pre-configurado" "OK"
+        log "" "INFO"
+        log "Iniciando AWS SSO login (se abrirá el navegador)..." "INFO"
+        log "Seguí las instrucciones en el navegador para completar el login." "INFO"
+        log "" "INFO"
+
+        if [[ "$DRY_RUN" == false ]]; then
+            # Intentar login SSO (abre navegador automáticamente)
+            if aws sso login --profile default; then
+                log "AWS SSO login completado exitosamente" "OK"
+            else
+                log "AWS SSO login falló o fue cancelado" "WARN"
+                log "Podés completarlo después con: aws sso login --profile default" "WARN"
+                WARNINGS+=("AWS SSO login incompleto — correr 'aws sso login --profile default'")
+            fi
+        else
+            log "[DryRun] Saltando aws sso login" "SKIP"
+        fi
     else
         log "AWS CLI no disponible — error inesperado" "ERROR"
         WARNINGS+=("AWS CLI deberia estar instalado pero no se encuentra")

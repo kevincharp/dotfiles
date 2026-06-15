@@ -587,6 +587,40 @@ if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
 fi
 unset _ptyxis_dump
 
+# GNOME — atajos, dock, extensiones y favoritos (solo si corre GNOME).
+# Las extensiones de Fedora vienen como paquetes; primero se instalan, despues
+# se aplican los dumps versionados. La config se actualiza con 'gnome-save'.
+if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
+    # Extensiones (paquetes nativos en Fedora; en otras distros se omiten)
+    if [[ "$PKG_MANAGER" == "dnf" ]]; then
+        for _ext_pkg in gnome-shell-extension-dash-to-dock gnome-shell-extension-gpaste; do
+            if rpm -q "$_ext_pkg" &>/dev/null; then
+                log "$_ext_pkg ya instalado" "SKIP"
+            else
+                run_step "Instalar $_ext_pkg" $PKG_INSTALL "$_ext_pkg"
+            fi
+        done
+        unset _ext_pkg
+    fi
+
+    # Mapa "rama dconf : archivo" (espejo de _GNOME_DCONF_MAP en bashrc)
+    _gnome_map=(
+        "/org/gnome/settings-daemon/plugins/media-keys/:media-keys.dconf"
+        "/org/gnome/desktop/wm/keybindings/:wm-keybindings.dconf"
+        "/org/gnome/shell/extensions/dash-to-dock/:dash-to-dock.dconf"
+        "/org/gnome/GPaste/:gpaste.dconf"
+        "/org/gnome/shell/:shell.dconf"
+    )
+    for _entry in "${_gnome_map[@]}"; do
+        _path="${_entry%%:*}"
+        _file="$REPO_ROOT/gnome/${_entry##*:}"
+        [[ -f "$_file" ]] || continue
+        run_step "Restaurar GNOME: ${_entry##*:}" \
+            bash -c "dconf load '$_path' < '$_file'"
+    done
+    unset _gnome_map _entry _path _file
+fi
+
 # ==============================================================================
 # 5. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================

@@ -688,6 +688,65 @@ ptyxis-load() {
 }
 
 # ==============================================================================
+# GNOME — sincronizar configuracion del escritorio (dconf <-> repo)
+# ==============================================================================
+# GNOME guarda atajos, dock, extensiones, etc. en dconf (no en archivos), por
+# eso no se puede symlinkear. gnome-save vuelca al repo; gnome-load restaura.
+#
+# Para versionar una rama nueva: agregala a _GNOME_DCONF_MAP con el formato
+# "ruta/dconf/:archivo.dconf". 'dconf load' es ADITIVO (solo escribe las claves
+# del archivo, no borra el resto), por eso shell.dconf puede traer solo
+# favorite-apps y enabled-extensions sin pisar el resto de /org/gnome/shell/.
+
+# Mapa "rama dconf : archivo en gnome/" (relativo a ~/.dotfiles/gnome/)
+_GNOME_DCONF_MAP=(
+    "/org/gnome/settings-daemon/plugins/media-keys/:media-keys.dconf"
+    "/org/gnome/desktop/wm/keybindings/:wm-keybindings.dconf"
+    "/org/gnome/shell/extensions/dash-to-dock/:dash-to-dock.dconf"
+    "/org/gnome/GPaste/:gpaste.dconf"
+    "/org/gnome/shell/:shell.dconf"
+)
+
+# --- gnome-save: volcar la config de GNOME al repo (todas las ramas) ---
+gnome-save() {
+    local dir="$HOME/.dotfiles/gnome"
+    if ! command -v dconf &>/dev/null; then
+        echo "dconf no esta disponible"
+        return 1
+    fi
+    local entry path file
+    for entry in "${_GNOME_DCONF_MAP[@]}"; do
+        path="${entry%%:*}"
+        file="${entry##*:}"
+        # shell.dconf se mantiene a mano (solo claves selectas), no se vuelca entero
+        if [[ "$file" == "shell.dconf" ]]; then
+            echo "omitido  $file (editar a mano: rama ruidosa)"
+            continue
+        fi
+        dconf dump "$path" > "$dir/$file" && echo "guardado $file"
+    done
+}
+
+# --- gnome-load: restaurar la config de GNOME desde el repo (todas las ramas) ---
+gnome-load() {
+    local dir="$HOME/.dotfiles/gnome"
+    if ! command -v dconf &>/dev/null; then
+        echo "dconf no esta disponible"
+        return 1
+    fi
+    local entry path file
+    for entry in "${_GNOME_DCONF_MAP[@]}"; do
+        path="${entry%%:*}"
+        file="${entry##*:}"
+        if [[ -f "$dir/$file" ]]; then
+            dconf load "$path" < "$dir/$file" && echo "restaurado $file"
+        else
+            echo "falta    $file (no existe en el repo)"
+        fi
+    done
+}
+
+# ==============================================================================
 # FIN
 # ==============================================================================
 

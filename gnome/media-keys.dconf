@@ -1,0 +1,12 @@
+[/]
+control-center=['<Super>c']
+custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']
+email=['<Super>q']
+home=['<Super>e']
+search=['<Super>b']
+www=['<Super>w']
+
+[custom-keybindings/custom0]
+binding='<Control><Alt>t'
+command='ptyxis'
+name='Terminal'

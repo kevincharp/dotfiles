@@ -1,0 +1,3 @@
+[/]
+enabled-extensions=['background-logo@fedorahosted.org', 'dash-to-dock@micxgx.gmail.com', 'GPaste@gnome-shell-extensions.gnome.org']
+favorite-apps=['org.gnome.Nautilus.desktop', 'org.mozilla.firefox.desktop', 'org.gnome.Calendar.desktop', 'org.gnome.Ptyxis.desktop']

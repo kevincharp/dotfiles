@@ -593,6 +593,9 @@ else
 
         aws configure set sso_start_url "https://<tu-org>.awsapps.com/start/#" --profile default
         aws configure set sso_region "us-east-1" --profile default
+        # Cuenta + rol con acceso a Bedrock (sin esto get-caller-identity da NoCredentials)
+        aws configure set sso_account_id "<AWS_SSO_ACCOUNT_ID>" --profile default   # cuenta "Data"
+        aws configure set sso_role_name "Bedrock_Access" --profile default
         aws configure set region "us-east-1" --profile default
         aws configure set output "json" --profile default
 

@@ -182,12 +182,18 @@ fi
 # ==============================================================================
 
 if command -v fzf &>/dev/null; then
-    # Cargar keybindings de fzf si estan disponibles
-    if [[ -f /usr/share/fzf/key-bindings.bash ]]; then
+    # Cargar keybindings (Ctrl+R historial, Ctrl+T, Alt+C) + completions.
+    # fzf >= 0.48 expone todo via 'fzf --bash' (portable, sin adivinar rutas).
+    if fzf --bash &>/dev/null; then
+        eval "$(fzf --bash)"
+    # Fallback para versiones viejas: las rutas varian por distro.
+    elif [[ -f /usr/share/fzf/shell/key-bindings.bash ]]; then   # Fedora 38+
+        . /usr/share/fzf/shell/key-bindings.bash
+    elif [[ -f /usr/share/fzf/key-bindings.bash ]]; then          # Arch / otros
         . /usr/share/fzf/key-bindings.bash
-    elif [[ -f /usr/share/doc/fzf/examples/key-bindings.bash ]]; then
+    elif [[ -f /usr/share/doc/fzf/examples/key-bindings.bash ]]; then  # Debian/Ubuntu
         . /usr/share/doc/fzf/examples/key-bindings.bash
-    elif [[ -f ~/.fzf.bash ]]; then
+    elif [[ -f ~/.fzf.bash ]]; then                               # instalador git (Windows)
         . ~/.fzf.bash
     fi
 

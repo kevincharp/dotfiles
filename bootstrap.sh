@@ -577,6 +577,16 @@ if [[ -f "$_omp_src" ]]; then
 fi
 unset _omp_themes_dst _omp_src
 
+# Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un
+# archivo), asi que no se puede symlinkear: se restaura con 'dconf load'.
+# El dump versionado se actualiza con el helper 'ptyxis-save' (ver bashrc).
+_ptyxis_dump="$REPO_ROOT/terminal/ptyxis.dconf"
+if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
+    run_step "Restaurar config de Ptyxis (dconf load)" \
+        bash -c "dconf load /org/gnome/Ptyxis/ < '$_ptyxis_dump'"
+fi
+unset _ptyxis_dump
+
 # ==============================================================================
 # 5. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================

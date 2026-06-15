@@ -26,7 +26,13 @@
       "Bash(bash -n bootstrap.sh)",
       "Bash(python3 -c \"import json;json.load\\(open\\('terminal/settings.json'\\)\\);print\\('settings.json OK'\\)\")",
       "Bash(dconf load *)",
-      "Bash(dconf read *)"
+      "Bash(dconf read *)",
+      "Bash(dnf repoquery *)",
+      "Bash(flatpak list *)",
+      "Bash(gnome-extensions list *)",
+      "Bash(npm ls *)",
+      "Bash(rpm -q *)",
+      "Bash(python3 -c \"import json;json.load\\(open\\('.claude/settings.local.json'\\)\\);print\\('JSON OK'\\)\")"
     ]
   }
 }

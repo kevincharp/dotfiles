@@ -70,9 +70,22 @@ Ver sección **Setup en maquina nueva → Windows** más abajo.
 │   ├── bash_profile          # Loader de bashrc
 │   └── themes/
 │       └── claude-code.omp.json  # Tema Oh My Posh custom
-└── terminal/
-    └── settings.json         # Windows Terminal
+├── terminal/
+│   ├── settings.json         # Windows Terminal (symlink)
+│   └── ptyxis.dconf          # Ptyxis / Fedora (dump dconf)
+└── gnome/                    # Config del escritorio GNOME (dumps dconf)
+    ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T)
+    ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
+    ├── dash-to-dock.dconf     # Config del dock
+    ├── gpaste.dconf           # GPaste (Alt+Super+V, historial)
+    └── shell.dconf            # Favoritos del dock + extensiones habilitadas
 ```
+
+> **Terminales y GNOME usan dconf, no symlinks.** Windows Terminal y el shell
+> se editan en el repo y se reflejan al instante (symlink). En cambio Ptyxis y
+> GNOME guardan su config en la base de datos `dconf`, que no es un archivo: se
+> sincroniza a mano con los helpers `ptyxis-save`/`gnome-save` (sistema → repo)
+> y `ptyxis-load`/`gnome-load` (repo → sistema). Ver "Flujo de actualizacion".
 
 > Las identidades git (`config-personal/work/cei_walle`), `ssh/` y `bookmarks/`
 > NO estan aca: viven en el repo privado **dotfiles-vault**.
@@ -268,6 +281,49 @@ El script automaticamente:
 - Ejecuta `bootstrap.sh` con los mismos parametros (`--with-aws`, `--skip-packages`, etc.)
 - Usa HTTPS si no tenes SSH configurado (ideal para instalacion inicial)
 
+### Guardar cambios de Ptyxis y GNOME (dconf)
+
+Las configs de **shell, oh-my-posh y Windows Terminal** son symlinks: editas el
+archivo y el cambio ya esta en el repo, solo falta `git commit`. Pero **Ptyxis y
+GNOME** guardan su config en `dconf` (no en archivos), asi que el repo y el
+sistema son dos copias separadas. Cuando cambias algo desde la GUI hay un paso
+extra para capturarlo:
+
+```bash
+# 1. Cambiaste un atajo / el dock / un setting en la GUI de GNOME
+gnome-save                    # vuelca dconf -> archivos del repo
+                              # (ptyxis-save para la terminal)
+
+# 2. Revisas y versionas el cambio
+cd ~/.dotfiles
+git diff gnome/               # ver que cambio realmente
+git add gnome/ && git commit -m "feat(gnome): ..."
+git push
+```
+
+**Si te arrepentis de un cambio:** el repo es tu "deshacer". Volves el archivo a
+la version buena y lo re-aplicas al sistema con `gnome-load`:
+
+```bash
+# Cambio no guardado todavia: el repo aun tiene la version buena
+gnome-load                    # pisa el cambio de la GUI con lo del repo
+
+# Cambio ya commiteado: recuperas la version anterior y la re-aplicas
+git checkout HEAD~1 -- gnome/media-keys.dconf
+gnome-load
+```
+
+> `gnome-save`/`gnome-load` sincronizan **todas** las ramas versionadas de una
+> sola vez. Para versionar una rama nueva, agregala a `_GNOME_DCONF_MAP` en
+> `shell/bashrc` (y al mapa espejo en `bootstrap.sh`).
+>
+> `dconf load` es **aditivo**: solo escribe las claves del archivo, no borra el
+> resto. Por eso `shell.dconf` trae solo `favorite-apps` y `enabled-extensions`
+> (se edita a mano) sin arrastrar el ruido del resto de `/org/gnome/shell/`.
+
+En una **maquina nueva**, el `curl` ya aplica todo esto automaticamente: el
+bootstrap instala las extensiones de GNOME y hace `dconf load` de cada rama.
+
 ### Desinstalación (Linux)
 
 Si necesitás desinstalar los dotfiles completamente (útil para testing o migración):
@@ -330,8 +386,12 @@ git pull
 | Windows Terminal | Terminal con paneles y tabs | winget | - | - |
 | AWS CLI | Acceso a Bedrock *(opcional)* | winget | installer oficial | installer oficial |
 | GitHub CLI | PRs e issues desde terminal *(opcional)* | winget | - | - |
+| dash-to-dock | Extension GNOME del dock | - | dnf | - |
+| GPaste | Gestor de portapapeles GNOME | - | dnf | - |
 
 > En Fedora todo lo que tiene paquete nativo se instala via `dnf` (para que se actualice con `dnf upgrade`). El método por binario/curl queda como fallback solo para distros sin el paquete en repos.
+
+> Las extensiones de GNOME (dash-to-dock, GPaste) solo se instalan en Fedora con GNOME, y su configuracion se aplica desde `gnome/*.dconf` (ver seccion "Ptyxis y GNOME").
 
 ### Manuales (solo Windows, ver Paso 1)
 
@@ -409,6 +469,8 @@ Disponibles en PowerShell (`profile.ps1`) y Bash (`bashrc`). Usar `spf` para lis
 | `claude-smg` | Claude Code con Bedrock de SMG |
 | `edit archivo` | Abrir en VSCode *(solo pwsh)* |
 | `open path` / `openh` | Abrir en explorador/app |
+| `ptyxis-save` / `ptyxis-load` | Volcar/restaurar config de Ptyxis (dconf) *(Linux)* |
+| `gnome-save` / `gnome-load` | Volcar/restaurar config de GNOME: atajos, dock, GPaste *(Linux)* |
 
 ---
 
@@ -417,13 +479,39 @@ Disponibles en PowerShell (`profile.ps1`) y Bash (`bashrc`). Usar `spf` para lis
 Configuracion en `terminal/settings.json`:
 
 - Perfil default: PowerShell 7
-- Font: FiraCode Nerd Font Mono (size 7)
+- Font: FiraCode Nerd Font Mono **SemiBold** (size 7)
 - Tema: Ubuntu 22.04 ColorScheme
 - Opacidad: 90% con acrylic
 - Perfiles: PowerShell, Git Bash, Linux (WSL), Ubuntu, CMD, Windows PowerShell, Azure Cloud Shell
 - `Alt+Shift+D`: dividir panel
 
 > FiraCode Nerd Font hay que instalarla manualmente: https://www.nerdfonts.com/font-downloads
+
+---
+
+## Ptyxis y GNOME (Linux / Fedora)
+
+La terminal por defecto de Fedora es **Ptyxis**, y la config del escritorio
+(atajos, dock, extensiones) vive en `dconf`. Como no son archivos, no se
+symlinkean: se versionan como dumps y se sincronizan con helpers.
+
+**Ptyxis** (`terminal/ptyxis.dconf`):
+- Font: FiraCode Nerd Font Mono SemiBold (size 10) — alineada con Windows Terminal
+- Tema oscuro, paleta `linux`, perfil `kevincharp`
+
+**GNOME** (`gnome/*.dconf`), aplicado por el bootstrap en una maquina nueva:
+- Atajos custom: `Ctrl+Alt+T` → Ptyxis, `Super+E` home, `Super+W` web,
+  `Super+B` buscar, `Super+Q` email, `Super+C` panel de control, `Super+D` escritorio
+- Dock (dash-to-dock): posicion abajo, transparencia dinamica, icon-size 32
+- GPaste: `Alt+Super+V` para el historial del portapapeles
+- Favoritos del dock + extensiones habilitadas (dash-to-dock, GPaste, background-logo)
+
+> El peso de fuente (SemiBold) esta alineado entre Windows Terminal y Ptyxis.
+> El tamaño difiere a proposito (Win 7 / Ptyxis 10) porque las unidades de
+> tamaño no son equivalentes entre ambos sistemas.
+
+> Para guardar/restaurar estos cambios ver "Flujo de actualizacion → Guardar
+> cambios de Ptyxis y GNOME (dconf)".
 
 ---
 

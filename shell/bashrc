@@ -657,6 +657,37 @@ spf() {
 }
 
 # ==============================================================================
+# PTYXIS — sincronizar config de la terminal (dconf <-> repo)
+# ==============================================================================
+# Ptyxis guarda su config en dconf (no en un archivo), por eso no se puede
+# symlinkear como Windows Terminal. Estos helpers vuelcan/restauran el dump
+# versionado en ~/.dotfiles/terminal/ptyxis.dconf.
+
+# --- ptyxis-save: volcar la config actual de Ptyxis al repo ---
+ptyxis-save() {
+    local dump="$HOME/.dotfiles/terminal/ptyxis.dconf"
+    if ! command -v dconf &>/dev/null; then
+        echo "dconf no esta disponible"
+        return 1
+    fi
+    dconf dump /org/gnome/Ptyxis/ > "$dump" && echo "Ptyxis -> $dump"
+}
+
+# --- ptyxis-load: restaurar la config de Ptyxis desde el repo ---
+ptyxis-load() {
+    local dump="$HOME/.dotfiles/terminal/ptyxis.dconf"
+    if ! command -v dconf &>/dev/null; then
+        echo "dconf no esta disponible"
+        return 1
+    fi
+    if [[ ! -f "$dump" ]]; then
+        echo "No existe $dump"
+        return 1
+    fi
+    dconf load /org/gnome/Ptyxis/ < "$dump" && echo "Restaurado desde $dump"
+}
+
+# ==============================================================================
 # FIN
 # ==============================================================================
 

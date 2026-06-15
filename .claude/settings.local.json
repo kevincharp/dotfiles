@@ -19,7 +19,14 @@
       "Bash(oh-my-posh init *)",
       "Bash(command -v oh-my-posh)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:ohmyposh.dev)"
+      "WebFetch(domain:ohmyposh.dev)",
+      "Bash(dconf dump *)",
+      "Bash(fc-list)",
+      "Bash(bash -n shell/bashrc)",
+      "Bash(bash -n bootstrap.sh)",
+      "Bash(python3 -c \"import json;json.load\\(open\\('terminal/settings.json'\\)\\);print\\('settings.json OK'\\)\")",
+      "Bash(dconf load *)",
+      "Bash(dconf read *)"
     ]
   }
 }

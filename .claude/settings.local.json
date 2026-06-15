@@ -6,7 +6,20 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(chmod +x /c/Users/kecharpen/.dotfiles/uninstall.sh)"
+      "Bash(chmod +x /c/Users/kecharpen/.dotfiles/uninstall.sh)",
+      "Read(//home/kevincharp/**)",
+      "Bash(aws sts *)",
+      "Bash(aws configure *)",
+      "Bash(export AWS_PROFILE=default AWS_REGION=us-east-1)",
+      "Bash(aws bedrock *)",
+      "Bash(aws bedrock-runtime *)",
+      "Bash(bash -n ~/.dotfiles/shell/bashrc)",
+      "Bash(bash -n ~/.dotfiles/bootstrap.sh)",
+      "Bash(fzf --bash)",
+      "Bash(oh-my-posh init *)",
+      "Bash(command -v oh-my-posh)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ohmyposh.dev)"
     ]
   }
 }

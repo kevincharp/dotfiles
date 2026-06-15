@@ -589,18 +589,21 @@ claude-smg() {
     export CLAUDE_CODE_USE_BEDROCK="1"
     export AWS_PROFILE="${CLAUDE_SMG_AWS_PROFILE:-default}"
     export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
+    # Modelos Bedrock (inference profiles us.*). Overridables desde ~/.env.
+    export ANTHROPIC_MODEL="${CLAUDE_SMG_MODEL:-us.anthropic.claude-opus-4-8}"
+    export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 
     if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then
         echo "Sesion SSO caducada o ausente, ejecutando: aws sso login --profile $AWS_PROFILE"
         aws sso login --profile "$AWS_PROFILE" || {
             echo "Fallo el login SSO, abortando." >&2
-            unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION
+            unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION ANTHROPIC_MODEL ANTHROPIC_SMALL_FAST_MODEL
             return 1
         }
     fi
 
     claude "$@"
-    unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION
+    unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION ANTHROPIC_MODEL ANTHROPIC_SMALL_FAST_MODEL
 }
 
 # ==============================================================================

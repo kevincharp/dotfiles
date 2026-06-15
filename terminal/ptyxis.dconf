@@ -1,0 +1,25 @@
+[/]
+default-profile-uuid='efb537879e29f6d38e04d1e56a2e4ff5'
+font-name='FiraCode Nerd Font Mono Semi-Bold 10'
+interface-style='dark'
+profile-uuids=['efb537879e29f6d38e04d1e56a2e4ff5']
+restore-session=false
+restore-window-size=true
+use-system-font=false
+window-size=(uint32 238, uint32 59)
+
+[Profiles/8caec5e3863a9c03618dd2a46a1ccfb6]
+login-shell=true
+opacity=1.0
+palette='linux'
+
+[Profiles/efb537879e29f6d38e04d1e56a2e4ff5]
+cell-width-scale=1.0
+label='kevincharp'
+login-shell=false
+palette='linux'
+
+[Shortcuts]
+close-tab='<Alt>w'
+reset=''
+undo-close-tab='<Shift><Control>t'

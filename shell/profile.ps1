@@ -1116,6 +1116,17 @@ function claude-smg {
     $env:CLAUDE_CODE_USE_BEDROCK = "1"
     $env:AWS_PROFILE             = if ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
     $env:AWS_REGION              = if ($env:CLAUDE_SMG_AWS_REGION)  { $env:CLAUDE_SMG_AWS_REGION }  else { 'us-east-1' }
+    # Modelos Bedrock (inference profiles us.*). Overridables desde ~/.env.
+    $env:ANTHROPIC_MODEL            = if ($env:CLAUDE_SMG_MODEL)       { $env:CLAUDE_SMG_MODEL }       else { 'us.anthropic.claude-opus-4-8' }
+    $env:ANTHROPIC_SMALL_FAST_MODEL = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL } else { 'us.anthropic.claude-haiku-4-5-20251001-v1:0' }
+
+    $cleanup = {
+        Remove-Item Env:CLAUDE_CODE_USE_BEDROCK    -ErrorAction SilentlyContinue
+        Remove-Item Env:AWS_PROFILE                -ErrorAction SilentlyContinue
+        Remove-Item Env:AWS_REGION                 -ErrorAction SilentlyContinue
+        Remove-Item Env:ANTHROPIC_MODEL            -ErrorAction SilentlyContinue
+        Remove-Item Env:ANTHROPIC_SMALL_FAST_MODEL -ErrorAction SilentlyContinue
+    }
 
     aws sts get-caller-identity --profile $env:AWS_PROFILE *> $null
     if ($LASTEXITCODE -ne 0) {
@@ -1123,17 +1134,21 @@ function claude-smg {
         aws sso login --profile $env:AWS_PROFILE
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Fallo el login SSO, abortando."
-            Remove-Item Env:CLAUDE_CODE_USE_BEDROCK -ErrorAction SilentlyContinue
-            Remove-Item Env:AWS_PROFILE             -ErrorAction SilentlyContinue
-            Remove-Item Env:AWS_REGION              -ErrorAction SilentlyContinue
+            & $cleanup
+            return
+        }
+        # Revalidar: si el perfil esta incompleto (falta sso_account_id/sso_role_name),
+        # el login funciona pero no hay credenciales y entrariamos en loop.
+        aws sts get-caller-identity --profile $env:AWS_PROFILE *> $null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "El login SSO funciono pero el perfil '$($env:AWS_PROFILE)' no obtiene credenciales (revisa sso_account_id / sso_role_name con: aws configure sso)."
+            & $cleanup
             return
         }
     }
 
     claude @args
-    Remove-Item Env:CLAUDE_CODE_USE_BEDROCK -ErrorAction SilentlyContinue
-    Remove-Item Env:AWS_PROFILE             -ErrorAction SilentlyContinue
-    Remove-Item Env:AWS_REGION              -ErrorAction SilentlyContinue
+    & $cleanup
 }
 
 # ==============================================================================

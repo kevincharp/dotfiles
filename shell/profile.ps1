@@ -117,11 +117,15 @@ if (Get-Command fzf -ErrorAction SilentlyContinue) {
 _TryImportModule PSReadLine -Quiet
 
 if (Get-Module PSReadLine -ErrorAction SilentlyContinue) {
-    Set-PSReadLineOption -PredictionSource HistoryAndPlugin
-    Set-PSReadLineOption -PredictionViewStyle ListView
-    Set-PSReadLineOption -EditMode Windows
-    Set-PSReadLineOption -MaximumHistoryCount 10000
-    Set-PSReadLineOption -BellStyle None
+    try {
+        Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction Stop
+        Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction Stop
+    } catch {
+        # Ignorar errores en contextos no interactivos (ej: Claude Code)
+    }
+    Set-PSReadLineOption -EditMode Windows -ErrorAction SilentlyContinue
+    Set-PSReadLineOption -MaximumHistoryCount 10000 -ErrorAction SilentlyContinue
+    Set-PSReadLineOption -BellStyle None -ErrorAction SilentlyContinue
     Set-PSReadLineOption -Colors @{
         Command              = '#C79BFF'
         Parameter            = '#7AB8FF'
@@ -139,9 +143,9 @@ if (Get-Module PSReadLine -ErrorAction SilentlyContinue) {
         InlinePrediction     = '#6B5448'
         ListPrediction       = '#A89890'
         ListPredictionSelected = "`e[48;2;58;46;42m"
-    }
-    Set-PSReadLineKeyHandler -Chord "Ctrl+RightArrow" -Function AcceptNextSuggestionWord
-    Set-PSReadLineKeyHandler -Chord "Ctrl+Spacebar"   -Function MenuComplete
+    } -ErrorAction SilentlyContinue
+    Set-PSReadLineKeyHandler -Chord "Ctrl+RightArrow" -Function AcceptNextSuggestionWord -ErrorAction SilentlyContinue
+    Set-PSReadLineKeyHandler -Chord "Ctrl+Spacebar"   -Function MenuComplete -ErrorAction SilentlyContinue
 }
 
 # FZF — colores Claude Code

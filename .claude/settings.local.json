@@ -32,7 +32,11 @@
       "Bash(gnome-extensions list *)",
       "Bash(npm ls *)",
       "Bash(rpm -q *)",
-      "Bash(python3 -c \"import json;json.load\\(open\\('.claude/settings.local.json'\\)\\);print\\('JSON OK'\\)\")"
+      "Bash(python3 -c \"import json;json.load\\(open\\('.claude/settings.local.json'\\)\\);print\\('JSON OK'\\)\")",
+      "Bash(bash bootstrap.sh --dry-run)",
+      "Bash(git config *)",
+      "Read(//tmp/**)",
+      "Bash(/tmp/pwsh/pwsh *)"
     ]
   }
 }

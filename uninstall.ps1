@@ -60,19 +60,34 @@ $WINGET_PACKAGES = @(
 # HELPERS
 # ==============================================================================
 
+# Forzar UTF-8 en la consola para que los iconos se vean (no rompe si ya lo esta)
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+# Iconos: UTF-8 si la consola lo soporta, si no ASCII
+$script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001) {
+    @{ Section='▶'; Ok='✓'; Warn='⚠'; Err='✗'; Skip='⊘'; Bullet='✗' }
+} else {
+    @{ Section='>'; Ok='[OK]'; Warn='[!]'; Err='[X]'; Skip='[-]'; Bullet='*' }
+}
+
 function Write-Log {
     param([string]$Message, [string]$Level = 'INFO')
-    $ts = Get-Date -Format 'HH:mm:ss'
-    $color = switch ($Level) {
-        'OK'      { 'Green'      }
-        'WARN'    { 'DarkYellow' }
-        'ERROR'   { 'Red'        }
-        'SKIP'    { 'DarkGray'   }
-        'SECTION' { 'Cyan'       }
-        default   { 'White'      }
+    switch ($Level) {
+        'SECTION' {
+            $clean = ($Message -replace '^[\s=#-]+', '' -replace '[\s=#-]+$', '')
+            if (-not $clean) { return }
+            Write-Host ''
+            Write-Host "$($script:ICONS.Section) $clean" -ForegroundColor Cyan
+        }
+        'OK'    { Write-Host "  $($script:ICONS.Ok) " -ForegroundColor Green      -NoNewline; Write-Host $Message }
+        'WARN'  { Write-Host "  $($script:ICONS.Warn) " -ForegroundColor DarkYellow -NoNewline; Write-Host $Message }
+        'ERROR' { Write-Host "  $($script:ICONS.Err) " -ForegroundColor Red        -NoNewline; Write-Host $Message }
+        'SKIP'  { Write-Host "  $($script:ICONS.Skip) $Message" -ForegroundColor DarkGray }
+        default { if (-not $Message) { Write-Host '' } else { Write-Host "    $Message" -ForegroundColor DarkGray } }
     }
-    Write-Host "[$ts] $Message" -ForegroundColor $color
 }
+
+# Item de preview: marca lo que se va a quitar (rojo)
+function Write-Prev { param([string]$Text) Write-Host "    $($script:ICONS.Bullet) $Text" -ForegroundColor Red }
 
 function Test-CommandAvailable {
     param([string]$Cmd)
@@ -90,11 +105,8 @@ function Confirm-Action {
 # INICIO
 # ==============================================================================
 
-Write-Log '======================================================' 'SECTION'
-Write-Log '  uninstall.ps1 - Desinstalacion de dotfiles' 'SECTION'
-Write-Log "  DryRun: $DryRun" 'SECTION'
-Write-Log '======================================================' 'SECTION'
-Write-Host ''
+Write-Log 'uninstall.ps1 - Desinstalacion de dotfiles' 'SECTION'
+if ($DryRun) { Write-Log 'modo DryRun' 'INFO' }
 
 # ==============================================================================
 # 1. VERIFICAR QUE EXISTEN LOS REPOS
@@ -130,50 +142,39 @@ if (Test-Path $BACKUPS_DIR) {
 # 3. PREVIEW Y CONFIRMACION
 # ==============================================================================
 
-Write-Host ''
-Write-Log '======================================================' 'SECTION'
-Write-Log '  PREVIEW - Que se va a desinstalar:' 'SECTION'
-Write-Log '======================================================' 'SECTION'
-Write-Host ''
+Write-Log 'Preview - Que se va a desinstalar' 'SECTION'
 
-Write-Host 'Symlinks/archivos a remover:'
+Write-Log 'Symlinks/archivos a remover:' 'INFO'
 foreach ($target in $DOTFILES_TARGETS) {
-    if (Test-Path $target) { Write-Host "  x $target" }
+    if (Test-Path $target) { Write-Prev $target }
 }
 
-Write-Host ''
-Write-Host 'Repositorios a borrar:'
-if (Test-Path $DOTFILES_DIR) { Write-Host "  x $DOTFILES_DIR" }
-if (Test-Path $VAULT_DIR)    { Write-Host "  x $VAULT_DIR" }
+Write-Log 'Repositorios a borrar:' 'INFO'
+if (Test-Path $DOTFILES_DIR) { Write-Prev $DOTFILES_DIR }
+if (Test-Path $VAULT_DIR)    { Write-Prev $VAULT_DIR }
 
 if ($RemovePackages) {
-    Write-Host ''
-    Write-Host 'Paquetes a desinstalar (-RemovePackages):'
+    Write-Log 'Paquetes a desinstalar (-RemovePackages):' 'INFO'
     foreach ($pkg in $WINGET_PACKAGES) {
-        Write-Host "  x $($pkg.Name) ($($pkg.Id))"
+        Write-Prev "$($pkg.Name) ($($pkg.Id))"
     }
 }
 
 if ($LATEST_BACKUP) {
-    Write-Host ''
-    Write-Host 'Archivos a restaurar desde backup:'
-    $backupFiles = Get-ChildItem -Path $LATEST_BACKUP -Recurse -File -ErrorAction SilentlyContinue
+    Write-Log 'Archivos a restaurar desde backup:' 'INFO'
+    $backupFiles = @(Get-ChildItem -Path $LATEST_BACKUP -Recurse -File -ErrorAction SilentlyContinue)
     $backupFiles | Select-Object -First 10 | ForEach-Object {
-        Write-Host "  <- $($_.FullName.Substring($LATEST_BACKUP.Length))"
+        Write-Host "    ↺ $($_.FullName.Substring($LATEST_BACKUP.Length))" -ForegroundColor DarkGray
     }
     if ($backupFiles.Count -gt 10) {
-        Write-Host "  ... y $($backupFiles.Count - 10) mas"
+        Write-Log "... y $($backupFiles.Count - 10) mas" 'INFO'
     }
 }
 
 if (-not $KeepBackups) {
-    Write-Host ''
-    Write-Host 'Backups a borrar:'
-    Write-Host "  x $BACKUPS_DIR"
+    Write-Log 'Backups a borrar:' 'INFO'
+    Write-Prev $BACKUPS_DIR
 }
-
-Write-Host ''
-Write-Log '======================================================' 'SECTION'
 
 if ($DryRun) {
     Write-Log '[DRY RUN] No se ejecutara ninguna accion destructiva.' 'SKIP'
@@ -190,7 +191,6 @@ if (-not (Confirm-Action 'Continuar con la desinstalacion?')) {
 # 4. REMOVER SYMLINKS Y ARCHIVOS
 # ==============================================================================
 
-Write-Host ''
 Write-Log '--- [1/5] Removiendo symlinks y archivos dotfiles ---' 'SECTION'
 
 foreach ($target in $DOTFILES_TARGETS) {
@@ -210,7 +210,6 @@ foreach ($target in $DOTFILES_TARGETS) {
 # 5. RESTAURAR BACKUPS
 # ==============================================================================
 
-Write-Host ''
 Write-Log '--- [2/5] Restaurando backups ---' 'SECTION'
 
 if ($LATEST_BACKUP -and (Test-Path $LATEST_BACKUP)) {
@@ -235,7 +234,6 @@ if ($LATEST_BACKUP -and (Test-Path $LATEST_BACKUP)) {
 # 6. DESINSTALAR PAQUETES (OPCIONAL)
 # ==============================================================================
 
-Write-Host ''
 Write-Log '--- [3/5] Desinstalando paquetes ---' 'SECTION'
 
 if (-not $RemovePackages) {
@@ -262,7 +260,6 @@ if (-not $RemovePackages) {
 # 7. BORRAR REPOSITORIOS
 # ==============================================================================
 
-Write-Host ''
 Write-Log '--- [4/5] Borrando repositorios ---' 'SECTION'
 
 if (Test-Path $DOTFILES_DIR) {
@@ -278,7 +275,6 @@ if (Test-Path $VAULT_DIR) {
 # 8. BORRAR BACKUPS (OPCIONAL)
 # ==============================================================================
 
-Write-Host ''
 Write-Log '--- [5/5] Borrando backups ---' 'SECTION'
 
 if ($KeepBackups) {
@@ -294,14 +290,7 @@ if ($KeepBackups) {
 # RESUMEN FINAL
 # ==============================================================================
 
-Write-Host ''
-Write-Log '======================================================' 'SECTION'
-Write-Log '  DESINSTALACION COMPLETADA' 'SECTION'
-Write-Log '======================================================' 'SECTION'
-Write-Host ''
+Write-Log 'Desinstalacion completada' 'SECTION'
 Write-Log 'Dotfiles desinstalados correctamente.' 'OK'
-Write-Host ''
 Write-Log 'Para reinstalar, ejecuta:' 'INFO'
 Write-Log '  irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex' 'INFO'
-Write-Host ''
-Write-Log '======================================================' 'SECTION'

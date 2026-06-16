@@ -56,18 +56,30 @@ $BRANCH       = if ($env:DOTFILES_BRANCH) { $env:DOTFILES_BRANCH } else { 'main'
 # HELPERS
 # ==============================================================================
 
+# Forzar UTF-8 en la consola para que los iconos se vean (no rompe si ya lo esta)
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+# Iconos: UTF-8 si la consola lo soporta, si no ASCII
+$script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001) {
+    @{ Section='▶'; Ok='✓'; Warn='⚠'; Err='✗'; Skip='⊘' }
+} else {
+    @{ Section='>'; Ok='[OK]'; Warn='[!]'; Err='[X]'; Skip='[-]' }
+}
+
 function Write-Log {
     param([string]$Message, [string]$Level = 'INFO')
-    $ts = Get-Date -Format 'HH:mm:ss'
-    $color = switch ($Level) {
-        'OK'      { 'Green'      }
-        'WARN'    { 'DarkYellow' }
-        'ERROR'   { 'Red'        }
-        'SKIP'    { 'DarkGray'   }
-        'SECTION' { 'Cyan'       }
-        default   { 'White'      }
+    switch ($Level) {
+        'SECTION' {
+            $clean = ($Message -replace '^[\s=#-]+', '' -replace '[\s=#-]+$', '')
+            if (-not $clean) { return }
+            Write-Host ''
+            Write-Host "$($script:ICONS.Section) $clean" -ForegroundColor Cyan
+        }
+        'OK'    { Write-Host "  $($script:ICONS.Ok) " -ForegroundColor Green      -NoNewline; Write-Host $Message }
+        'WARN'  { Write-Host "  $($script:ICONS.Warn) " -ForegroundColor DarkYellow -NoNewline; Write-Host $Message }
+        'ERROR' { Write-Host "  $($script:ICONS.Err) " -ForegroundColor Red        -NoNewline; Write-Host $Message }
+        'SKIP'  { Write-Host "  $($script:ICONS.Skip) $Message" -ForegroundColor DarkGray }
+        default { if (-not $Message) { Write-Host '' } else { Write-Host "    $Message" -ForegroundColor DarkGray } }
     }
-    Write-Host "[$ts] $Message" -ForegroundColor $color
 }
 
 function Test-CommandAvailable {
@@ -233,20 +245,16 @@ $env:VAULT_DIR = $VAULT_DIR
 # RESUMEN
 # ==============================================================================
 
-Write-Log '' 'INFO'
-Write-Log '======================================================' 'SECTION'
-Write-Log '  INSTALACION COMPLETADA' 'SECTION'
-Write-Log '======================================================' 'SECTION'
+Write-Log 'Instalacion completada' 'SECTION'
 Write-Log "Publico: $DOTFILES_DIR" 'OK'
 if ($VAULT_OK) {
     Write-Log "Vault:   $VAULT_DIR" 'OK'
 } else {
     Write-Log 'Vault:   NO aplicado - claves SSH e identidades git pendientes' 'WARN'
-    Write-Log "  Para aplicarlo luego: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
+    Write-Log "Para aplicarlo luego: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
 }
-Write-Log '' 'INFO'
-Write-Log 'Proximos pasos:' 'INFO'
-Write-Log '  1. Abri una terminal nueva para recargar el profile' 'INFO'
-Write-Log '  2. Si clonaste por HTTPS, cambia a SSH para no pedir credenciales:' 'INFO'
-Write-Log "     cd $DOTFILES_DIR; git remote set-url origin $PUBLIC_SSH" 'INFO'
-Write-Log '======================================================' 'SECTION'
+
+Write-Log 'Proximos pasos' 'SECTION'
+Write-Log '1. Abri una terminal nueva para recargar el profile' 'INFO'
+Write-Log '2. Si clonaste por HTTPS, cambia a SSH para no pedir credenciales:' 'INFO'
+Write-Log "   cd $DOTFILES_DIR; git remote set-url origin $PUBLIC_SSH" 'INFO'

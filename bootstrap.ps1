@@ -166,22 +166,35 @@ $DOTFILES = @(
 # HELPERS
 # ==============================================================================
 
+# Forzar UTF-8 en la consola para que los iconos se vean (no rompe si ya lo esta)
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+# Iconos: UTF-8 si la consola lo soporta, si no ASCII
+$script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001) {
+    @{ Section='▶'; Ok='✓'; Warn='⚠'; Err='✗'; Skip='⊘' }
+} else {
+    @{ Section='>'; Ok='[OK]'; Warn='[!]'; Err='[X]'; Skip='[-]' }
+}
+
 function Write-Log {
     param([string]$Message, [string]$Level = 'INFO')
-    $ts   = Get-Date -Format 'HH:mm:ss'
-    $line = "[$ts][$Level] $Message"
+    # Al archivo siempre con timestamp y nivel (traza completa)
+    $ts = Get-Date -Format 'HH:mm:ss'
+    Add-Content -Path $LOG_FILE -Value "[$ts][$Level] $Message" -ErrorAction SilentlyContinue
 
-    $color = switch ($Level) {
-        'OK'      { 'Green'      }
-        'WARN'    { 'DarkYellow' }
-        'ERROR'   { 'Red'        }
-        'SKIP'    { 'DarkGray'   }
-        'SECTION' { 'Cyan'       }
-        default   { 'White'      }
+    # A pantalla: iconos + jerarquia
+    switch ($Level) {
+        'SECTION' {
+            $clean = ($Message -replace '^[\s=#-]+', '' -replace '[\s=#-]+$', '')
+            if (-not $clean) { return }
+            Write-Host ''
+            Write-Host "$($script:ICONS.Section) $clean" -ForegroundColor Cyan
+        }
+        'OK'    { Write-Host "  $($script:ICONS.Ok) " -ForegroundColor Green      -NoNewline; Write-Host $Message }
+        'WARN'  { Write-Host "  $($script:ICONS.Warn) " -ForegroundColor DarkYellow -NoNewline; Write-Host $Message }
+        'ERROR' { Write-Host "  $($script:ICONS.Err) " -ForegroundColor Red        -NoNewline; Write-Host $Message }
+        'SKIP'  { Write-Host "  $($script:ICONS.Skip) $Message" -ForegroundColor DarkGray }
+        default { if (-not $Message) { Write-Host '' } else { Write-Host "    $Message" -ForegroundColor DarkGray } }
     }
-
-    Write-Host $line -ForegroundColor $color
-    Add-Content -Path $LOG_FILE -Value $line -ErrorAction SilentlyContinue
 }
 
 function Invoke-Step {
@@ -363,25 +376,22 @@ function Test-ToolSelected {
 New-Item -ItemType Directory -Path (Split-Path $LOG_FILE) -Force -ErrorAction SilentlyContinue | Out-Null
 New-Item -ItemType Directory -Path $BACKUP_DIR -Force -ErrorAction SilentlyContinue | Out-Null
 
-Write-Log "======================================================" 'SECTION'
-Write-Log "  bootstrap.ps1 — Inicio: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" 'SECTION'
-Write-Log "  DryRun: $DryRun" 'SECTION'
-Write-Log "======================================================" 'SECTION'
+Write-Log "bootstrap.ps1 — Setup de entorno" 'SECTION'
+Write-Log "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')$(if ($DryRun) { '  ·  modo DryRun' })" 'INFO'
 Write-Log "" 'INFO'
-Write-Log "INSTALACIONES MANUALES REQUERIDAS ANTES DE CONTINUAR" 'WARN'
-Write-Log "  Estos programas NO se instalan automaticamente (hay razones):" 'WARN'
-Write-Log "  1. VSCode System Installer (x64)" 'WARN'
-Write-Log "     https://code.visualstudio.com/docs/?dv=win64user" 'WARN'
-Write-Log "     Razon: el System Installer agrega 'code' al PATH global." 'WARN'
-Write-Log "  2. Python (instalador oficial amd64)" 'WARN'
-Write-Log "     https://www.python.org/downloads/windows/" 'WARN'
-Write-Log "     Razon: marca 'Add Python to PATH' - necesario para Neovim." 'WARN'
-Write-Log "  3. Git for Windows" 'WARN'
-Write-Log "     https://gitforwindows.org/" 'WARN'
-Write-Log "     Razon: el instalador permite configurar line endings y SSH." 'WARN'
+Write-Log "Instalaciones manuales requeridas antes de continuar" 'WARN'
+Write-Log "Estos programas NO se instalan automaticamente (hay razones):" 'INFO'
+Write-Log "1. VSCode System Installer (x64)" 'INFO'
+Write-Log "   https://code.visualstudio.com/docs/?dv=win64user" 'INFO'
+Write-Log "   Razon: el System Installer agrega 'code' al PATH global." 'INFO'
+Write-Log "2. Python (instalador oficial amd64)" 'INFO'
+Write-Log "   https://www.python.org/downloads/windows/" 'INFO'
+Write-Log "   Razon: marca 'Add Python to PATH' - necesario para Neovim." 'INFO'
+Write-Log "3. Git for Windows" 'INFO'
+Write-Log "   https://gitforwindows.org/" 'INFO'
+Write-Log "   Razon: el instalador permite configurar line endings y SSH." 'INFO'
 Write-Log "" 'INFO'
-Write-Log "  Ya los instalaste? Si no, presiona Ctrl+C y hacelo primero." 'WARN'
-Write-Log "" 'INFO'
+Write-Log "Ya los instalaste? Si no, presiona Ctrl+C y hacelo primero." 'WARN'
 
 if (-not $DryRun) { Read-Host "  Presiona Enter para continuar" }
 
@@ -906,17 +916,10 @@ if (Test-Path $loaderProfile) {
 }
 
 # ==============================================================================
-# RESUMEN FINAL
-# ==============================================================================
-
-Write-Log "" 'INFO'
-Write-Log "======================================================" 'SECTION'
-# ==============================================================================
 # VALIDACION POST-BOOTSTRAP
 # ==============================================================================
 
-Write-Log "" 'INFO'
-Write-Log "--- Ejecutando validaciones post-bootstrap ---" 'SECTION'
+Write-Log "Validaciones post-bootstrap" 'SECTION'
 
 $testScript = Join-Path $REPO_ROOT "test-bootstrap.ps1"
 if (Test-Path $testScript) {
@@ -939,35 +942,33 @@ if (Test-Path $testScript) {
 # RESUMEN FINAL
 # ==============================================================================
 
-Write-Log "  RESUMEN FINAL" 'SECTION'
-Write-Log "======================================================" 'SECTION'
+Write-Log "Resumen final" 'SECTION'
 
 if ($ERRORS.Count -eq 0 -and $WARNINGS.Count -eq 0) {
     Write-Log "Bootstrap completado sin errores." 'OK'
 } else {
     if ($WARNINGS.Count -gt 0) {
         Write-Log "Advertencias ($($WARNINGS.Count)):" 'WARN'
-        foreach ($w in $WARNINGS) { Write-Log "  ⚠  $w" 'WARN' }
+        foreach ($w in $WARNINGS) { Write-Log $w 'WARN' }
     }
     if ($ERRORS.Count -gt 0) {
         Write-Log "Errores ($($ERRORS.Count)):" 'ERROR'
-        foreach ($e in $ERRORS) { Write-Log "  ✗  $e" 'ERROR' }
+        foreach ($e in $ERRORS) { Write-Log $e 'ERROR' }
     }
 }
 
 Write-Log "" 'INFO'
-Write-Log "Backups almacenados en: $BACKUP_DIR" 'INFO'
-Write-Log "Log completo en: $LOG_FILE" 'INFO'
-Write-Log "" 'INFO'
-Write-Log "Próximos pasos manuales:" 'SECTION'
+Write-Log "Backups en: $BACKUP_DIR" 'INFO'
+Write-Log "Log en:     $LOG_FILE" 'INFO'
+
+Write-Log "Proximos pasos manuales" 'SECTION'
 $stepNum = 1
-Write-Log "  $stepNum. Abrí una terminal nueva para recargar el profile" 'INFO'
+Write-Log "$stepNum. Abri una terminal nueva para recargar el profile" 'INFO'
 $stepNum++
 if ($WithAws) {
-    Write-Log "  $stepNum. Ejecutá: aws configure sso (completar datos de SMG)" 'INFO'
+    Write-Log "$stepNum. Ejecuta: aws configure sso (completar datos de SMG)" 'INFO'
     $stepNum++
-    Write-Log "  $stepNum. Ejecutá: aws sts get-caller-identity --profile tu_usuario" 'INFO'
+    Write-Log "$stepNum. Ejecuta: aws sts get-caller-identity --profile tu_usuario" 'INFO'
     $stepNum++
 }
-Write-Log "  $stepNum. Verificá tus claves SSH: ssh -T git@github.com-kevincharp" 'INFO'
-Write-Log "======================================================" 'SECTION'
+Write-Log "$stepNum. Verifica tus claves SSH: ssh -T git@github.com-kevincharp" 'INFO'

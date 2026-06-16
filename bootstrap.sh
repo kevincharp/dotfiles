@@ -50,25 +50,56 @@ BACKUP_TS="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$HOME/.local/backups/bootstrap/$BACKUP_TS"
 
 # ==============================================================================
+# ESTILO / ICONOS
+# ------------------------------------------------------------------------------
+# Iconos para la salida en pantalla. Si la terminal no es UTF-8 se cae a ASCII.
+# ==============================================================================
+
+if [[ "${LANG:-}${LC_ALL:-}${LC_CTYPE:-}" == *[Uu][Tt][Ff]* ]]; then
+    I_SECTION="▶"; I_OK="✓"; I_WARN="⚠"; I_ERROR="✗"; I_SKIP="⊘"; I_INFO="·"
+else
+    I_SECTION=">"; I_OK="[OK]"; I_WARN="[!]"; I_ERROR="[X]"; I_SKIP="[-]"; I_INFO="-"
+fi
+
+# Colores ANSI
+C_RESET=$'\033[0m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERROR=$'\033[31m'
+C_SKIP=$'\033[90m'; C_SECTION=$'\033[1;36m'; C_DIM=$'\033[90m'
+
+# ==============================================================================
 # HELPERS
 # ==============================================================================
 
 log() {
-    local level="${2:-INFO}"
-    local ts
-    ts="$(date +%H:%M:%S)"
-    local line="[$ts][$level] $1"
+    local msg="$1" level="${2:-INFO}"
+    local ts; ts="$(date +%H:%M:%S)"
 
+    # Al archivo siempre con timestamp y nivel (traza completa)
+    echo "[$ts][$level] $msg" >> "$LOG_FILE" 2>/dev/null || true
+
+    # A pantalla: iconos + jerarquia (seccion a col 0, items indentados)
     case "$level" in
-        OK)      echo -e "\033[32m$line\033[0m" ;;
-        WARN)    echo -e "\033[33m$line\033[0m" ;;
-        ERROR)   echo -e "\033[31m$line\033[0m" ;;
-        SKIP)    echo -e "\033[90m$line\033[0m" ;;
-        SECTION) echo -e "\033[36m$line\033[0m" ;;
-        *)       echo "$line" ;;
+        SECTION)
+            # Colapsa banners: quita bordes (= - # espacios). Si no queda texto, es separador -> se omite.
+            local clean
+            clean="$(printf '%s' "$msg" | sed -E 's/^[[:space:]=#-]+//; s/[[:space:]=#-]+$//')"
+            [[ -z "$clean" ]] && return 0
+            printf '\n%s%s %s%s\n' "$C_SECTION" "$I_SECTION" "$clean" "$C_RESET" ;;
+        OK)      printf '  %s%s%s %s\n' "$C_OK"    "$I_OK"    "$C_RESET" "$msg" ;;
+        WARN)    printf '  %s%s%s %s\n' "$C_WARN"  "$I_WARN"  "$C_RESET" "$msg" ;;
+        ERROR)   printf '  %s%s%s %s\n' "$C_ERROR" "$I_ERROR" "$C_RESET" "$msg" ;;
+        SKIP)    printf '  %s%s %s%s\n' "$C_SKIP"  "$I_SKIP"  "$msg" "$C_RESET" ;;
+        *)       # INFO: vacio -> linea en blanco; con texto -> indentado tenue
+                 if [[ -z "$msg" ]]; then printf '\n'; else printf '    %s%s%s\n' "$C_DIM" "$msg" "$C_RESET"; fi ;;
     esac
+}
 
-    echo "$line" >> "$LOG_FILE" 2>/dev/null || true
+# banner <titulo> [subtitulo] — encabezado destacado (inicio / resumen final)
+banner() {
+    local title="$1" sub="${2:-}"
+    echo "[$(date +%H:%M:%S)] === $title ${sub:+- $sub} ===" >> "$LOG_FILE" 2>/dev/null || true
+    printf '\n%s%s %s%s\n' "$C_SECTION" "$I_SECTION" "$title" "$C_RESET"
+    [[ -n "$sub" ]] && printf '  %s%s%s\n' "$C_DIM" "$sub" "$C_RESET"
+    return 0
 }
 
 run_step() {
@@ -436,10 +467,7 @@ select_tools() {
 mkdir -p "$LOG_DIR"
 mkdir -p "$BACKUP_DIR"
 
-log "======================================================" "SECTION"
-log "  bootstrap.sh — Inicio: $(date '+%Y-%m-%d %H:%M:%S')" "SECTION"
-log "  DryRun: $DRY_RUN" "SECTION"
-log "======================================================" "SECTION"
+banner "bootstrap.sh — Setup de entorno" "$(date '+%Y-%m-%d %H:%M:%S')$([[ "$DRY_RUN" == true ]] && echo '  ·  modo DryRun')"
 
 # ==============================================================================
 # 1. VERIFICAR REQUISITOS
@@ -873,10 +901,7 @@ fi
 # 6. RESUMEN FINAL
 # ==============================================================================
 
-log "" "INFO"
-log "======================================================" "SECTION"
-log "  RESUMEN FINAL" "SECTION"
-log "======================================================" "SECTION"
+banner "Resumen final"
 
 if [[ ${#ERRORS[@]} -eq 0 && ${#WARNINGS[@]} -eq 0 ]]; then
     log "Bootstrap completado sin errores." "OK"
@@ -884,25 +909,24 @@ else
     if [[ ${#WARNINGS[@]} -gt 0 ]]; then
         log "Advertencias (${#WARNINGS[@]}):" "WARN"
         for w in "${WARNINGS[@]}"; do
-            log "  - $w" "WARN"
+            log "$w" "WARN"
         done
     fi
     if [[ ${#ERRORS[@]} -gt 0 ]]; then
         log "Errores (${#ERRORS[@]}):" "ERROR"
         for e in "${ERRORS[@]}"; do
-            log "  - $e" "ERROR"
+            log "$e" "ERROR"
         done
     fi
 fi
 
 log "" "INFO"
-log "Backups almacenados en: $BACKUP_DIR" "INFO"
-log "Log completo en: $LOG_FILE" "INFO"
-log "" "INFO"
-log "Proximos pasos:" "SECTION"
-log "  1. Abri una terminal nueva para recargar el profile" "INFO"
-log "  2. Verifica tus claves SSH: ssh -T git@github.com-kevincharp" "INFO"
+log "Backups en: $BACKUP_DIR" "INFO"
+log "Log en:     $LOG_FILE" "INFO"
+
+banner "Proximos pasos"
+log "1. Abri una terminal nueva para recargar el profile" "INFO"
+log "2. Verifica tus claves SSH: ssh -T git@github.com-kevincharp" "INFO"
 if [[ "$WITH_AWS" == true ]]; then
-    log "  3. Ejecuta: aws configure sso" "INFO"
+    log "3. Ejecuta: aws configure sso" "INFO"
 fi
-log "======================================================" "SECTION"

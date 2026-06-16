@@ -81,17 +81,27 @@ PACKAGES=(
 # HELPERS
 # ==============================================================================
 
+if [[ "${LANG:-}${LC_ALL:-}${LC_CTYPE:-}" == *[Uu][Tt][Ff]* ]]; then
+    I_SECTION="▶"; I_OK="✓"; I_WARN="⚠"; I_ERROR="✗"; I_SKIP="⊘"; I_BULLET="✗"
+else
+    I_SECTION=">"; I_OK="[OK]"; I_WARN="[!]"; I_ERROR="[X]"; I_SKIP="[-]"; I_BULLET="*"
+fi
+C_RESET=$'\033[0m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERROR=$'\033[31m'
+C_SKIP=$'\033[90m'; C_SECTION=$'\033[1;36m'; C_DIM=$'\033[90m'
+
 log() {
-    local level="${2:-INFO}"
-    local ts
-    ts="$(date +%H:%M:%S)"
+    local msg="$1" level="${2:-INFO}"
     case "$level" in
-        OK)      echo -e "\033[32m[$ts] $1\033[0m" ;;
-        WARN)    echo -e "\033[33m[$ts] $1\033[0m" ;;
-        ERROR)   echo -e "\033[31m[$ts] $1\033[0m" ;;
-        SKIP)    echo -e "\033[90m[$ts] $1\033[0m" ;;
-        SECTION) echo -e "\033[36m$1\033[0m" ;;
-        *)       echo "[$ts] $1" ;;
+        SECTION)
+            local clean
+            clean="$(printf '%s' "$msg" | sed -E 's/^[[:space:]=#-]+//; s/[[:space:]=#-]+$//')"
+            [[ -z "$clean" ]] && return 0
+            printf '\n%s%s %s%s\n' "$C_SECTION" "$I_SECTION" "$clean" "$C_RESET" ;;
+        OK)      printf '  %s%s%s %s\n' "$C_OK"    "$I_OK"    "$C_RESET" "$msg" ;;
+        WARN)    printf '  %s%s%s %s\n' "$C_WARN"  "$I_WARN"  "$C_RESET" "$msg" ;;
+        ERROR)   printf '  %s%s%s %s\n' "$C_ERROR" "$I_ERROR" "$C_RESET" "$msg" ;;
+        SKIP)    printf '  %s%s %s%s\n' "$C_SKIP"  "$I_SKIP"  "$msg" "$C_RESET" ;;
+        *)       if [[ -z "$msg" ]]; then printf '\n'; else printf '    %s%s%s\n' "$C_DIM" "$msg" "$C_RESET"; fi ;;
     esac
 }
 
@@ -113,11 +123,8 @@ has_cmd() {
 # INICIO
 # ==============================================================================
 
-log "======================================================" "SECTION"
-log "  uninstall.sh — Desinstalación de dotfiles" "SECTION"
-log "  DryRun: $DRY_RUN" "SECTION"
-log "======================================================" "SECTION"
-echo ""
+log "uninstall.sh — Desinstalacion de dotfiles" "SECTION"
+[[ "$DRY_RUN" == true ]] && log "modo DryRun" "INFO"
 
 # ==============================================================================
 # 1. VERIFICAR QUE EXISTEN LOS REPOS
@@ -152,52 +159,44 @@ fi
 # 3. MOSTRAR PREVIEW Y PEDIR CONFIRMACION
 # ==============================================================================
 
-echo ""
-log "======================================================" "SECTION"
-log "  PREVIEW — Qué se va a desinstalar:" "SECTION"
-log "======================================================" "SECTION"
-echo ""
+# Item de preview: marca lo que se va a quitar (rojo tenue)
+prev() { printf '    %s%s %s%s\n' "$C_ERROR" "$I_BULLET" "$1" "$C_RESET"; }
 
-echo "Symlinks/archivos a remover:"
+log "Preview — Que se va a desinstalar" "SECTION"
+
+log "Symlinks/archivos a remover:" "INFO"
 for target in "${DOTFILES_TARGETS[@]}"; do
     if [[ -e "$target" || -L "$target" ]]; then
-        echo "  ✗ $target"
+        prev "$target"
     fi
 done
 
-echo ""
-echo "Repositorios a borrar:"
-[[ -d "$DOTFILES_DIR" ]] && echo "  ✗ $DOTFILES_DIR"
-[[ -d "$VAULT_DIR" ]] && echo "  ✗ $VAULT_DIR"
+log "Repositorios a borrar:" "INFO"
+[[ -d "$DOTFILES_DIR" ]] && prev "$DOTFILES_DIR"
+[[ -d "$VAULT_DIR" ]] && prev "$VAULT_DIR"
 
 if [[ "$REMOVE_PACKAGES" == true ]]; then
-    echo ""
-    echo "Paquetes a desinstalar (--remove-packages):"
+    log "Paquetes a desinstalar (--remove-packages):" "INFO"
     for pkg in "${PACKAGES[@]}"; do
         if has_cmd "$pkg"; then
-            echo "  ✗ $pkg"
+            prev "$pkg"
         fi
     done
 fi
 
 if [[ -n "$LATEST_BACKUP" ]]; then
-    echo ""
-    echo "Archivos a restaurar desde backup:"
-    find "$LATEST_BACKUP" -type f 2>/dev/null | sed "s|$LATEST_BACKUP|  ← |" | head -10
+    log "Archivos a restaurar desde backup:" "INFO"
+    find "$LATEST_BACKUP" -type f 2>/dev/null | sed "s|$LATEST_BACKUP|    ↺ |" | head -10
     backup_count=$(find "$LATEST_BACKUP" -type f 2>/dev/null | wc -l)
     if [[ $backup_count -gt 10 ]]; then
-        echo "  ... y $((backup_count - 10)) más"
+        log "... y $((backup_count - 10)) mas" "INFO"
     fi
 fi
 
 if [[ "$KEEP_BACKUPS" == false ]]; then
-    echo ""
-    echo "Backups a borrar:"
-    echo "  ✗ $BACKUPS_DIR"
+    log "Backups a borrar:" "INFO"
+    prev "$BACKUPS_DIR"
 fi
-
-echo ""
-log "======================================================" "SECTION"
 
 if [[ "$DRY_RUN" == true ]]; then
     log "[DRY RUN] No se ejecutará ninguna acción destructiva." "SKIP"
@@ -214,7 +213,6 @@ fi
 # 4. REMOVER SYMLINKS Y ARCHIVOS
 # ==============================================================================
 
-echo ""
 log "--- [1/5] Removiendo symlinks y archivos dotfiles ---" "SECTION"
 
 for target in "${DOTFILES_TARGETS[@]}"; do
@@ -229,7 +227,6 @@ done
 # 5. RESTAURAR BACKUPS
 # ==============================================================================
 
-echo ""
 log "--- [2/5] Restaurando backups ---" "SECTION"
 
 if [[ -n "$LATEST_BACKUP" && -d "$LATEST_BACKUP" ]]; then
@@ -252,7 +249,6 @@ fi
 # 6. DESINSTALAR PAQUETES (OPCIONAL)
 # ==============================================================================
 
-echo ""
 log "--- [3/5] Desinstalando paquetes ---" "SECTION"
 
 if [[ "$REMOVE_PACKAGES" != true ]]; then
@@ -297,7 +293,6 @@ fi
 # 7. BORRAR REPOSITORIOS
 # ==============================================================================
 
-echo ""
 log "--- [4/5] Borrando repositorios ---" "SECTION"
 
 if [[ -d "$DOTFILES_DIR" ]]; then
@@ -312,7 +307,6 @@ fi
 # 8. BORRAR BACKUPS (OPCIONAL)
 # ==============================================================================
 
-echo ""
 log "--- [5/5] Borrando backups ---" "SECTION"
 
 if [[ "$KEEP_BACKUPS" == true ]]; then
@@ -329,14 +323,7 @@ fi
 # RESUMEN FINAL
 # ==============================================================================
 
-echo ""
-log "======================================================" "SECTION"
-log "  DESINSTALACIÓN COMPLETADA" "SECTION"
-log "======================================================" "SECTION"
-echo ""
+log "Desinstalacion completada" "SECTION"
 log "Dotfiles desinstalados correctamente." "OK"
-echo ""
-log "Para reinstalar, ejecutá:" "INFO"
-log "  curl -fsSL https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.sh | bash" "INFO"
-echo ""
-log "======================================================" "SECTION"
+log "Para reinstalar, ejecuta:" "INFO"
+log "curl -fsSL https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.sh | bash" "INFO"

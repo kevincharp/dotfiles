@@ -61,19 +61,34 @@ for arg in "$@"; do
 done
 
 # ==============================================================================
+# ESTILO / ICONOS
+# ==============================================================================
+
+if [[ "${LANG:-}${LC_ALL:-}${LC_CTYPE:-}" == *[Uu][Tt][Ff]* ]]; then
+    I_SECTION="▶"; I_OK="✓"; I_WARN="⚠"; I_ERROR="✗"; I_SKIP="⊘"
+else
+    I_SECTION=">"; I_OK="[OK]"; I_WARN="[!]"; I_ERROR="[X]"; I_SKIP="[-]"
+fi
+C_RESET=$'\033[0m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERROR=$'\033[31m'
+C_SKIP=$'\033[90m'; C_SECTION=$'\033[1;36m'; C_DIM=$'\033[90m'
+
+# ==============================================================================
 # HELPERS
 # ==============================================================================
 
 log() {
-    local level="${2:-INFO}"
-    local ts
-    ts="$(date +%H:%M:%S)"
+    local msg="$1" level="${2:-INFO}"
     case "$level" in
-        OK)      echo -e "\033[32m[$ts] $1\033[0m" ;;
-        WARN)    echo -e "\033[33m[$ts] $1\033[0m" ;;
-        ERROR)   echo -e "\033[31m[$ts] $1\033[0m" ;;
-        SECTION) echo -e "\033[36m[$ts] $1\033[0m" ;;
-        *)       echo "[$ts] $1" ;;
+        SECTION)
+            local clean
+            clean="$(printf '%s' "$msg" | sed -E 's/^[[:space:]=#-]+//; s/[[:space:]=#-]+$//')"
+            [[ -z "$clean" ]] && return 0
+            printf '\n%s%s %s%s\n' "$C_SECTION" "$I_SECTION" "$clean" "$C_RESET" ;;
+        OK)      printf '  %s%s%s %s\n' "$C_OK"    "$I_OK"    "$C_RESET" "$msg" ;;
+        WARN)    printf '  %s%s%s %s\n' "$C_WARN"  "$I_WARN"  "$C_RESET" "$msg" ;;
+        ERROR)   printf '  %s%s%s %s\n' "$C_ERROR" "$I_ERROR" "$C_RESET" "$msg" ;;
+        SKIP)    printf '  %s%s %s%s\n' "$C_SKIP"  "$I_SKIP"  "$msg" "$C_RESET" ;;
+        *)       if [[ -z "$msg" ]]; then printf '\n'; else printf '    %s%s%s\n' "$C_DIM" "$msg" "$C_RESET"; fi ;;
     esac
 }
 
@@ -221,20 +236,16 @@ fi
 # RESUMEN
 # ==============================================================================
 
-log "" "INFO"
-log "======================================================" "SECTION"
-log "  INSTALACION COMPLETADA" "SECTION"
-log "======================================================" "SECTION"
+log "Instalacion completada" "SECTION"
 log "Publico: $DOTFILES_DIR" "OK"
 if [[ "$VAULT_OK" == true ]]; then
     log "Vault:   $VAULT_DIR" "OK"
 else
     log "Vault:   NO aplicado — claves SSH e identidades git pendientes" "WARN"
-    log "  Para aplicarlo luego: bash $DOTFILES_DIR/install.sh" "INFO"
+    log "Para aplicarlo luego: bash $DOTFILES_DIR/install.sh" "INFO"
 fi
-log "" "INFO"
-log "Proximos pasos:" "INFO"
-log "  1. Abri una terminal nueva para recargar el profile" "INFO"
-log "  2. Si clonaste por HTTPS, cambia a SSH para no pedir credenciales:" "INFO"
-log "     cd $DOTFILES_DIR && git remote set-url origin $PUBLIC_SSH" "INFO"
-log "======================================================" "SECTION"
+
+log "Proximos pasos" "SECTION"
+log "1. Abri una terminal nueva para recargar el profile" "INFO"
+log "2. Si clonaste por HTTPS, cambia a SSH para no pedir credenciales:" "INFO"
+log "   cd $DOTFILES_DIR && git remote set-url origin $PUBLIC_SSH" "INFO"

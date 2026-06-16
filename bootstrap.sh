@@ -3,6 +3,7 @@
 #   bootstrap.sh — Setup completo de entorno de desarrollo (Linux / bash)
 #   Autor: Kevin Charpentier
 #   Uso:   bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages]
+#                             [--all-tools] [--tools=id1,id2,...]
 # ==============================================================================
 
 set -euo pipefail
@@ -14,14 +15,20 @@ set -euo pipefail
 WITH_AWS=false
 DRY_RUN=false
 SKIP_PACKAGES=false
+ALL_TOOLS=false
+TOOLS_ARG=""
+
+_usage="Uso: bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages] [--all-tools] [--tools=id1,id2,...]"
 
 for arg in "$@"; do
     case "$arg" in
         --with-aws)       WITH_AWS=true ;;
         --dry-run)        DRY_RUN=true ;;
         --skip-packages)  SKIP_PACKAGES=true ;;
+        --all-tools)      ALL_TOOLS=true ;;
+        --tools=*)        TOOLS_ARG="${arg#*=}" ;;
         *)
-            echo "Uso: bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages]"
+            echo "$_usage"
             exit 1
             ;;
     esac
@@ -281,6 +288,148 @@ install_tool() {
 }
 
 # ==============================================================================
+# SELECTOR DE HERRAMIENTAS
+# ------------------------------------------------------------------------------
+# Decide que ids del catalogo se instalan y los deja en el array SELECTED_TOOLS.
+# Prioridad:
+#   1. --tools=id1,id2  -> exactamente esos (valida contra el catalogo)
+#   2. --all-tools / --dry-run -> todo el catalogo, sin preguntar
+#   3. terminal interactiva (hay /dev/tty) -> menu agrupado, pregunta siempre
+#   4. sin terminal (curl | bash sin tty) -> todo, como red de seguridad
+#
+# El menu arranca con TODO pre-marcado: Enter directo = instalar todo. Se
+# alterna por numero, por grupo (core/shell/dev/cloud/fonts) o con todo/nada.
+# ==============================================================================
+
+SELECTED_TOOLS=()
+
+# Devuelve el grupo de un id segun el catalogo (vacio si no existe)
+_tool_group() {
+    local entry
+    for entry in "${TOOLS_CATALOG[@]}"; do
+        [[ "${entry%%|*}" == "$1" ]] && { echo "$entry" | cut -d'|' -f2; return 0; }
+    done
+    return 1
+}
+
+# Valida una lista separada por comas contra el catalogo -> SELECTED_TOOLS
+_select_from_csv() {
+    local csv="$1" id unknown=()
+    SELECTED_TOOLS=()
+    IFS=',' read -ra _ids <<< "$csv"
+    for id in "${_ids[@]}"; do
+        id="${id// /}"   # sin espacios
+        [[ -z "$id" ]] && continue
+        if _tool_group "$id" >/dev/null; then
+            SELECTED_TOOLS+=("$id")
+        else
+            unknown+=("$id")
+        fi
+    done
+    if [[ ${#unknown[@]} -gt 0 ]]; then
+        log "Ids desconocidos en --tools (ignorados): ${unknown[*]}" "WARN"
+        WARNINGS+=("--tools tenia ids desconocidos: ${unknown[*]}")
+    fi
+}
+
+# Menu interactivo sobre /dev/tty (funciona con 'curl | bash')
+_select_interactive() {
+    # Estado de marcado: indice del catalogo -> 1 (marcado) / 0
+    local -a marked
+    local i n="${#TOOLS_CATALOG[@]}"
+    for ((i = 0; i < n; i++)); do marked[i]=1; done   # todo pre-marcado
+
+    local groups=(core shell dev cloud fonts)
+    local g entry id grp desc
+
+    while true; do
+        # --- Pintar menu agrupado ---
+        printf '\n  \033[36m== Selector de herramientas ==\033[0m\n' > /dev/tty
+        printf '  Marca/desmarca por numero. Enter sin nada = instalar lo marcado.\n\n' > /dev/tty
+        for g in "${groups[@]}"; do
+            printf '  \033[1m[%s]\033[0m\n' "$g" > /dev/tty
+            for ((i = 0; i < n; i++)); do
+                entry="${TOOLS_CATALOG[i]}"
+                id="${entry%%|*}"
+                grp="$(echo "$entry" | cut -d'|' -f2)"
+                desc="${entry##*|}"
+                [[ "$grp" == "$g" ]] || continue
+                if [[ "${marked[i]}" == "1" ]]; then
+                    printf '    \033[32m[x]\033[0m %2d) %-16s %s\n' "$((i + 1))" "$id" "$desc" > /dev/tty
+                else
+                    printf '    [ ] %2d) %-16s %s\n' "$((i + 1))" "$id" "$desc" > /dev/tty
+                fi
+            done
+        done
+        printf '\n  Comandos: numeros (ej "1 3 5") | grupo (core/shell/dev/cloud/fonts) | todo | nada | ok\n' > /dev/tty
+        printf '  > ' > /dev/tty
+
+        local input
+        read -r input < /dev/tty || input="ok"   # EOF -> aceptar lo marcado
+
+        # Enter vacio u "ok" -> confirmar
+        if [[ -z "$input" || "$input" == "ok" ]]; then
+            break
+        fi
+
+        local tok
+        for tok in $input; do
+            case "$tok" in
+                todo)  for ((i = 0; i < n; i++)); do marked[i]=1; done ;;
+                nada)  for ((i = 0; i < n; i++)); do marked[i]=0; done ;;
+                core|shell|dev|cloud|fonts)
+                    # Toggle de grupo: si esta todo marcado lo apaga, si no lo prende
+                    local all_on=1
+                    for ((i = 0; i < n; i++)); do
+                        [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$tok" ]] || continue
+                        [[ "${marked[i]}" == "1" ]] || all_on=0
+                    done
+                    local target=$((all_on == 1 ? 0 : 1))
+                    for ((i = 0; i < n; i++)); do
+                        [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$tok" ]] || continue
+                        marked[i]=$target
+                    done
+                    ;;
+                *[!0-9]*)
+                    printf '    \033[33mEntrada ignorada: %s\033[0m\n' "$tok" > /dev/tty
+                    ;;
+                *)
+                    # Numero: toggle de esa fila (1-based)
+                    local idx=$((tok - 1))
+                    if (( idx >= 0 && idx < n )); then
+                        marked[idx]=$((marked[idx] == 1 ? 0 : 1))
+                    else
+                        printf '    \033[33mNumero fuera de rango: %s\033[0m\n' "$tok" > /dev/tty
+                    fi
+                    ;;
+            esac
+        done
+    done
+
+    SELECTED_TOOLS=()
+    for ((i = 0; i < n; i++)); do
+        [[ "${marked[i]}" == "1" ]] && SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}")
+    done
+}
+
+# Punto de entrada: resuelve SELECTED_TOOLS segun la prioridad documentada
+select_tools() {
+    if [[ -n "$TOOLS_ARG" ]]; then
+        _select_from_csv "$TOOLS_ARG"
+        log "Herramientas via --tools: ${SELECTED_TOOLS[*]:-(ninguna)}" "INFO"
+    elif [[ "$ALL_TOOLS" == true || "$DRY_RUN" == true ]]; then
+        SELECTED_TOOLS=(); for entry in "${TOOLS_CATALOG[@]}"; do SELECTED_TOOLS+=("${entry%%|*}"); done
+        log "Instalando catalogo completo (${#SELECTED_TOOLS[@]} herramientas)" "INFO"
+    elif [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
+        _select_interactive
+        log "Seleccionadas ${#SELECTED_TOOLS[@]}: ${SELECTED_TOOLS[*]:-(ninguna)}" "INFO"
+    else
+        SELECTED_TOOLS=(); for entry in "${TOOLS_CATALOG[@]}"; do SELECTED_TOOLS+=("${entry%%|*}"); done
+        log "Sin terminal interactiva — instalando catalogo completo (red de seguridad)" "INFO"
+    fi
+}
+
+# ==============================================================================
 # INICIO
 # ==============================================================================
 
@@ -335,23 +484,27 @@ elif [[ "$PKG_MANAGER" == "none" ]]; then
     log "Sin package manager, saltando paquetes" "WARN"
     WARNINGS+=("Instalar paquetes manualmente: neovim, ripgrep, fzf, zoxide, lazygit")
 else
-    if [[ "$DRY_RUN" == false ]]; then
-        log "Actualizando fuentes..." "INFO"
-        $PKG_UPDATE 2>&1 | tail -1
-    fi
+    # Resuelve que herramientas instalar (--tools / --all-tools / menu / red de seguridad)
+    select_tools
 
-    # Recorre el catalogo: instala lo que falte, saltea lo ya presente.
-    # (El selector interactivo —elegir que instalar— llega en una fase posterior;
-    #  por ahora se instala todo el catalogo, igual que antes.)
-    for _tool_entry in "${TOOLS_CATALOG[@]}"; do
-        _tool_id="${_tool_entry%%|*}"
-        if tool_installed "$_tool_id"; then
-            log "$_tool_id ya instalado" "SKIP"
-        else
-            install_tool "$_tool_id"
+    if [[ ${#SELECTED_TOOLS[@]} -eq 0 ]]; then
+        log "No se selecciono ninguna herramienta, saltando instalacion" "SKIP"
+    else
+        if [[ "$DRY_RUN" == false ]]; then
+            log "Actualizando fuentes..." "INFO"
+            $PKG_UPDATE 2>&1 | tail -1
         fi
-    done
-    unset _tool_entry _tool_id
+
+        # Recorre solo lo seleccionado: instala lo que falte, saltea lo ya presente.
+        for _tool_id in "${SELECTED_TOOLS[@]}"; do
+            if tool_installed "$_tool_id"; then
+                log "$_tool_id ya instalado" "SKIP"
+            else
+                install_tool "$_tool_id"
+            fi
+        done
+        unset _tool_id
+    fi
 fi
 
 # ==============================================================================

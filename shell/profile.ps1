@@ -945,6 +945,12 @@ $env:GITLAB_TOKEN_CEI_WALLE  = Get-SecretFromEnv 'GITLAB_TOKEN_CEI_WALLE'
 $env:GITLAB_TOKEN_KEVINCHARP = Get-SecretFromEnv 'GITLAB_TOKEN_KEVINCHARP'
 $env:GITHUB_TOKEN_KEVINCHARP = Get-SecretFromEnv 'GITHUB_TOKEN_KEVINCHARP'
 
+# AWS / Claude SMG
+$env:CLAUDE_SMG_AWS_PROFILE = Get-SecretFromEnv 'CLAUDE_SMG_AWS_PROFILE'
+$env:CLAUDE_SMG_AWS_REGION  = Get-SecretFromEnv 'CLAUDE_SMG_AWS_REGION'
+$env:CLAUDE_SMG_MODEL       = Get-SecretFromEnv 'CLAUDE_SMG_MODEL'
+$env:CLAUDE_SMG_SMALL_MODEL = Get-SecretFromEnv 'CLAUDE_SMG_SMALL_MODEL'
+
 <#
 .SYNOPSIS consultar repos de un namespace en GitLab o GitHub
 .EXAMPLE gbrowser gitlab.com-<mi-alias>:grupo/subgrupo

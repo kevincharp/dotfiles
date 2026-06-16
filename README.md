@@ -2,7 +2,13 @@
 
 Configuracion personal de entorno de desarrollo — Windows + Linux.
 
-Dos bootstraps: `bootstrap.ps1` (Windows/PowerShell 7) y `bootstrap.sh` (Linux/Bash).
+Un comando por sistema operativo, paridad completa entre ambos:
+
+| | Linux | Windows |
+|---|---|---|
+| Instalar | `curl … install.sh \| bash` | `irm … install.ps1 \| iex` |
+| Bootstrap | `bootstrap.sh` | `bootstrap.ps1` |
+| Desinstalar | `uninstall.sh` | `uninstall.ps1` |
 
 ## Arquitectura: dos repos
 
@@ -42,7 +48,32 @@ bash ~/.dotfiles/install.sh --update-only
 
 ### Windows
 
-Ver sección **Setup en maquina nueva → Windows** más abajo.
+**Instalacion inicial** (requiere Git for Windows ya instalado — ver Paso 1):
+
+```powershell
+irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
+```
+
+Igual que en Linux, es **interactivo**: clona lo publico y te pregunta como
+autenticarte para clonar el vault privado (gh / SSH / saltar).
+
+> Si PowerShell bloquea el script por la Execution Policy, ejecutalo asi:
+> ```powershell
+> powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex"
+> ```
+
+**Actualizacion** (con el repo ya clonado):
+
+```powershell
+pwsh -File ~/.dotfiles/install.ps1
+```
+
+Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
+
+> **Un comando por sistema operativo.** No hay deteccion automatica de SO: en
+> Linux corres el `curl`, en Windows el `irm`. Ambos hacen lo mismo
+> (clonar repos + bootstrap + selector de herramientas), pero usan el gestor de
+> paquetes nativo de cada sistema (dnf/apt/pacman vs winget).
 
 ---
 
@@ -52,7 +83,10 @@ Ver sección **Setup en maquina nueva → Windows** más abajo.
 .dotfiles/
 ├── .editorconfig             # Formato: utf-8, LF, indent por lenguaje
 ├── .gitignore
-├── install.sh                # Instalador interactivo (publico + vault)
+├── install.sh                # Instalador interactivo Linux (publico + vault)
+├── install.ps1               # Instalador interactivo Windows (publico + vault)
+├── uninstall.sh              # Desinstalador Linux
+├── uninstall.ps1             # Desinstalador Windows
 ├── update.sh                 # Atajo de actualizacion (delega en install.sh)
 ├── bootstrap.ps1             # Setup automatico (Windows)
 ├── bootstrap.sh              # Setup automatico (Linux)
@@ -133,21 +167,46 @@ Estos programas se instalan manualmente adrede:
 | **Python** instalador oficial amd64 | [Descargar](https://www.python.org/downloads/windows/) | El instalador oficial tiene "Add Python to PATH". El de winget instala `py.exe` en su lugar. **Marcar "Add Python to PATH" durante la instalacion.** |
 | **Git for Windows** | [Descargar](https://gitforwindows.org/) | El instalador permite configurar line endings, editor y SSH. Opciones recomendadas: editor Neovim, line endings "as-is", SSH incluido en Git. |
 
-#### 2. Clonar y ejecutar
+#### 2. Instalar
+
+**Opcion recomendada — via `install.ps1`** (clona repos + vault + bootstrap):
+
+```powershell
+# Instalacion inicial (desde cualquier lado)
+irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
+
+# Con el repo ya clonado
+pwsh -File "$HOME\.dotfiles\install.ps1"
+
+# Con AWS/Bedrock (maquina laboral)
+pwsh -File "$HOME\.dotfiles\install.ps1" -WithAws
+
+# Solo actualizar repos sin ejecutar bootstrap
+pwsh -File "$HOME\.dotfiles\install.ps1" -UpdateOnly
+```
+
+**Opcion manual — clonar y correr el bootstrap directo** (si ya tenes el vault):
 
 ```powershell
 git clone git@github.com-kevincharp:kevincharp/dotfiles.git "$HOME\.dotfiles"
 cd "$HOME\.dotfiles"
-
-# Setup completo
-pwsh -ExecutionPolicy Bypass -File bootstrap.ps1
-
-# Con AWS/Bedrock (maquina laboral)
-pwsh -ExecutionPolicy Bypass -File bootstrap.ps1 -WithAws
-
-# Solo ver que haria
-pwsh -ExecutionPolicy Bypass -File bootstrap.ps1 -DryRun
+pwsh -ExecutionPolicy Bypass -File bootstrap.ps1            # setup completo
+pwsh -ExecutionPolicy Bypass -File bootstrap.ps1 -WithAws  # con AWS
+pwsh -ExecutionPolicy Bypass -File bootstrap.ps1 -DryRun    # preview
 ```
+
+#### Flags de install.ps1 (Windows)
+
+| Flag | Descripcion |
+|---|---|
+| `-WithAws` | Pasa la config AWS al bootstrap |
+| `-DryRun` | Preview sin ejecutar |
+| `-SkipPackages` | Saltear paquetes (winget) |
+| `-SkipVault` | No clonar/aplicar el vault privado |
+| `-UpdateOnly` | Solo actualizar repos, no ejecutar bootstrap |
+| `-VaultAuth gh\|ssh\|skip` | Metodo de auth no interactivo para el vault |
+| `-Tools a,b,c` | Instalar solo esas herramientas (ver selector) |
+| `-AllTools` | Instalar todo el catalogo sin preguntar |
 
 #### Flags del bootstrap (Windows)
 
@@ -158,6 +217,8 @@ pwsh -ExecutionPolicy Bypass -File bootstrap.ps1 -DryRun
 | `-SkipWinget` | Saltear paquetes |
 | `-SkipModules` | Saltear modulos PowerShell |
 | `-SkipDotfiles` | Saltear copia de dotfiles |
+| `-Tools a,b,c` | Instalar solo esas herramientas (ver selector) |
+| `-AllTools` | Instalar todo el catalogo sin preguntar |
 
 ### Linux
 
@@ -182,6 +243,43 @@ bash bootstrap.sh --dry-run
 | `--with-aws` | Configuracion AWS SSO |
 | `--dry-run` | Preview sin ejecutar |
 | `--skip-packages` | Saltear instalacion de paquetes |
+| `--all-tools` | Instalar todo el catalogo sin preguntar |
+| `--tools=id1,id2` | Instalar solo esas herramientas (ver selector) |
+
+### Selector de herramientas (ambos OS)
+
+Al instalar, el bootstrap **pregunta que herramientas instalar** (util, por
+ejemplo, para un Linux en pendrive donde solo queres `neovim` y poco mas). El
+menu arranca con todo pre-marcado:
+
+```
+  == Selector de herramientas ==
+  [core]
+    [x]  1) neovim       Editor de terminal
+    [x]  2) ripgrep      Busqueda rapida (Telescope)
+    ...
+  [shell]
+    [x]  8) oh-my-posh   Prompt con tema
+    ...
+  Comandos: numeros (ej "1 3 5") | grupo (core/shell/dev/cloud/fonts) | todo | nada | ok
+```
+
+- **Numeros** (`1 3 5`): alterna esas filas
+- **Grupo** (`core`, `shell`, `dev`, `cloud`, `fonts`): alterna el grupo entero
+- **`todo`** / **`nada`**: marca / desmarca todo
+- **Enter** vacio u **`ok`**: confirma e instala lo marcado
+
+**Como evitar la pregunta** (no interactivo):
+
+| Quiero... | Linux | Windows |
+|---|---|---|
+| Todo, sin preguntar | `--all-tools` | `-AllTools` |
+| Solo algunas | `--tools=neovim,glab` | `-Tools neovim,glab` |
+| Nada de paquetes | `--skip-packages` | `-SkipPackages` / `-SkipWinget` |
+
+> Prioridad: `--tools` → `--all-tools`/`--dry-run` → menu interactivo → si no hay
+> terminal (ej. `curl | bash` no interactivo) **instala todo** como red de
+> seguridad, para no dejar un setup a medias.
 
 ### Pasos finales (ambos OS)
 
@@ -356,13 +454,42 @@ El script automáticamente:
 
 ### Windows
 
-En Windows usas `bootstrap.ps1` directamente:
+**Actualizar** (igual que en Linux, via `install.ps1`):
 
 ```powershell
-cd $HOME\.dotfiles
-git pull
-.\bootstrap.ps1
+# Desde cualquier lado
+irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
+
+# Con el repo ya clonado
+pwsh -File "$HOME\.dotfiles\install.ps1"
+
+# Solo actualizar repos sin ejecutar bootstrap
+pwsh -File "$HOME\.dotfiles\install.ps1" -UpdateOnly
 ```
+
+### Desinstalación (Windows)
+
+Espejo de `uninstall.sh`:
+
+```powershell
+# Desinstalacion completa (remueve symlinks, restaura backups, borra repos)
+pwsh -File "$HOME\.dotfiles\uninstall.ps1"
+
+# Preview sin ejecutar
+pwsh -File "$HOME\.dotfiles\uninstall.ps1" -DryRun
+
+# Desinstalar + remover paquetes winget instalados
+pwsh -File "$HOME\.dotfiles\uninstall.ps1" -RemovePackages
+
+# Sin confirmacion (peligroso)
+pwsh -File "$HOME\.dotfiles\uninstall.ps1" -Force
+```
+
+Flags disponibles:
+- `-RemovePackages` — Desinstala paquetes winget instalados por el bootstrap
+- `-KeepBackups` — No borra `~/.local/backups/bootstrap/`
+- `-DryRun` — Muestra qué haría sin ejecutar
+- `-Force` — No pide confirmación (peligroso)
 
 ---
 
@@ -381,8 +508,9 @@ git pull
 | fzf | Busqueda difusa (Ctrl+R) | winget | dnf | apt |
 | zoxide | `cd` inteligente con memoria | winget | curl script | curl script |
 | eza | Reemplazo moderno de `ls` | - | dnf | apt (repo gierens) |
-| age | Encriptacion de claves SSH | - | dnf | apt |
-| glab | GitLab CLI | - | dnf | binario GitLab |
+| age | Encriptacion de claves SSH | winget | dnf | apt |
+| glab | GitLab CLI | winget | dnf | binario GitLab |
+| FiraCode Nerd Font | Fuente con glifos (oh-my-posh) | descarga nerd-fonts | descarga nerd-fonts | descarga nerd-fonts |
 | Windows Terminal | Terminal con paneles y tabs | winget | - | - |
 | AWS CLI | Acceso a Bedrock *(opcional)* | winget | installer oficial | installer oficial |
 | GitHub CLI | PRs e issues desde terminal *(opcional)* | winget | - | - |
@@ -485,7 +613,9 @@ Configuracion en `terminal/settings.json`:
 - Perfiles: PowerShell, Git Bash, Linux (WSL), Ubuntu, CMD, Windows PowerShell, Azure Cloud Shell
 - `Alt+Shift+D`: dividir panel
 
-> FiraCode Nerd Font hay que instalarla manualmente: https://www.nerdfonts.com/font-downloads
+> FiraCode Nerd Font la instala el bootstrap automaticamente (descarga de
+> nerd-fonts y la registra para el usuario) en Windows y Linux. Si la necesitas
+> a mano: https://www.nerdfonts.com/font-downloads
 
 ---
 

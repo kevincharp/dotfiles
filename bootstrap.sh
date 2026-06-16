@@ -84,6 +84,203 @@ has_cmd() {
 }
 
 # ==============================================================================
+# CATALOGO DE HERRAMIENTAS
+# ------------------------------------------------------------------------------
+# Fuente unica de verdad de lo que instala el bootstrap. Cada entrada es
+# "id|grupo|descripcion". La deteccion de "ya instalado" vive en tool_installed()
+# y el metodo de instalacion (que varia por distro) en install_tool().
+#
+# Grupos: core (basicas), shell (prompt/navegacion), dev (runtime + IA),
+#         cloud (nube/git remoto), fonts (tipografias).
+#
+# Agregar una herramienta = una linea aca + su case en las dos funciones.
+# Por ahora se instala TODO el catalogo; el selector interactivo llega despues.
+# ==============================================================================
+
+TOOLS_CATALOG=(
+    "neovim|core|Editor de terminal"
+    "ripgrep|core|Busqueda rapida (Telescope)"
+    "fzf|core|Fuzzy finder (Ctrl+R)"
+    "curl|core|Cliente HTTP"
+    "wget|core|Descargas"
+    "unzip|core|Descompresion"
+    "bash-completion|core|Autocompletado de bash"
+    "oh-my-posh|shell|Prompt con tema"
+    "zoxide|shell|cd inteligente con memoria"
+    "eza|shell|Reemplazo moderno de ls"
+    "lazygit|shell|UI de git en terminal"
+    "node|dev|Runtime JS + npm"
+    "codex|dev|Codex CLI (OpenAI)"
+    "claude|dev|Claude Code CLI"
+    "opencode|dev|opencode (SST)"
+    "aws|cloud|AWS CLI (Bedrock)"
+    "glab|cloud|GitLab CLI"
+    "age|cloud|Encriptacion de claves SSH"
+    "firacode|fonts|FiraCode Nerd Font"
+)
+
+# tool_installed <id> — devuelve 0 si la herramienta ya esta presente
+tool_installed() {
+    case "$1" in
+        neovim)          has_cmd nvim ;;
+        ripgrep)         has_cmd rg ;;
+        fzf)             has_cmd fzf ;;
+        curl)            has_cmd curl ;;
+        wget)            has_cmd wget ;;
+        unzip)           has_cmd unzip ;;
+        bash-completion) [[ -f /usr/share/bash-completion/bash_completion ]] \
+                            || rpm -q bash-completion &>/dev/null \
+                            || dpkg -l bash-completion &>/dev/null ;;
+        oh-my-posh)      has_cmd oh-my-posh ;;
+        zoxide)          has_cmd zoxide ;;
+        eza)             has_cmd eza ;;
+        lazygit)         has_cmd lazygit ;;
+        node)            has_cmd node ;;
+        codex)           has_cmd codex ;;
+        claude)          has_cmd claude ;;
+        opencode)        has_cmd opencode ;;
+        aws)             has_cmd aws ;;
+        glab)            has_cmd glab ;;
+        age)             has_cmd age ;;
+        firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
+                         [[ "$(fc-list | grep -ci "FiraCode Nerd Font")" != "0" ]] ;;
+        *)               return 1 ;;
+    esac
+}
+
+# install_tool <id> — instala la herramienta (logica por distro preservada)
+install_tool() {
+    case "$1" in
+        neovim|ripgrep|fzf|curl|wget|unzip|bash-completion)
+            run_step "Instalar $1" $PKG_INSTALL "$1"
+            ;;
+        oh-my-posh)
+            run_step "Instalar oh-my-posh" bash -c 'curl -s https://ohmyposh.dev/install.sh | bash -s'
+            ;;
+        zoxide)
+            run_step "Instalar zoxide" bash -c 'curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh'
+            ;;
+        lazygit)
+            # Fedora: COPR | Arch: repos | Debian/otros: binario
+            if [[ "$PKG_MANAGER" == "dnf" ]]; then
+                run_step "Instalar lazygit (COPR)" bash -c '
+                    sudo dnf install -y dnf-plugins-core
+                    sudo dnf copr enable -y atim/lazygit
+                    sudo dnf install -y lazygit
+                '
+            elif [[ "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar lazygit" sudo pacman -S --noconfirm lazygit
+            else
+                run_step "Instalar lazygit (binario)" bash -c '
+                    LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
+                    curl -Lo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+                    tar xf /tmp/lazygit.tar.gz -C /tmp lazygit
+                    sudo install /tmp/lazygit /usr/local/bin
+                    rm -f /tmp/lazygit /tmp/lazygit.tar.gz
+                '
+            fi
+            ;;
+        eza)
+            if [[ "$PKG_MANAGER" == "apt" ]]; then
+                run_step "Instalar eza" bash -c '
+                    sudo mkdir -p /etc/apt/keyrings
+                    wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
+                    echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list
+                    sudo apt update && sudo apt install -y eza
+                '
+            elif [[ "$PKG_MANAGER" == "dnf" ]]; then
+                run_step "Instalar eza" sudo dnf install -y eza
+            elif [[ "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar eza" sudo pacman -S --noconfirm eza
+            else
+                log "eza: instalar manualmente — https://github.com/eza-community/eza#installation" "WARN"
+                WARNINGS+=("eza no instalado")
+            fi
+            ;;
+        node)
+            if [[ "$PKG_MANAGER" == "dnf" ]]; then
+                run_step "Instalar Node.js" sudo dnf install -y nodejs npm
+            elif [[ "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar Node.js" sudo pacman -S --noconfirm nodejs npm
+            elif [[ "$PKG_MANAGER" == "apt" ]]; then
+                # apt: el repo de Debian trae una version vieja, usamos NodeSource para LTS
+                run_step "Instalar Node.js LTS" bash -c '
+                    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+                    sudo apt install -y nodejs
+                '
+            else
+                log "Sin package manager para Node.js — instalar manualmente" "WARN"
+                WARNINGS+=("Node.js no instalado")
+            fi
+            ;;
+        codex)
+            if has_cmd node; then
+                run_step "Instalar Codex CLI" sudo npm install -g @openai/codex
+                log "  Nota: para instalar Codex Desktop ejecuta 'codex app' (descarga el instalador automaticamente)" "INFO"
+            else
+                log "Node.js no disponible, no se puede instalar Codex CLI" "WARN"
+                WARNINGS+=("Codex CLI no instalado — requiere Node.js")
+            fi
+            ;;
+        claude)
+            run_step "Instalar Claude Code CLI" bash -c 'curl -fsSL https://claude.ai/download/linux | bash'
+            ;;
+        opencode)
+            run_step "Instalar opencode" bash -c 'curl -fsSL https://opencode.ai/install | bash'
+            ;;
+        aws)
+            run_step "Instalar AWS CLI" bash -c '
+                curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+                unzip -qo /tmp/awscliv2.zip -d /tmp
+                sudo /tmp/aws/install --update
+                rm -rf /tmp/aws /tmp/awscliv2.zip
+            '
+            ;;
+        glab)
+            if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar glab" $PKG_INSTALL glab
+            else
+                run_step "Instalar glab (binario)" bash -c '
+                    GLAB_VERSION=$(curl -s "https://api.github.com/repos/profclems/glab/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
+                    curl -Lo /tmp/glab.tar.gz "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_Linux_x86_64.tar.gz"
+                    tar xf /tmp/glab.tar.gz -C /tmp
+                    sudo install /tmp/bin/glab /usr/local/bin
+                    rm -rf /tmp/glab /tmp/bin /tmp/glab.tar.gz
+                '
+            fi
+            ;;
+        age)
+            if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "apt" || "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar age" $PKG_INSTALL age
+            else
+                run_step "Instalar age (binario)" bash -c '
+                    AGE_VERSION=$(curl -s "https://api.github.com/repos/FiloSottile/age/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
+                    curl -Lo /tmp/age.tar.gz "https://github.com/FiloSottile/age/releases/latest/download/age-v${AGE_VERSION}-linux-amd64.tar.gz"
+                    tar xf /tmp/age.tar.gz -C /tmp
+                    sudo install /tmp/age/age /usr/local/bin
+                    sudo install /tmp/age/age-keygen /usr/local/bin
+                    rm -rf /tmp/age /tmp/age.tar.gz
+                '
+            fi
+            ;;
+        firacode)
+            run_step "Instalar FiraCode Nerd Font" bash -c '
+                FONT_DIR="$HOME/.local/share/fonts"
+                mkdir -p "$FONT_DIR"
+                NERD_FONTS_VERSION=$(curl -s "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
+                curl -Lo /tmp/FiraCode.zip "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip"
+                unzip -qo /tmp/FiraCode.zip -d "$FONT_DIR"
+                rm /tmp/FiraCode.zip
+                fc-cache -fv > /dev/null
+            '
+            ;;
+        *)
+            log "Herramienta desconocida: $1" "WARN"
+            ;;
+    esac
+}
+
+# ==============================================================================
 # INICIO
 # ==============================================================================
 
@@ -143,195 +340,18 @@ else
         $PKG_UPDATE 2>&1 | tail -1
     fi
 
-    # Paquetes basicos (nombres para apt, ajustar si usas otra distro)
-    PACKAGES=(
-        neovim
-        ripgrep
-        fzf
-        git
-        curl
-        wget
-        unzip
-        bash-completion
-    )
-
-    for pkg in "${PACKAGES[@]}"; do
-        if dpkg -l "$pkg" &>/dev/null 2>&1 || rpm -q "$pkg" &>/dev/null 2>&1 || pacman -Q "$pkg" &>/dev/null 2>&1; then
-            log "$pkg ya instalado" "SKIP"
+    # Recorre el catalogo: instala lo que falte, saltea lo ya presente.
+    # (El selector interactivo —elegir que instalar— llega en una fase posterior;
+    #  por ahora se instala todo el catalogo, igual que antes.)
+    for _tool_entry in "${TOOLS_CATALOG[@]}"; do
+        _tool_id="${_tool_entry%%|*}"
+        if tool_installed "$_tool_id"; then
+            log "$_tool_id ya instalado" "SKIP"
         else
-            run_step "Instalar $pkg" $PKG_INSTALL "$pkg"
+            install_tool "$_tool_id"
         fi
     done
-
-    # oh-my-posh (binario unico)
-    if ! has_cmd oh-my-posh; then
-        run_step "Instalar oh-my-posh" bash -c 'curl -s https://ohmyposh.dev/install.sh | bash -s'
-    else
-        log "oh-my-posh ya instalado" "SKIP"
-    fi
-
-    # zoxide
-    if ! has_cmd zoxide; then
-        run_step "Instalar zoxide" bash -c 'curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh'
-    else
-        log "zoxide ya instalado" "SKIP"
-    fi
-
-    # lazygit — Fedora: COPR | Arch: repos | Debian: binario
-    if ! has_cmd lazygit; then
-        if [[ "$PKG_MANAGER" == "dnf" ]]; then
-            run_step "Instalar lazygit (COPR)" bash -c '
-                sudo dnf install -y dnf-plugins-core
-                sudo dnf copr enable -y atim/lazygit
-                sudo dnf install -y lazygit
-            '
-        elif [[ "$PKG_MANAGER" == "pacman" ]]; then
-            run_step "Instalar lazygit" sudo pacman -S --noconfirm lazygit
-        else
-            # apt y otros: binario desde GitHub releases
-            run_step "Instalar lazygit (binario)" bash -c '
-                LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
-                curl -Lo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
-                tar xf /tmp/lazygit.tar.gz -C /tmp lazygit
-                sudo install /tmp/lazygit /usr/local/bin
-                rm -f /tmp/lazygit /tmp/lazygit.tar.gz
-            '
-        fi
-    else
-        log "lazygit ya instalado" "SKIP"
-    fi
-
-    # eza (reemplazo moderno de ls)
-    if ! has_cmd eza; then
-        if [[ "$PKG_MANAGER" == "apt" ]]; then
-            run_step "Instalar eza" bash -c '
-                sudo mkdir -p /etc/apt/keyrings
-                wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
-                echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list
-                sudo apt update && sudo apt install -y eza
-            '
-        elif [[ "$PKG_MANAGER" == "dnf" ]]; then
-            run_step "Instalar eza" sudo dnf install -y eza
-        elif [[ "$PKG_MANAGER" == "pacman" ]]; then
-            run_step "Instalar eza" sudo pacman -S --noconfirm eza
-        else
-            log "eza: instalar manualmente — https://github.com/eza-community/eza#installation" "WARN"
-            WARNINGS+=("eza no instalado")
-        fi
-    else
-        log "eza ya instalado" "SKIP"
-    fi
-
-    # Node.js LTS — nativo por distro
-    if ! has_cmd node; then
-        if [[ "$PKG_MANAGER" == "dnf" ]]; then
-            run_step "Instalar Node.js" sudo dnf install -y nodejs npm
-        elif [[ "$PKG_MANAGER" == "pacman" ]]; then
-            run_step "Instalar Node.js" sudo pacman -S --noconfirm nodejs npm
-        elif [[ "$PKG_MANAGER" == "apt" ]]; then
-            # apt: el repo de Debian trae una version vieja, usamos NodeSource para LTS
-            run_step "Instalar Node.js LTS" bash -c '
-                curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-                sudo apt install -y nodejs
-            '
-        else
-            log "Sin package manager para Node.js — instalar manualmente" "WARN"
-            WARNINGS+=("Node.js no instalado")
-        fi
-    else
-        log "Node.js $(node --version) ya instalado" "SKIP"
-    fi
-
-    # Codex CLI (OpenAI)
-    if ! has_cmd codex; then
-        if has_cmd node; then
-            run_step "Instalar Codex CLI" sudo npm install -g @openai/codex
-        else
-            log "Node.js no disponible, no se puede instalar Codex CLI" "WARN"
-            WARNINGS+=("Codex CLI no instalado — requiere Node.js")
-        fi
-    else
-        log "Codex CLI ya instalado" "SKIP"
-    fi
-    log "  Nota: para instalar Codex Desktop ejecuta 'codex app' (descarga el instalador automaticamente)" "INFO"
-
-    # Claude Code CLI
-    if ! has_cmd claude; then
-        run_step "Instalar Claude Code CLI" bash -c 'curl -fsSL https://claude.ai/download/linux | bash'
-    else
-        log "Claude Code ya instalado" "SKIP"
-    fi
-
-    # opencode (SST)
-    if ! has_cmd opencode; then
-        run_step "Instalar opencode" bash -c 'curl -fsSL https://opencode.ai/install | bash'
-    else
-        log "opencode ya instalado" "SKIP"
-    fi
-
-    # AWS CLI (requerido para claude-smg con Bedrock)
-    if ! has_cmd aws; then
-        run_step "Instalar AWS CLI" bash -c '
-            curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
-            unzip -qo /tmp/awscliv2.zip -d /tmp
-            sudo /tmp/aws/install --update
-            rm -rf /tmp/aws /tmp/awscliv2.zip
-        '
-    else
-        log "AWS CLI ya instalado" "SKIP"
-    fi
-
-    # glab (GitLab CLI) — Fedora/Arch: repos | Debian: binario
-    if ! has_cmd glab; then
-        if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "pacman" ]]; then
-            run_step "Instalar glab" $PKG_INSTALL glab
-        else
-            # apt y otros: binario desde GitLab releases
-            run_step "Instalar glab (binario)" bash -c '
-                GLAB_VERSION=$(curl -s "https://api.github.com/repos/profclems/glab/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
-                curl -Lo /tmp/glab.tar.gz "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_Linux_x86_64.tar.gz"
-                tar xf /tmp/glab.tar.gz -C /tmp
-                sudo install /tmp/bin/glab /usr/local/bin
-                rm -rf /tmp/glab /tmp/bin /tmp/glab.tar.gz
-            '
-        fi
-    else
-        log "glab ya instalado" "SKIP"
-    fi
-
-    # age (encriptacion de claves SSH) — nativo en repos de Fedora/Debian/Arch
-    if ! has_cmd age; then
-        if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "apt" || "$PKG_MANAGER" == "pacman" ]]; then
-            run_step "Instalar age" $PKG_INSTALL age
-        else
-            # Fallback: binario desde GitHub releases
-            run_step "Instalar age (binario)" bash -c '
-                AGE_VERSION=$(curl -s "https://api.github.com/repos/FiloSottile/age/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
-                curl -Lo /tmp/age.tar.gz "https://github.com/FiloSottile/age/releases/latest/download/age-v${AGE_VERSION}-linux-amd64.tar.gz"
-                tar xf /tmp/age.tar.gz -C /tmp
-                sudo install /tmp/age/age /usr/local/bin
-                sudo install /tmp/age/age-keygen /usr/local/bin
-                rm -rf /tmp/age /tmp/age.tar.gz
-            '
-        fi
-    else
-        log "age ya instalado" "SKIP"
-    fi
-
-    # Nerd Fonts (FiraCode como default)
-    if ! fc-list | grep -qi "FiraCode Nerd Font"; then
-        run_step "Instalar FiraCode Nerd Font" bash -c '
-            FONT_DIR="$HOME/.local/share/fonts"
-            mkdir -p "$FONT_DIR"
-            NERD_FONTS_VERSION=$(curl -s "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
-            curl -Lo /tmp/FiraCode.zip "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip"
-            unzip -qo /tmp/FiraCode.zip -d "$FONT_DIR"
-            rm /tmp/FiraCode.zip
-            fc-cache -fv > /dev/null
-        '
-    else
-        log "FiraCode Nerd Font ya instalado" "SKIP"
-    fi
+    unset _tool_entry _tool_id
 fi
 
 # ==============================================================================

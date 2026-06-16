@@ -872,13 +872,30 @@ if (-not $WithAws) {
         Write-Log "Cert Netskope no encontrado — máquina sin Netskope, SSL de AWS debería funcionar directo" 'INFO'
     }
 
-    Write-Log "" 'INFO'
-    Write-Log "Para completar la configuración de AWS SSO ejecutá manualmente:" 'WARN'
-    Write-Log "  aws configure sso" 'WARN'
-    Write-Log "  SSO start URL : https://<tu-org>.awsapps.com/start/#" 'WARN'
-    Write-Log "  SSO region    : us-east-1" 'WARN'
-    Write-Log "  Cuenta        : DATA" 'WARN'
-    Write-Log "  Profile name  : tu_usuario_de_red" 'WARN'
+    # Pre-configurar perfil default con valores de SMG (igual que bootstrap.sh).
+    # Sin sso_account_id + sso_role_name, get-caller-identity da NoCredentials
+    # aunque el sso login funcione, y claude-smg entra en loop de "sesion caducada".
+    Invoke-Step "Pre-configurar perfil AWS SSO default (SMG/Bedrock)" {
+        aws configure set sso_start_url "https://<tu-org>.awsapps.com/start/#" --profile default
+        aws configure set sso_region "us-east-1" --profile default
+        aws configure set sso_account_id "<AWS_SSO_ACCOUNT_ID>" --profile default   # cuenta "Data"
+        aws configure set sso_role_name "Bedrock_Access" --profile default
+        aws configure set region "us-east-1" --profile default
+        aws configure set output "json" --profile default
+    }
+
+    if ($DryRun) {
+        Write-Log "[DryRun] Saltando aws sso login" 'SKIP'
+    } else {
+        Write-Log "Iniciando AWS SSO login (se abrirá el navegador)..." 'INFO'
+        aws sso login --profile default
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "AWS SSO login completado exitosamente" 'OK'
+        } else {
+            Write-Log "AWS SSO login falló o fue cancelado" 'WARN'
+            $WARNINGS.Add("AWS SSO login incompleto — correr 'aws sso login --profile default'")
+        }
+    }
 }
 
 # ==============================================================================

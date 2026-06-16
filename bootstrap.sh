@@ -672,8 +672,14 @@ copy_dotfile() {
     [[ -d "$dst_dir" ]] || mkdir -p "$dst_dir"
 
     if [[ "$mode" == "link" ]]; then
-        [[ -e "$dst" || -L "$dst" ]] && rm -f "$dst"
-        run_step "Symlink $1 → $dst" ln -s "$src" "$dst"
+        # OJO: el rm debe respetar --dry-run. Si se borra aca pero el ln se
+        # saltea por DryRun, el symlink desaparece sin recrearse (rompe ~/.bashrc).
+        if [[ "$DRY_RUN" == true ]]; then
+            log "[DryRun] Symlink $1 → $dst" "SKIP"
+        else
+            [[ -e "$dst" || -L "$dst" ]] && rm -f "$dst"
+            run_step "Symlink $1 → $dst" ln -s "$src" "$dst"
+        fi
     else
         run_step "Copiar $1 → $dst" cp "$src" "$dst"
     fi

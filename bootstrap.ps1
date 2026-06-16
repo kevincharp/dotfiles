@@ -20,7 +20,9 @@ param(
     [switch]$DryRun,          # mostrar qué haría sin ejecutar nada
     [switch]$SkipWinget,      # saltear instalacion de paquetes
     [switch]$SkipModules,     # saltear instalacion de modulos PS
-    [switch]$SkipDotfiles     # saltear copia de dotfiles
+    [switch]$SkipDotfiles,    # saltear copia de dotfiles
+    [string]$Tools = '',      # instalar solo estas herramientas (csv de keys); vacio = preguntar
+    [switch]$AllTools         # instalar todo el catalogo sin preguntar
 )
 
 Set-StrictMode -Version Latest
@@ -53,28 +55,44 @@ $DIRS = @(
     "$HOME\repositorios\cei_walle"
 )
 
-# Paquetes winget
-# Formato: @{ Id='...'; Name='...'; Optional=$false }
+# Paquetes winget — catalogo enriquecido (espejo del TOOLS_CATALOG de Linux)
+# Formato: @{ Id='...'; Name='...'; Optional=$false; Key='...'; Group='...' }
+#   Key   = identificador corto para -Tools y el selector (igual idea que en bash)
+#   Group = core | shell | dev | cloud | fonts | extras
 $WINGET_PACKAGES = @(
-    @{ Id='Microsoft.WindowsTerminal';      Name='Windows Terminal';        Optional=$false }
-    @{ Id='Microsoft.PowerShell';           Name='PowerShell 7';            Optional=$false }
-    @{ Id='JanDeDobbeleer.OhMyPosh';        Name='Oh My Posh';              Optional=$false }
-    @{ Id='Neovim.Neovim';                  Name='Neovim';                  Optional=$false }
-    @{ Id='JesseDuffield.lazygit';          Name='LazyGit';                 Optional=$false }
-    @{ Id='OpenJS.NodeJS.LTS';              Name='Node.js LTS';             Optional=$false }
-    @{ Id='BurntSushi.ripgrep.MSVC';        Name='ripgrep';                 Optional=$false }
-    @{ Id='junegunn.fzf';                   Name='fzf';                     Optional=$false }
-    @{ Id='ajeetdsouza.zoxide';             Name='zoxide';                  Optional=$false }
-    @{ Id='Amazon.AWSCLI';                  Name='AWS CLI';                 Optional=$true  }
-    @{ Id='GitHub.cli';                     Name='GitHub CLI (gh)';         Optional=$true  }
-    @{ Id='GLab.GLab';                      Name='GitLab CLI (glab)';       Optional=$true  }
-    @{ Id='FiloSottile.age';                Name='age (encriptacion)';      Optional=$true  }
-    @{ Id='Obsidian.Obsidian';              Name='Obsidian';                Optional=$true  }
-    @{ Id='SST.opencode';                   Name='opencode';                Optional=$true  }
-    @{ Id='Logitech.OptionsPlus';           Name='Logitech Options+';       Optional=$true  }
-    @{ Id='Microsoft.Sysinternals.SDelete'; Name='SDelete (Sysinternals)';  Optional=$true  }
-    @{ Id='Canonical.Ubuntu.2204';          Name='Ubuntu 22.04 (WSL)';      Optional=$true  }
+    @{ Id='Microsoft.WindowsTerminal';      Name='Windows Terminal';        Optional=$false; Key='windows-terminal'; Group='core'   }
+    @{ Id='Microsoft.PowerShell';           Name='PowerShell 7';            Optional=$false; Key='pwsh';             Group='core'   }
+    @{ Id='Neovim.Neovim';                  Name='Neovim';                  Optional=$false; Key='neovim';           Group='core'   }
+    @{ Id='BurntSushi.ripgrep.MSVC';        Name='ripgrep';                 Optional=$false; Key='ripgrep';          Group='core'   }
+    @{ Id='junegunn.fzf';                   Name='fzf';                     Optional=$false; Key='fzf';              Group='core'   }
+    @{ Id='JanDeDobbeleer.OhMyPosh';        Name='Oh My Posh';              Optional=$false; Key='oh-my-posh';       Group='shell'  }
+    @{ Id='ajeetdsouza.zoxide';             Name='zoxide';                  Optional=$false; Key='zoxide';           Group='shell'  }
+    @{ Id='JesseDuffield.lazygit';          Name='LazyGit';                 Optional=$false; Key='lazygit';          Group='shell'  }
+    @{ Id='OpenJS.NodeJS.LTS';              Name='Node.js LTS';             Optional=$false; Key='node';             Group='dev'    }
+    @{ Id='SST.opencode';                   Name='opencode';                Optional=$true ; Key='opencode';         Group='dev'    }
+    @{ Id='Amazon.AWSCLI';                  Name='AWS CLI';                 Optional=$true ; Key='aws';              Group='cloud'  }
+    @{ Id='GitHub.cli';                     Name='GitHub CLI (gh)';         Optional=$true ; Key='gh';               Group='cloud'  }
+    @{ Id='GLab.GLab';                      Name='GitLab CLI (glab)';       Optional=$true ; Key='glab';             Group='cloud'  }
+    @{ Id='FiloSottile.age';                Name='age (encriptacion)';      Optional=$true ; Key='age';              Group='cloud'  }
+    @{ Id='Obsidian.Obsidian';              Name='Obsidian';                Optional=$true ; Key='obsidian';         Group='extras' }
+    @{ Id='Logitech.OptionsPlus';           Name='Logitech Options+';       Optional=$true ; Key='logitech';         Group='extras' }
+    @{ Id='Microsoft.Sysinternals.SDelete'; Name='SDelete (Sysinternals)';  Optional=$true ; Key='sdelete';          Group='extras' }
+    @{ Id='Canonical.Ubuntu.2204';          Name='Ubuntu 22.04 (WSL)';      Optional=$true ; Key='wsl-ubuntu';       Group='extras' }
 )
+
+# Herramientas con instalacion propia (no via 'winget list'): se gatean por
+# seleccion igual que los paquetes winget, pero su instalacion es custom.
+#   codex    -> winget OpenAI.Codex + nota de Codex Desktop (seccion 3)
+#   claude   -> instalacion manual (winget ID pendiente)            (seccion 3)
+#   firacode -> descarga FiraCode Nerd Font y la registra (sin admin)
+$EXTRA_TOOLS = @(
+    @{ Key='codex';    Name='Codex CLI';            Group='dev'   }
+    @{ Key='claude';   Name='Claude Code';          Group='dev'   }
+    @{ Key='firacode'; Name='FiraCode Nerd Font';   Group='fonts' }
+)
+
+# Catalogo combinado, solo para el menu y la resolucion de --tools
+$TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 
 # ==============================================================================
 # INSTALACIONES MANUALES REQUERIDAS
@@ -227,6 +245,117 @@ function Install-WingetPackage {
 }
 
 # ==============================================================================
+# SELECTOR DE HERRAMIENTAS
+# ------------------------------------------------------------------------------
+# Espejo del selector de bootstrap.sh. Deja en $script:SELECTED_KEYS las Keys
+# del catalogo a instalar. Prioridad:
+#   1. -Tools "a,b,c"  -> exactamente esas (valida contra el catalogo)
+#   2. -AllTools / -DryRun -> todo, sin preguntar
+#   3. consola interactiva -> menu agrupado, pregunta siempre
+#   4. sin consola (irm | iex no interactivo) -> todo, como red de seguridad
+# El menu arranca con TODO pre-marcado: Enter = instalar todo.
+# ==============================================================================
+
+$script:SELECTED_KEYS = @()
+
+function Test-Interactive {
+    # $true si hay consola real para Read-Host (no 'irm | iex' redirigido)
+    try { return -not [System.Console]::IsInputRedirected } catch { return $false }
+}
+
+function Select-ToolsInteractive {
+    $keys   = $TOOLS_CATALOG | ForEach-Object { $_.Key }
+    $groups = @('core', 'shell', 'dev', 'cloud', 'fonts', 'extras')
+    # Estado de marcado por Key (todo pre-marcado)
+    $marked = @{}
+    foreach ($k in $keys) { $marked[$k] = $true }
+
+    while ($true) {
+        Write-Host ''
+        Write-Host '  == Selector de herramientas ==' -ForegroundColor Cyan
+        Write-Host '  Marca/desmarca por numero. Enter sin nada = instalar lo marcado.'
+        Write-Host ''
+        $idx = 0
+        $rowKeys = @()   # mapea numero mostrado -> Key
+        foreach ($g in $groups) {
+            $inGroup = $TOOLS_CATALOG | Where-Object { $_.Group -eq $g }
+            if (-not $inGroup) { continue }
+            Write-Host "  [$g]" -ForegroundColor White
+            foreach ($t in $inGroup) {
+                $idx++
+                $rowKeys += $t.Key
+                $box = if ($marked[$t.Key]) { '[x]' } else { '[ ]' }
+                $color = if ($marked[$t.Key]) { 'Green' } else { 'Gray' }
+                Write-Host ("    {0} {1,2}) {2,-18} {3}" -f $box, $idx, $t.Key, $t.Name) -ForegroundColor $color
+            }
+        }
+        Write-Host ''
+        Write-Host '  Comandos: numeros (ej "1 3 5") | grupo (core/shell/dev/cloud/fonts/extras) | todo | nada | ok'
+        $reply = Read-Host '  >'
+
+        if ([string]::IsNullOrWhiteSpace($reply) -or $reply -eq 'ok') { break }
+
+        foreach ($tok in ($reply -split '\s+')) {
+            if (-not $tok) { continue }
+            switch -Regex ($tok) {
+                '^todo$'  { foreach ($k in $keys) { $marked[$k] = $true } }
+                '^nada$'  { foreach ($k in $keys) { $marked[$k] = $false } }
+                '^(core|shell|dev|cloud|fonts|extras)$' {
+                    $grpKeys = ($TOOLS_CATALOG | Where-Object { $_.Group -eq $tok }).Key
+                    # Toggle de grupo: si todo el grupo esta marcado lo apaga, si no lo prende
+                    $allOn = $true
+                    foreach ($k in $grpKeys) { if (-not $marked[$k]) { $allOn = $false } }
+                    foreach ($k in $grpKeys) { $marked[$k] = (-not $allOn) }
+                }
+                '^\d+$' {
+                    $n = [int]$tok
+                    if ($n -ge 1 -and $n -le $rowKeys.Count) {
+                        $k = $rowKeys[$n - 1]
+                        $marked[$k] = (-not $marked[$k])
+                    } else {
+                        Write-Host "    Numero fuera de rango: $tok" -ForegroundColor DarkYellow
+                    }
+                }
+                default { Write-Host "    Entrada ignorada: $tok" -ForegroundColor DarkYellow }
+            }
+        }
+    }
+
+    return @($keys | Where-Object { $marked[$_] })
+}
+
+function Resolve-SelectedTools {
+    $allKeys = $TOOLS_CATALOG | ForEach-Object { $_.Key }
+
+    if ($Tools) {
+        $requested = $Tools -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+        $valid   = @($requested | Where-Object { $allKeys -contains $_ })
+        $unknown = @($requested | Where-Object { $allKeys -notcontains $_ })
+        if ($unknown.Count -gt 0) {
+            Write-Log "Keys desconocidas en -Tools (ignoradas): $($unknown -join ', ')" 'WARN'
+            $WARNINGS.Add("-Tools tenia keys desconocidas: $($unknown -join ', ')")
+        }
+        $script:SELECTED_KEYS = $valid
+        Write-Log "Herramientas via -Tools: $($valid -join ', ')" 'INFO'
+    } elseif ($AllTools -or $DryRun) {
+        $script:SELECTED_KEYS = @($allKeys)
+        Write-Log "Instalando catalogo completo ($($allKeys.Count) herramientas)" 'INFO'
+    } elseif (Test-Interactive) {
+        $script:SELECTED_KEYS = @(Select-ToolsInteractive)
+        Write-Log "Seleccionadas $($script:SELECTED_KEYS.Count): $($script:SELECTED_KEYS -join ', ')" 'INFO'
+    } else {
+        $script:SELECTED_KEYS = @($allKeys)
+        Write-Log 'Sin consola interactiva - instalando catalogo completo (red de seguridad)' 'INFO'
+    }
+}
+
+# True si una Key fue seleccionada para instalar
+function Test-ToolSelected {
+    param([string]$Key)
+    return ($script:SELECTED_KEYS -contains $Key)
+}
+
+# ==============================================================================
 # INICIO
 # ==============================================================================
 
@@ -281,8 +410,13 @@ Write-Log "winget disponible" 'OK'
 
 Write-Log "--- [2/9] Instalando paquetes winget ---" 'SECTION'
 
+# Resolver que herramientas instalar (-Tools / -AllTools / menu / red de seguridad)
+Resolve-SelectedTools
+
 if ($SkipWinget) {
     Write-Log "SkipWinget activado, saltando instalacion de paquetes" 'SKIP'
+} elseif ($script:SELECTED_KEYS.Count -eq 0) {
+    Write-Log "No se selecciono ninguna herramienta, saltando instalacion" 'SKIP'
 } else {
     if (-not (Test-WingetAvailable)) {
         Write-Log "winget no disponible, saltando paquetes" 'WARN'
@@ -293,6 +427,11 @@ if ($SkipWinget) {
         }
 
         foreach ($pkg in $WINGET_PACKAGES) {
+            # Saltar lo no seleccionado
+            if (-not (Test-ToolSelected $pkg.Key)) {
+                Write-Log "$($pkg.Name) no seleccionado, saltando" 'SKIP'
+                continue
+            }
             # WSL se instala diferente
             if ($pkg.Id -eq 'Canonical.Ubuntu.2204') {
                 if ($DryRun) {
@@ -315,25 +454,73 @@ if ($SkipWinget) {
 }
 
 # ==============================================================================
-# 3. INSTALAR CODEX CLI Y CLAUDE CODE (via winget)
+# 3. HERRAMIENTAS CON INSTALACION PROPIA (Codex, Claude Code, FiraCode)
 # ==============================================================================
 
-Write-Log "--- [3/9] Instalando Codex CLI y Claude Code ---" 'SECTION'
+Write-Log "--- [3/9] Codex CLI, Claude Code y FiraCode Nerd Font ---" 'SECTION'
 
-if (Test-CommandAvailable 'codex') {
-    Write-Log "Codex CLI ya instalado" 'SKIP'
+if ($SkipWinget) {
+    Write-Log "SkipWinget activado, saltando" 'SKIP'
 } else {
-    Install-WingetPackage -Id 'OpenAI.Codex' -Name 'Codex CLI' -Optional $false
-}
+    # --- Codex CLI ---
+    if (-not (Test-ToolSelected 'codex')) {
+        Write-Log "Codex CLI no seleccionado, saltando" 'SKIP'
+    } elseif (Test-CommandAvailable 'codex') {
+        Write-Log "Codex CLI ya instalado" 'SKIP'
+    } else {
+        Install-WingetPackage -Id 'OpenAI.Codex' -Name 'Codex CLI' -Optional $false
+        Write-Log "  Nota: para instalar Codex Desktop ejecuta 'codex app' (descarga el instalador automaticamente)" 'INFO'
+    }
 
-Write-Log "  Nota: para instalar Codex Desktop ejecuta 'codex app' (descarga el instalador automaticamente)" 'INFO'
+    # --- Claude Code ---
+    if (-not (Test-ToolSelected 'claude')) {
+        Write-Log "Claude Code no seleccionado, saltando" 'SKIP'
+    } elseif (Test-CommandAvailable 'claude') {
+        Write-Log "Claude Code ya instalado" 'SKIP'
+    } else {
+        # Claude Code: instalacion manual por ahora (winget ID pendiente de confirmar)
+        Write-Log "Claude Code no instalado — instalar manualmente desde https://claude.ai/download" 'WARN'
+        $WARNINGS.Add("Claude Code no instalado — descargar desde https://claude.ai/download")
+    }
 
-if (Test-CommandAvailable 'claude') {
-    Write-Log "Claude Code ya instalado" 'SKIP'
-} else {
-    # Claude Code: instalacion manual por ahora (winget ID pendiente de confirmar)
-    Write-Log "Claude Code no instalado — instalar manualmente desde https://claude.ai/download" 'WARN'
-    $WARNINGS.Add("Claude Code no instalado — descargar desde https://claude.ai/download")
+    # --- FiraCode Nerd Font ---
+    # Replica lo que hace Linux: baja el zip de nerd-fonts y registra los .ttf
+    # para el usuario actual (sin admin). La terminal ya usa 'FiraCode Nerd Font'.
+    if (-not (Test-ToolSelected 'firacode')) {
+        Write-Log "FiraCode Nerd Font no seleccionada, saltando" 'SKIP'
+    } else {
+        $fontDir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
+        $fontInstalled = Test-Path (Join-Path $fontDir 'FiraCodeNerdFont-Regular.ttf')
+        if ($fontInstalled) {
+            Write-Log "FiraCode Nerd Font ya instalada" 'SKIP'
+        } elseif ($DryRun) {
+            Write-Log "[DryRun] Descargar e instalar FiraCode Nerd Font" 'SKIP'
+        } else {
+            Invoke-Step "Instalar FiraCode Nerd Font" {
+                $zip = Join-Path $env:TEMP 'FiraCode.zip'
+                $ext = Join-Path $env:TEMP 'FiraCode-NerdFont'
+                Invoke-WebRequest -Uri 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip' -OutFile $zip -UseBasicParsing
+                if (Test-Path $ext) { Remove-Item $ext -Recurse -Force }
+                Expand-Archive -Path $zip -DestinationPath $ext -Force
+
+                New-Item -ItemType Directory -Path $fontDir -Force | Out-Null
+                $shell = New-Object -ComObject Shell.Application
+                $regKey = 'HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts'
+                if (-not (Test-Path $regKey)) { New-Item -Path $regKey -Force | Out-Null }
+
+                foreach ($ttf in Get-ChildItem -Path $ext -Filter '*.ttf' -File) {
+                    $dest = Join-Path $fontDir $ttf.Name
+                    Copy-Item -LiteralPath $ttf.FullName -Destination $dest -Force
+                    # Nombre de fuente para el registro (sin admin -> HKCU)
+                    $fontName = $shell.Namespace($ext).ParseName($ttf.Name).ExtendedProperty('System.Title')
+                    if (-not $fontName) { $fontName = $ttf.BaseName }
+                    Set-ItemProperty -Path $regKey -Name "$fontName (TrueType)" -Value $dest -ErrorAction SilentlyContinue
+                }
+                Remove-Item $zip -Force -ErrorAction SilentlyContinue
+                Remove-Item $ext -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
 }
 
 # ==============================================================================

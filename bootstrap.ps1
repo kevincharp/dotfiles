@@ -175,6 +175,25 @@ $script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001) {
     @{ Section='>'; Ok='[OK]'; Warn='[!]'; Err='[X]'; Skip='[-]' }
 }
 
+# Acceso a la consola física (CONIN$) — equivalente a /dev/tty en Linux.
+# Permite leer el teclado real aunque stdin esté ocupado por 'irm | iex'.
+Add-Type -Namespace Win32 -Name NativeConsole -MemberDefinition @'
+    [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Auto)]
+    public static extern System.IntPtr CreateFile(
+        string lpFileName, uint dwDesiredAccess, uint dwShareMode,
+        System.IntPtr lpSecurityAttributes, uint dwCreationDisposition,
+        uint dwFlagsAndAttributes, System.IntPtr hTemplateFile);
+    [DllImport("kernel32.dll", SetLastError=true)]
+    public static extern bool CloseHandle(System.IntPtr hObject);
+'@
+
+function Read-Console {
+    # Equivalente a 'read -r input < /dev/tty': lee una linea de la consola real.
+    $fs = [System.IO.File]::Open('CONIN$', 'Open', 'Read', 'ReadWrite')
+    $reader = [System.IO.StreamReader]::new($fs)
+    try { return $reader.ReadLine() } finally { $reader.Dispose() }
+}
+
 function Write-Log {
     param([string]$Message, [string]$Level = 'INFO')
     # Al archivo siempre con timestamp y nivel (traza completa)
@@ -272,8 +291,17 @@ function Install-WingetPackage {
 $script:SELECTED_KEYS = @()
 
 function Test-Interactive {
-    # $true si hay consola real para Read-Host (no 'irm | iex' redirigido)
-    try { return -not [System.Console]::IsInputRedirected } catch { return $false }
+    # $true si hay consola fisica adjunta (humano), aunque stdin venga por pipe.
+    # Sondea CONIN$ (equivalente a [[ -e /dev/tty ]] en Linux): existe cuando hay
+    # un humano, falta en CI/headless real -> ahi cae a la red de seguridad.
+    # GENERIC_READ=0x80000000, FILE_SHARE_READ|WRITE=3, OPEN_EXISTING=3.
+    # Nota: 0x80000000 se castea a [uint32] porque PowerShell lo toma como Int32 negativo.
+    try {
+        $h = [Win32.NativeConsole]::CreateFile('CONIN$', ([uint32]'0x80000000'), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
+        if ($h -eq [IntPtr]::Zero -or $h.ToInt64() -eq -1) { return $false }
+        [void][Win32.NativeConsole]::CloseHandle($h)
+        return $true
+    } catch { return $false }
 }
 
 function Select-ToolsInteractive {
@@ -304,7 +332,8 @@ function Select-ToolsInteractive {
         }
         Write-Host ''
         Write-Host '  Comandos: numeros (ej "1 3 5") | grupo (core/shell/dev/cloud/fonts/extras) | todo | nada | ok'
-        $reply = Read-Host '  >'
+        Write-Host '  >: ' -NoNewline
+        $reply = Read-Console
 
         if ([string]::IsNullOrWhiteSpace($reply) -or $reply -eq 'ok') { break }
 
@@ -393,7 +422,7 @@ Write-Log "   Razon: el instalador permite configurar line endings y SSH." 'INFO
 Write-Log "" 'INFO'
 Write-Log "Ya los instalaste? Si no, presiona Ctrl+C y hacelo primero." 'WARN'
 
-if (-not $DryRun) { Read-Host "  Presiona Enter para continuar" }
+if (-not $DryRun) { Write-Host "  Presiona Enter para continuar: " -NoNewline; [void](Read-Console) }
 
 # ==============================================================================
 # 1. VERIFICAR REQUISITOS

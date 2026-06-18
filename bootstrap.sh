@@ -131,8 +131,9 @@ has_cmd() {
 # Grupos: core (basicas), shell (prompt/navegacion), dev (runtime + IA),
 #         cloud (nube/git remoto), fonts (tipografias).
 #
-# Agregar una herramienta = una linea aca + su case en las dos funciones.
-# Por ahora se instala TODO el catalogo; el selector interactivo llega despues.
+# Agregar una herramienta = una linea aca + su case en las dos funciones
+# (tool_installed e install_tool). El selector (ver SELECTOR DE HERRAMIENTAS)
+# decide cuales del catalogo se instalan.
 # ==============================================================================
 
 TOOLS_CATALOG=(
@@ -499,7 +500,7 @@ banner "bootstrap.sh — Setup de entorno" "$(date '+%Y-%m-%d %H:%M:%S')$([[ "$D
 # 1. VERIFICAR REQUISITOS
 # ==============================================================================
 
-log "--- [1/7] Verificando requisitos ---" "SECTION"
+log "--- [1/8] Verificando requisitos ---" "SECTION"
 
 if ! has_cmd git; then
     log "Git no esta instalado" "ERROR"
@@ -530,7 +531,7 @@ log "Package manager: $PKG_MANAGER" "OK"
 # 2. INSTALAR PAQUETES
 # ==============================================================================
 
-log "--- [2/7] Instalando paquetes ---" "SECTION"
+log "--- [2/8] Instalando paquetes ---" "SECTION"
 
 if [[ "$SKIP_PACKAGES" == true ]]; then
     log "skip-packages activado, saltando" "SKIP"
@@ -565,7 +566,7 @@ fi
 # 3. CREAR ESTRUCTURA DE CARPETAS
 # ==============================================================================
 
-log "--- [3/7] Creando estructura de carpetas ---" "SECTION"
+log "--- [3/8] Creando estructura de carpetas ---" "SECTION"
 
 DIRS=(
     "$HOME/.config/git"
@@ -602,7 +603,7 @@ fi
 # 4. MIGRAR BACKUPS VIEJOS (.bak-*) → BACKUP_DIR
 # ==============================================================================
 
-log "--- [4/7] Migrando backups viejos ---" "SECTION"
+log "--- [4/8] Migrando backups viejos ---" "SECTION"
 
 migrate_old_backups() {
     local dst="$1"
@@ -664,7 +665,7 @@ fi
 # 5. COPIAR DOTFILES
 # ==============================================================================
 
-log "--- [5/7] Copiando dotfiles ---" "SECTION"
+log "--- [5/8] Copiando dotfiles ---" "SECTION"
 
 copy_dotfile() {
     # $1 relativo → se resuelve contra $REPO_ROOT; $1 absoluto (ej. del vault) → se usa tal cual
@@ -855,10 +856,10 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
 fi
 
 # ==============================================================================
-# 5. CONFIGURAR AWS SSO (OPCIONAL)
+# 6. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================
 
-log "--- [6/7] Configuracion AWS SSO ---" "SECTION"
+log "--- [6/8] Configuracion AWS SSO ---" "SECTION"
 
 if [[ "$WITH_AWS" != true ]]; then
     log "Saltando configuracion AWS SSO (usa --with-aws para incluirla)" "SKIP"
@@ -901,15 +902,11 @@ else
 fi
 
 # ==============================================================================
-# 6. RESUMEN FINAL
-# ==============================================================================
-
-# ==============================================================================
-# VALIDACION POST-BOOTSTRAP
+# 7. VALIDACION POST-BOOTSTRAP
 # ==============================================================================
 
 log "" "INFO"
-log "--- Ejecutando validaciones post-bootstrap ---" "SECTION"
+log "--- [7/8] Ejecutando validaciones post-bootstrap ---" "SECTION"
 
 TEST_SCRIPT="$REPO_ROOT/test-bootstrap.sh"
 if [[ -f "$TEST_SCRIPT" ]]; then
@@ -930,10 +927,10 @@ else
 fi
 
 # ==============================================================================
-# 6. RESUMEN FINAL
+# 8. RESUMEN FINAL
 # ==============================================================================
 
-banner "Resumen final"
+banner "[8/8] Resumen final"
 
 if [[ ${#ERRORS[@]} -eq 0 && ${#WARNINGS[@]} -eq 0 ]]; then
     log "Bootstrap completado sin errores." "OK"

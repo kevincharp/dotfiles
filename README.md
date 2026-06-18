@@ -265,7 +265,7 @@ menu arranca con todo pre-marcado:
 ```
 
 - **Numeros** (`1 3 5`): alterna esas filas
-- **Grupo** (`core`, `shell`, `dev`, `cloud`, `fonts`): alterna el grupo entero
+- **Grupo** (`core`, `shell`, `dev`, `cloud`, `fonts`; en Windows tambien `extras`): alterna el grupo entero
 - **`todo`** / **`nada`**: marca / desmarca todo
 - **Enter** vacio u **`ok`**: confirma e instala lo marcado
 
@@ -513,7 +513,7 @@ Flags disponibles:
 | FiraCode Nerd Font | Fuente con glifos (oh-my-posh) | descarga nerd-fonts | descarga nerd-fonts | descarga nerd-fonts |
 | Windows Terminal | Terminal con paneles y tabs | winget | - | - |
 | AWS CLI | Acceso a Bedrock *(opcional)* | winget | installer oficial | installer oficial |
-| GitHub CLI | PRs e issues desde terminal *(opcional)* | winget | - | - |
+| GitHub CLI | PRs e issues + clonado del vault *(opcional)* | winget | dnf | repo oficial GitHub |
 | dash-to-dock | Extension GNOME del dock | - | dnf | - |
 | GPaste | Gestor de portapapeles GNOME | - | dnf | - |
 
@@ -584,8 +584,8 @@ Disponibles en PowerShell (`profile.ps1`) y Bash (`bashrc`). Usar `spf` para lis
 | `gsync` | Fetch + pull rebase + autostash |
 | `gclone` | Clone + identidad local automatica |
 | `gset-profile` | Aplicar perfil a repo existente |
-| `ginit` | git init + perfil *(solo pwsh)* |
-| `gremote` | Agregar/actualizar remote SSH *(solo pwsh)* |
+| `ginit` | git init + perfil |
+| `gremote` | Agregar/actualizar remote SSH |
 | `gbrowser` | Listar repos GitLab/GitHub *(solo pwsh)* |
 
 ### Utilidades
@@ -595,7 +595,7 @@ Disponibles en PowerShell (`profile.ps1`) y Bash (`bashrc`). Usar `spf` para lis
 | `spf` | Listar funciones del profile |
 | `spf -Type GIT` / `spf git` | Filtrar por tipo/nombre |
 | `claude-smg` | Claude Code con Bedrock de SMG |
-| `edit archivo` | Abrir en VSCode *(solo pwsh)* |
+| `edit archivo` | Abrir en VSCode si esta, si no nvim |
 | `open path` / `openh` | Abrir en explorador/app |
 | `ptyxis-save` / `ptyxis-load` | Volcar/restaurar config de Ptyxis (dconf) *(Linux)* |
 | `gnome-save` / `gnome-load` | Volcar/restaurar config de GNOME: atajos, dock, GPaste *(Linux)* |

@@ -279,12 +279,15 @@ install_tool() {
             if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "pacman" ]]; then
                 run_step "Instalar glab" $PKG_INSTALL glab
             else
+                # Repo oficial gitlab-org/cli (profclems/glab esta archivado desde 2021).
+                # La version se consulta a la API de tags de GitLab y el asset es
+                # glab_<ver>_linux_amd64.tar.gz (minusculas), con el binario en bin/glab.
                 run_step "Instalar glab (binario)" bash -c '
-                    GLAB_VERSION=$(curl -s "https://api.github.com/repos/profclems/glab/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
-                    curl -Lo /tmp/glab.tar.gz "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_Linux_x86_64.tar.gz"
+                    GLAB_VERSION=$(curl -fsSL "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/repository/tags?per_page=1" | grep -Po "\"name\":\"v\K[^\"]*" | head -1)
+                    curl -Lo /tmp/glab.tar.gz "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_amd64.tar.gz"
                     tar xf /tmp/glab.tar.gz -C /tmp
                     sudo install /tmp/bin/glab /usr/local/bin
-                    rm -rf /tmp/glab /tmp/bin /tmp/glab.tar.gz
+                    rm -rf /tmp/bin /tmp/glab.tar.gz
                 '
             fi
             ;;

@@ -24,6 +24,11 @@ if [[ -d "$HOME/.local/bin" ]]; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
+# opencode (instalador SST) deja el binario en ~/.opencode/bin
+if [[ -d "$HOME/.opencode/bin" ]]; then
+    export PATH="$HOME/.opencode/bin:$PATH"
+fi
+
 # ==============================================================================
 # PROMPT — oh-my-posh con tema spaceship
 # ==============================================================================
@@ -749,6 +754,3 @@ gnome-load() {
 # ==============================================================================
 # FIN
 # ==============================================================================
-
-# opencode
-export PATH=/home/kevincharp/.opencode/bin:$PATH

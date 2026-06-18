@@ -824,6 +824,12 @@ if [[ -n "${BLE_VERSION:-}" ]]; then
 
     # Sugerencia desde el historial mientras escribis (como PSReadLine prediction)
     bleopt complete_auto_complete=1
+
+    # El prompt de oh-my-posh es multilinea (linea de info + linea del ❯) y ademas
+    # se arma desde PROMPT_COMMAND. Sin esto, ble.sh asume 1 linea al adjuntarse y
+    # solo redibuja la ultima, dejando huerfana la linea de info → prompt duplicado
+    # al abrir la terminal (se nota en Ptyxis/VTE).
+    bleopt prompt_command_changes_layout=1
 fi
 
 # ==============================================================================

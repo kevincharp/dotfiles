@@ -20,6 +20,8 @@
 #     --skip-vault     No clonar/aplicar el vault privado (solo lo publico)
 #     --update-only    Solo actualizar repos, no ejecutar bootstrap
 #     --vault-auth=X   Metodo de auth no interactivo: gh | ssh | skip
+#     --all-tools      Instalar todo el catalogo sin preguntar (se pasa al bootstrap)
+#     --tools=a,b,c    Instalar solo esas herramientas (se pasa al bootstrap)
 # ==============================================================================
 
 set -euo pipefail
@@ -44,6 +46,8 @@ SKIP_PACKAGES=false
 SKIP_VAULT=false
 UPDATE_ONLY=false
 VAULT_AUTH=""   # gh | ssh | skip | "" (interactivo)
+ALL_TOOLS=false
+TOOLS_ARG=""
 
 for arg in "$@"; do
     case "$arg" in
@@ -53,8 +57,10 @@ for arg in "$@"; do
         --skip-vault)     SKIP_VAULT=true ;;
         --update-only)    UPDATE_ONLY=true ;;
         --vault-auth=*)   VAULT_AUTH="${arg#*=}" ;;
+        --all-tools)      ALL_TOOLS=true ;;
+        --tools=*)        TOOLS_ARG="${arg#*=}" ;;
         *)
-            echo "Uso: bash install.sh [--with-aws] [--dry-run] [--skip-packages] [--skip-vault] [--update-only] [--vault-auth=gh|ssh|skip]"
+            echo "Uso: bash install.sh [--with-aws] [--dry-run] [--skip-packages] [--skip-vault] [--update-only] [--vault-auth=gh|ssh|skip] [--all-tools] [--tools=id1,id2,...]"
             exit 1
             ;;
     esac
@@ -224,6 +230,8 @@ BOOTSTRAP_ARGS=()
 [[ "$WITH_AWS" == true ]]       && BOOTSTRAP_ARGS+=(--with-aws)
 [[ "$DRY_RUN" == true ]]        && BOOTSTRAP_ARGS+=(--dry-run)
 [[ "$SKIP_PACKAGES" == true ]]  && BOOTSTRAP_ARGS+=(--skip-packages)
+[[ "$ALL_TOOLS" == true ]]      && BOOTSTRAP_ARGS+=(--all-tools)
+[[ -n "$TOOLS_ARG" ]]           && BOOTSTRAP_ARGS+=("--tools=$TOOLS_ARG")
 
 if [[ -f "$DOTFILES_DIR/bootstrap.sh" ]]; then
     # Exporto VAULT_DIR para que bootstrap.sh encuentre lo sensible

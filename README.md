@@ -508,6 +508,7 @@ Flags disponibles:
 | fzf | Busqueda difusa (Ctrl+R) | winget | dnf | apt |
 | zoxide | `cd` inteligente con memoria | winget | curl script | curl script |
 | eza | Reemplazo moderno de `ls` | - | dnf | apt (repo gierens) |
+| ble.sh | Syntax highlighting en la linea de input (equivalente a PSReadLine) | - (PSReadLine nativo) | tarball release | tarball release |
 | age | Encriptacion de claves SSH | winget | dnf | apt |
 | glab | GitLab CLI | winget | dnf | binario GitLab |
 | FiraCode Nerd Font | Fuente con glifos (oh-my-posh) | descarga nerd-fonts | descarga nerd-fonts | descarga nerd-fonts |

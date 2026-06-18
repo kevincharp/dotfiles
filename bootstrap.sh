@@ -148,6 +148,7 @@ TOOLS_CATALOG=(
     "zoxide|shell|cd inteligente con memoria"
     "eza|shell|Reemplazo moderno de ls"
     "lazygit|shell|UI de git en terminal"
+    "blesh|shell|Syntax highlighting en bash (estilo PSReadLine)"
     "node|dev|Runtime JS + npm"
     "codex|dev|Codex CLI (OpenAI)"
     "claude|dev|Claude Code CLI"
@@ -175,6 +176,7 @@ tool_installed() {
         zoxide)          has_cmd zoxide ;;
         eza)             has_cmd eza ;;
         lazygit)         has_cmd lazygit ;;
+        blesh)           [[ -f "$HOME/.local/share/blesh/ble.sh" ]] ;;
         node)            has_cmd node ;;
         codex)           has_cmd codex ;;
         claude)          has_cmd claude ;;
@@ -220,6 +222,18 @@ install_tool() {
                     rm -f /tmp/lazygit /tmp/lazygit.tar.gz
                 '
             fi
+            ;;
+        blesh)
+            # ble.sh (Bash Line Editor): syntax highlighting + autosugerencias.
+            # No esta en repos de distro; se instala desde el tarball de release
+            # oficial (sin compilar) en ~/.local/share/blesh. El bashrc lo cablea.
+            run_step "Instalar ble.sh" bash -c '
+                tmp="$(mktemp -d)"
+                curl -fsSL https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz -o "$tmp/ble.tar.xz"
+                tar xJf "$tmp/ble.tar.xz" -C "$tmp"
+                bash "$tmp"/ble-nightly/ble.sh --install "$HOME/.local/share"
+                rm -rf "$tmp"
+            '
             ;;
         eza)
             if [[ "$PKG_MANAGER" == "apt" ]]; then

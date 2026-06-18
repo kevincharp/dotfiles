@@ -30,6 +30,25 @@ if [[ -d "$HOME/.opencode/bin" ]]; then
 fi
 
 # ==============================================================================
+# BLE.SH — syntax highlighting + autosugerencias en la linea de input
+# ------------------------------------------------------------------------------
+# Equivalente bash de PSReadLine (profile.ps1): colorea cada token mientras
+# escribis y sugiere desde el historial. La paleta (mas abajo) replica los
+# Colors de PSReadLine para tener paridad Linux/Windows.
+#
+# OJO con el orden: se sourcea con el metodo de attach por defecto (=prompt),
+# que adjunta ble.sh recien en el primer prompt via PROMPT_COMMAND. NO usar
+# '--noattach' + 'ble-attach' manual: empeora el redibujado del prompt al
+# adjuntarse. El prompt duplicado se resolvio ademas quitando el newline inicial
+# del tema (ver claude-code.omp.json) + bleopt prompt_command_changes_layout.
+# ==============================================================================
+
+_BLESH_DIR="$HOME/.local/share/blesh"
+if [[ $- == *i* && -f "$_BLESH_DIR/ble.sh" ]]; then
+    source "$_BLESH_DIR/ble.sh"
+fi
+
+# ==============================================================================
 # PROMPT — oh-my-posh con tema spaceship
 # ==============================================================================
 
@@ -762,6 +781,50 @@ gnome-load() {
         fi
     done
 }
+
+# ==============================================================================
+# BLE.SH — paleta de colores (faces)
+# ------------------------------------------------------------------------------
+# Colores espejo de los PSReadLine -Colors de profile.ps1 (paridad Win/Linux):
+#   Command #C79BFF · Parameter #7AB8FF · String #86E89A · Variable #FFDF61
+#   Operator #56B6C2 · Error #FF7A7A · Comment #6B5448 · InlinePrediction #6B5448
+# Naranja #D4874E para directorios (alineado con LS_COLORS di=172).
+# No se llama 'ble-attach' aca: ble.sh ya adjunta solo en el primer prompt
+# (metodo =prompt del source de arriba). Las faces se setean antes de ese
+# primer prompt porque todo el bashrc corre primero.
+# ==============================================================================
+
+if [[ -n "${BLE_VERSION:-}" ]]; then
+    # Comandos (funciones, builtins, alias, ejecutables, keywords) → purpura
+    ble-face -s command_function 'fg=#C79BFF'
+    ble-face -s command_builtin  'fg=#C79BFF'
+    ble-face -s command_alias    'fg=#C79BFF'
+    ble-face -s command_file     'fg=#C79BFF'
+    ble-face -s command_keyword  'fg=#C79BFF,bold'
+    # Directorios (cd a una carpeta) → naranja, como LS_COLORS
+    ble-face -s command_directory  'fg=#D4874E'
+    ble-face -s filename_directory 'fg=#D4874E'
+    # Opciones/argumentos (--flag) → azul
+    ble-face -s argument_option 'fg=#7AB8FF'
+    # Strings (comillas) → verde
+    ble-face -s syntax_quoted    'fg=#86E89A'
+    ble-face -s syntax_quotation 'fg=#86E89A'
+    # Variables / expansiones ($VAR, ${...}) → amarillo
+    ble-face -s syntax_varname        'fg=#FFDF61'
+    ble-face -s syntax_param_expansion 'fg=#FFDF61'
+    # Operadores / delimitadores (| && > ;) → cyan
+    ble-face -s syntax_delimiter 'fg=#56B6C2'
+    # Errores (comando inexistente, sintaxis rota) → rojo
+    ble-face -s syntax_error   'fg=#FF7A7A'
+    ble-face -s argument_error 'fg=#FF7A7A'
+    # Comentarios → tenue
+    ble-face -s syntax_comment 'fg=#6B5448'
+    # Autosugerencia del historial (espejo de InlinePrediction) → gris calido
+    ble-face -s auto_complete 'fg=#6B5448'
+
+    # Sugerencia desde el historial mientras escribis (como PSReadLine prediction)
+    bleopt complete_auto_complete=1
+fi
 
 # ==============================================================================
 # FIN

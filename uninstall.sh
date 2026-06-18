@@ -119,6 +119,17 @@ has_cmd() {
     command -v "$1" &>/dev/null
 }
 
+# pkg_cmd <paquete> — comando real que provee el paquete (cuando difiere del nombre).
+# Sin esto, has_cmd neovim/ripgrep da false (los binarios son nvim/rg) y nunca se
+# desinstalan aunque esten presentes.
+pkg_cmd() {
+    case "$1" in
+        neovim)  echo "nvim" ;;
+        ripgrep) echo "rg" ;;
+        *)       echo "$1" ;;
+    esac
+}
+
 # ==============================================================================
 # INICIO
 # ==============================================================================
@@ -178,7 +189,7 @@ log "Repositorios a borrar:" "INFO"
 if [[ "$REMOVE_PACKAGES" == true ]]; then
     log "Paquetes a desinstalar (--remove-packages):" "INFO"
     for pkg in "${PACKAGES[@]}"; do
-        if has_cmd "$pkg"; then
+        if has_cmd "$(pkg_cmd "$pkg")"; then
             prev "$pkg"
         fi
     done
@@ -280,7 +291,7 @@ else
                     log "Saltando aws (instalador custom, desinstalar manualmente)" "SKIP"
                     ;;
                 *)
-                    if has_cmd "$pkg"; then
+                    if has_cmd "$(pkg_cmd "$pkg")"; then
                         $PKG_REMOVE "$pkg" && log "Desinstalado: $pkg" "OK" || log "Fallo al desinstalar $pkg" "WARN"
                     fi
                     ;;

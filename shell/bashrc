@@ -145,6 +145,18 @@ open() {
     fi
 }
 
+# --- edit: abrir archivo en el editor (VSCode si esta, si no nvim) ---
+# Paridad con la funcion 'edit' de profile.ps1. En Linux preferimos nvim, pero
+# si tenes 'code' instalado lo usamos (util cuando si lo instalaste a mano).
+edit() {
+    local target="${1:?Uso: edit <archivo>}"
+    if command -v code &>/dev/null; then
+        code "$target"
+    else
+        "${VISUAL:-${EDITOR:-nvim}}" "$target"
+    fi
+}
+
 # --- which: tipo completo ---
 alias which='type -a'
 

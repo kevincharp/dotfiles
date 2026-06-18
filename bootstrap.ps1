@@ -517,9 +517,9 @@ if ($SkipWinget) {
     } elseif (Test-CommandAvailable 'claude') {
         Write-Log "Claude Code ya instalado" 'SKIP'
     } else {
-        # Claude Code: instalacion manual por ahora (winget ID pendiente de confirmar)
-        Write-Log "Claude Code no instalado — instalar manualmente desde https://claude.ai/download" 'WARN'
-        $WARNINGS.Add("Claude Code no instalado — descargar desde https://claude.ai/download")
+        # Paquete winget oficial. Nota: winget no auto-actualiza Claude Code;
+        # se actualiza con 'winget upgrade Anthropic.ClaudeCode'.
+        Install-WingetPackage -Id 'Anthropic.ClaudeCode' -Name 'Claude Code' -Optional $false
     }
 
     # --- FiraCode Nerd Font ---

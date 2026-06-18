@@ -71,6 +71,7 @@ PACKAGES=(
     lazygit
     eza
     age
+    gh
     glab
     opencode
     aws

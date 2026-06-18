@@ -152,6 +152,7 @@ TOOLS_CATALOG=(
     "claude|dev|Claude Code CLI"
     "opencode|dev|opencode (SST)"
     "aws|cloud|AWS CLI (Bedrock)"
+    "gh|cloud|GitHub CLI (PRs/issues + clonado del vault)"
     "glab|cloud|GitLab CLI"
     "age|cloud|Encriptacion de claves SSH"
     "firacode|fonts|FiraCode Nerd Font"
@@ -178,6 +179,7 @@ tool_installed() {
         claude)          has_cmd claude ;;
         opencode)        has_cmd opencode ;;
         aws)             has_cmd aws ;;
+        gh)              has_cmd gh ;;
         glab)            has_cmd glab ;;
         age)             has_cmd age ;;
         firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
@@ -274,6 +276,26 @@ install_tool() {
                 sudo /tmp/aws/install --update
                 rm -rf /tmp/aws /tmp/awscliv2.zip
             '
+            ;;
+        gh)
+            # Fedora/Arch traen paquete nativo. En Debian/apt 'gh' no esta en los
+            # repos base: hay que agregar el repo oficial de GitHub primero.
+            if [[ "$PKG_MANAGER" == "dnf" ]]; then
+                run_step "Instalar gh" $PKG_INSTALL gh
+            elif [[ "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar gh" sudo pacman -S --noconfirm github-cli
+            elif [[ "$PKG_MANAGER" == "apt" ]]; then
+                run_step "Instalar gh (repo oficial GitHub)" bash -c '
+                    sudo mkdir -p -m 755 /etc/apt/keyrings
+                    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+                    sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+                    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+                    sudo apt update && sudo apt install -y gh
+                '
+            else
+                log "gh: instalar manualmente — https://github.com/cli/cli#installation" "WARN"
+                WARNINGS+=("gh no instalado")
+            fi
             ;;
         glab)
             if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "pacman" ]]; then

@@ -261,7 +261,8 @@ install_tool() {
             fi
             ;;
         claude)
-            run_step "Instalar Claude Code CLI" bash -c 'curl -fsSL https://claude.ai/download/linux | bash'
+            # Instalador nativo oficial (macOS/Linux/WSL). Auto-actualiza en background.
+            run_step "Instalar Claude Code CLI" bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
             ;;
         opencode)
             run_step "Instalar opencode" bash -c 'curl -fsSL https://opencode.ai/install | bash'

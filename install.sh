@@ -35,6 +35,9 @@ PUBLIC_HTTPS="https://github.com/${GH_USER}/dotfiles.git"
 PUBLIC_SSH="git@github.com:${GH_USER}/dotfiles.git"
 VAULT_HTTPS="https://github.com/${GH_USER}/dotfiles-vault.git"
 VAULT_SSH="git@github.com:${GH_USER}/dotfiles-vault.git"
+# Host alias del ssh/config (engancha la clave kevincharp-github con IdentitiesOnly).
+# Es el que se usa para el remote del vault tras clonar, asi 'git pull' no pide credenciales.
+VAULT_SSH_ALIAS="git@github.com-${GH_USER}:${GH_USER}/dotfiles-vault.git"
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
@@ -193,7 +196,18 @@ clone_vault() {
             log "Autenticando con GitHub (seguí las instrucciones)..." "INFO"
             gh auth login < /dev/tty || { log "Login con gh fallo" "ERROR"; return 1; }
         fi
-        gh repo clone "${GH_USER}/dotfiles-vault" "$VAULT_DIR" && return 0
+        if gh repo clone "${GH_USER}/dotfiles-vault" "$VAULT_DIR"; then
+            # gh clona via HTTPS: en la 2da corrida 'git pull' pediria credenciales
+            # (GitHub ya no acepta password). Lo dejamos en SSH para que las
+            # actualizaciones futuras usen la clave sin pedir nada.
+            #
+            # OJO: usamos el host alias 'github.com-kevincharp' (no github.com a
+            # secas). El ssh/config solo engancha la clave kevincharp-github a ese
+            # alias con IdentitiesOnly; github.com plano caeria a las id_* default
+            # y fallaria. El alias existe tras aplicar el ssh/config del vault.
+            ( cd "$VAULT_DIR" && git remote set-url origin "$VAULT_SSH_ALIAS" )
+            return 0
+        fi
         log "Error clonando vault con gh" "ERROR"; return 1
     fi
 
@@ -207,9 +221,13 @@ VAULT_OK=false
 if [[ "$SKIP_VAULT" == true ]]; then
     log "--skip-vault: omitiendo vault privado" "WARN"
 elif [[ -d "$VAULT_DIR/.git" ]]; then
+    # El vault ya esta clonado: su contenido ya esta disponible para el bootstrap,
+    # haya o no conexion. Intentamos actualizar, pero un pull fallido NO invalida
+    # el vault — solo significa que se usa la version local ya presente.
     log "Vault ya existe en $VAULT_DIR — actualizando" "OK"
+    VAULT_OK=true
     ( cd "$VAULT_DIR" && git pull --rebase --autostash origin "$BRANCH" ) \
-        && VAULT_OK=true || log "No se pudo actualizar el vault" "WARN"
+        || log "No se pudo actualizar el vault — se usa la copia local" "WARN"
 else
     log "Vault privado (dotfiles-vault)..." "SECTION"
     if clone_vault; then VAULT_OK=true; fi
@@ -249,7 +267,7 @@ log "Publico: $DOTFILES_DIR" "OK"
 if [[ "$VAULT_OK" == true ]]; then
     log "Vault:   $VAULT_DIR" "OK"
 else
-    log "Vault:   NO aplicado — claves SSH e identidades git pendientes" "WARN"
+    log "Vault:   NO clonado — claves SSH e identidades git pendientes" "WARN"
     log "Para aplicarlo luego: bash $DOTFILES_DIR/install.sh" "INFO"
 fi
 

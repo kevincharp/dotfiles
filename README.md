@@ -514,6 +514,7 @@ Flags disponibles:
 | zsh | Shell alternativa a bash (opcional; el bootstrap ofrece elegir login shell) | - (PowerShell nativo) | dnf | apt |
 | zsh-autosuggestions | Sugerencias inline en zsh (equivalente a PSReadLine prediction) | - | git clone | git clone |
 | zsh-syntax-highlighting | Syntax highlighting en zsh (equivalente a ble.sh) | - | git clone | git clone |
+| zsh-autocomplete | Lista de historial/completado automatica (equivalente al ListView de PSReadLine) | - | git clone | git clone |
 | age | Encriptacion de claves SSH | winget | dnf | apt |
 | glab | GitLab CLI | winget | dnf | binario GitLab |
 | FiraCode Nerd Font | Fuente con glifos (oh-my-posh) | descarga nerd-fonts | descarga nerd-fonts | descarga nerd-fonts |
@@ -564,8 +565,10 @@ gclone -p work -u git@gitlab.com-<work>:grupo/repo.git
 Disponibles en PowerShell (`profile.ps1`), Bash (`bashrc`) y Zsh (`zshrc`). Usar `spf` para listar todas.
 
 > **Zsh (Linux/macOS).** `shell/zshrc` es un espejo idiomatico de `bashrc` con la misma
-> paleta, prompt (oh-my-posh), funciones y aliases. El equivalente a ble.sh son
-> `zsh-autosuggestions` + `zsh-syntax-highlighting` (clonados en `~/.local/share`). El
+> paleta, prompt (oh-my-posh), funciones y aliases. El equivalente a ble.sh/PSReadLine son
+> `zsh-autosuggestions` (sugerencia inline gris), `zsh-syntax-highlighting` (colores de
+> tokens) y `zsh-autocomplete` (lista de historial/completado automatica, como el ListView
+> de PSReadLine) — clonados en `~/.local/share`. El
 > bootstrap de Linux ofrece elegir el login shell (bash o zsh) y aplica `chsh`. Diferencias
 > no-1:1 con bash: `HISTTIMEFORMAT` → `setopt EXTENDED_HISTORY` (se ve con `history -i`);
 > `checkwinsize` es automatico en zsh; `cdspell` ≈ `setopt CORRECT`; y `~/.zprofile` **no**

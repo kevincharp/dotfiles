@@ -93,11 +93,29 @@ setopt AUTO_CD                  # 'cd' implicito: tipear un dir entra a el
 setopt INTERACTIVE_COMMENTS     # permite '#' comentarios en la linea interactiva
 
 # ==============================================================================
-# COMPLETION  (equivalente a bash-completion)
+# ZSH-AUTOCOMPLETE — lista de completado/historial automatica
+# ------------------------------------------------------------------------------
+# Replica el ListView de PSReadLine: despliega la lista bajo el prompt mientras
+# escribis (historial + completados), sin apretar Tab. Maneja su PROPIO compinit,
+# por eso NO se llama 'compinit' a mano aca. DEBE cargarse temprano, antes de
+# cualquier 'compdef' (zoxide/fzf de mas abajo lo hacen). Si no esta instalado,
+# se cae a un compinit normal (completado clasico con Tab).
 # ==============================================================================
 
-autoload -Uz compinit
-compinit -i   # -i: ignora dirs inseguros sin colgarse
+if [[ -f "$HOME/.local/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]]; then
+    # Cuantas lineas de lista mostrar bajo el prompt (como el History(10) de PSReadLine)
+    zstyle ':autocomplete:*' list-lines 10
+    # Enter ejecuta directo aunque haya lista abierta (no requiere segunda confirmacion)
+    zstyle ':autocomplete:*' add-space executables
+    source "$HOME/.local/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+    # Tab: ciclar por la lista; Shift+Tab: hacia atras (sin abrir menu aparte)
+    bindkey              '^I'         menu-select
+    bindkey "$terminfo[kcbt]" reverse-menu-select
+else
+    # Fallback sin el plugin: completado clasico con Tab
+    autoload -Uz compinit
+    compinit -i   # -i: ignora dirs inseguros sin colgarse
+fi
 
 # ==============================================================================
 # EDITOR DE TERMINAL

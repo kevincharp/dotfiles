@@ -152,7 +152,6 @@ TOOLS_CATALOG=(
     "zsh|shell|Shell zsh (alternativa a bash)"
     "zsh-autosuggestions|shell|Sugerencias inline en zsh (estilo PSReadLine)"
     "zsh-syntax-highlighting|shell|Syntax highlighting en zsh (estilo ble.sh)"
-    "zsh-autocomplete|shell|Lista de historial/completado automatica (estilo PSReadLine ListView)"
     "node|dev|Runtime JS + npm"
     "codex|dev|Codex CLI (OpenAI)"
     "claude|dev|Claude Code CLI"
@@ -185,7 +184,6 @@ tool_installed() {
         zsh)                     has_cmd zsh ;;
         zsh-autosuggestions)     [[ -f "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] ;;
         zsh-syntax-highlighting) [[ -f "$HOME/.local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] ;;
-        zsh-autocomplete)        [[ -f "$HOME/.local/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ]] ;;
         node)            has_cmd node ;;
         codex)           has_cmd codex ;;
         claude)          has_cmd claude ;;
@@ -221,13 +219,6 @@ install_tool() {
                 dir="$HOME/.local/share/zsh-syntax-highlighting"
                 if [[ -d "$dir/.git" ]]; then git -C "$dir" pull --ff-only --quiet
                 else git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$dir"; fi
-            '
-            ;;
-        zsh-autocomplete)
-            run_step "Instalar zsh-autocomplete" bash -c '
-                dir="$HOME/.local/share/zsh-autocomplete"
-                if [[ -d "$dir/.git" ]]; then git -C "$dir" pull --ff-only --quiet
-                else git clone --depth=1 https://github.com/marlonrichert/zsh-autocomplete "$dir"; fi
             '
             ;;
         oh-my-posh)

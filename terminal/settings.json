@@ -155,11 +155,12 @@
             "cursorShape": "filledBox",
             "elevate": true,
             "experimental.retroTerminalEffect": false,
-            "font": 
+            "font":
             {
                 "cellHeight": "1",
-                "face": "FiraCode Nerd Font Mono SemiBold",
-                "size": 7
+                "face": "FiraCode Nerd Font Mono",
+                "size": 7,
+                "weight": "semibold"
             },
             "intenseTextStyle": "all",
             "opacity": 90,

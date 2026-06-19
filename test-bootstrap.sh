@@ -116,6 +116,19 @@ for f in "${DOTFILES[@]}"; do
     fi
 done
 
+# Dotfiles de zsh: solo se exigen si zsh esta instalado (es opcional por maquina).
+if has_cmd zsh; then
+    for f in "$HOME/.zshrc" "$HOME/.zprofile"; do
+        if [[ -f "$f" && -s "$f" ]]; then
+            test_ok "$(basename "$f") presente y no vacio"
+        elif [[ -f "$f" ]]; then
+            test_fail "$(basename "$f")" "existe pero esta vacio"
+        else
+            test_fail "$(basename "$f")" "no encontrado en $f"
+        fi
+    done
+fi
+
 # ==============================================================================
 # 3. COMANDOS EN PATH
 # ==============================================================================
@@ -123,7 +136,7 @@ done
 section "3. Comandos en PATH"
 
 REQUIRED_CMDS=(git nvim node)
-OPTIONAL_CMDS=(oh-my-posh zoxide fzf rg lazygit eza age)
+OPTIONAL_CMDS=(oh-my-posh zoxide fzf rg lazygit eza age zsh)
 
 for cmd in "${REQUIRED_CMDS[@]}"; do
     if has_cmd "$cmd"; then
@@ -375,15 +388,55 @@ fi
 
 section "11. Funciones shell"
 
-SHELL_FUNCTIONS=(gclone gset-profile ginit gremote)
+# Lista compartida: cada funcion debe existir en bash Y (si hay zsh) en zsh.
+SHELL_FUNCTIONS=(gclone gset-profile ginit gremote gsw gsync gcoi gup gpsu \
+                 port killport killdev claude-smg spf icloud-mount _load_dotenv)
+
+# fn_in_file <funcion> <archivo> — 0 si la funcion esta definida ahi
+fn_in_file() {
+    grep -qE "^(function )?$1\s*\(\)" "$2" 2>/dev/null
+}
 
 for fn in "${SHELL_FUNCTIONS[@]}"; do
-    if grep -q "^${fn}()" "$HOME/.bashrc" 2>/dev/null || grep -q "function ${fn}" "$HOME/.bashrc" 2>/dev/null; then
+    if fn_in_file "$fn" "$HOME/.bashrc"; then
         test_ok "Funcion $fn definida en .bashrc"
     else
         test_fail "Funcion $fn" "no encontrada en .bashrc"
     fi
 done
+
+# ==============================================================================
+# 12. PARIDAD BASH <-> ZSH
+# ==============================================================================
+
+section "12. Paridad bash <-> zsh"
+
+if ! has_cmd zsh; then
+    test_warn "Paridad zsh" "zsh no instalado — saltando"
+elif [[ ! -f "$HOME/.zshrc" ]]; then
+    test_fail "Paridad zsh" "~/.zshrc no existe pese a tener zsh instalado"
+else
+    # Cada funcion del set compartido debe estar tambien en .zshrc (espejo del bashrc)
+    for fn in "${SHELL_FUNCTIONS[@]}"; do
+        if fn_in_file "$fn" "$HOME/.zshrc"; then
+            test_ok "Funcion $fn definida en .zshrc"
+        else
+            test_fail "Funcion $fn" "falta en .zshrc (paridad rota con .bashrc)"
+        fi
+    done
+
+    # El .zshrc debe cargar sin errores de sintaxis ni en ejecucion interactiva.
+    if zsh -n "$HOME/.zshrc" 2>/dev/null; then
+        test_ok ".zshrc pasa chequeo de sintaxis (zsh -n)"
+    else
+        test_fail ".zshrc sintaxis" "zsh -n reporta errores"
+    fi
+    if zsh -ic 'exit' </dev/null &>/dev/null; then
+        test_ok ".zshrc carga limpia (zsh -ic exit)"
+    else
+        test_warn ".zshrc carga" "zsh -ic salio con error (revisar plugins/paths)"
+    fi
+fi
 
 # ==============================================================================
 # RESUMEN

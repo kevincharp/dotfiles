@@ -417,8 +417,105 @@ _select_from_csv() {
 }
 
 # Menu interactivo sobre /dev/tty (funciona con 'curl | bash')
+# Navegacion estilo TUI: flechas/jk para moverse, espacio para marcar, Enter
+# para confirmar. Si la terminal no soporta modo raw, cae al modo por texto.
 _select_interactive() {
     # Estado de marcado: indice del catalogo -> 1 (marcado) / 0
+    local -a marked order
+    local i n="${#TOOLS_CATALOG[@]}"
+    for ((i = 0; i < n; i++)); do marked[i]=1; done   # todo pre-marcado
+
+    local groups=(core shell dev cloud fonts)
+    local g entry id grp desc
+
+    # Orden de display: indices del catalogo agrupados (solo filas navegables)
+    order=()
+    for g in "${groups[@]}"; do
+        for ((i = 0; i < n; i++)); do
+            [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$g" ]] && order+=("$i")
+        done
+    done
+    local m="${#order[@]}" cur=0
+
+    # Modo raw sobre /dev/tty; si falla, fallback por texto
+    local saved_stty
+    saved_stty="$(stty -g < /dev/tty 2>/dev/null)" || saved_stty=""
+    if [[ -z "$saved_stty" ]]; then
+        _select_interactive_text
+        return
+    fi
+    stty -echo -icanon min 1 time 0 < /dev/tty
+    printf '\033[?25l' > /dev/tty   # ocultar cursor
+    # Restaurar terminal pase lo que pase
+    trap 'stty "$saved_stty" < /dev/tty 2>/dev/null; printf "\033[?25h" > /dev/tty' RETURN
+
+    local out nlines=0 di box pointer prev_g line
+    while true; do
+        # --- Construir frame completo ---
+        out=$'\n  \033[36m== Selector de herramientas ==\033[0m\n'
+        out+=$'  \033[90m↑/↓ o j/k mover · espacio marcar · a todo · n nada · g grupo · Enter instalar\033[0m\n\n'
+        prev_g=""
+        for ((di = 0; di < m; di++)); do
+            i="${order[di]}"
+            entry="${TOOLS_CATALOG[i]}"
+            id="${entry%%|*}"
+            grp="$(echo "$entry" | cut -d'|' -f2)"
+            desc="${entry##*|}"
+            if [[ "$grp" != "$prev_g" ]]; then
+                out+=$'  \033[1m['"$grp"$']\033[0m\n'
+                prev_g="$grp"
+            fi
+            if [[ "${marked[i]}" == "1" ]]; then box=$'\033[32m[x]\033[0m'; else box='[ ]'; fi
+            if (( di == cur )); then pointer=$'\033[36m❯\033[0m'; else pointer=' '; fi
+            printf -v line '  %b %b %-16s %s' "$pointer" "$box" "$id" "$desc"
+            out+="$line"$'\n'
+        done
+
+        # --- Redibujar en el lugar ---
+        if (( nlines > 0 )); then printf '\033[%dA\033[J' "$nlines" > /dev/tty; fi
+        printf '%b' "$out" > /dev/tty
+        local nl="${out//[^$'\n']/}"; nlines=${#nl}
+
+        # --- Leer tecla (maneja secuencias de flechas) ---
+        local key rest
+        IFS= read -rsn1 key < /dev/tty || break
+        if [[ "$key" == $'\033' ]]; then
+            read -rsn2 -t 0.01 rest < /dev/tty
+            key+="$rest"
+        fi
+        case "$key" in
+            $'\033[A'|k|K)  (( cur = (cur - 1 + m) % m )) ;;
+            $'\033[B'|j|J)  (( cur = (cur + 1) % m )) ;;
+            ' ')            i="${order[cur]}"; marked[i]=$((1 - marked[i])) ;;
+            a|A)            for ((i = 0; i < n; i++)); do marked[i]=1; done ;;
+            n|N)            for ((i = 0; i < n; i++)); do marked[i]=0; done ;;
+            g|G)
+                # Toggle del grupo de la fila actual
+                local cg all_on=1
+                cg="$(echo "${TOOLS_CATALOG[${order[cur]}]}" | cut -d'|' -f2)"
+                for ((i = 0; i < n; i++)); do
+                    [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$cg" ]] || continue
+                    [[ "${marked[i]}" == "1" ]] || all_on=0
+                done
+                local target=$((all_on == 1 ? 0 : 1))
+                for ((i = 0; i < n; i++)); do
+                    [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$cg" ]] || continue
+                    marked[i]=$target
+                done
+                ;;
+            ''|$'\n')       break ;;   # Enter -> confirmar
+            q|Q)            break ;;
+        esac
+    done
+
+    SELECTED_TOOLS=()
+    for ((i = 0; i < n; i++)); do
+        [[ "${marked[i]}" == "1" ]] && SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}")
+    done
+}
+
+# Fallback por texto (terminales sin modo raw). Marca/desmarca por numero.
+_select_interactive_text() {
     local -a marked
     local i n="${#TOOLS_CATALOG[@]}"
     for ((i = 0; i < n; i++)); do marked[i]=1; done   # todo pre-marcado
@@ -427,7 +524,6 @@ _select_interactive() {
     local g entry id grp desc
 
     while true; do
-        # --- Pintar menu agrupado ---
         printf '\n  \033[36m== Selector de herramientas ==\033[0m\n' > /dev/tty
         printf '  Marca/desmarca por numero. Enter sin nada = instalar lo marcado.\n\n' > /dev/tty
         for g in "${groups[@]}"; do

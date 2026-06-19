@@ -311,6 +311,82 @@ function Select-ToolsInteractive {
     $marked = @{}
     foreach ($k in $keys) { $marked[$k] = $true }
 
+    # Filas navegables en orden de display (solo herramientas, no headers)
+    $rows = @()
+    foreach ($g in $groups) {
+        foreach ($t in ($TOOLS_CATALOG | Where-Object { $_.Group -eq $g })) {
+            $rows += [pscustomobject]@{ Key = $t.Key; Name = $t.Name; Group = $g }
+        }
+    }
+    $m = $rows.Count
+
+    # Si la consola no soporta ReadKey crudo (host no interactivo), cae a texto.
+    $rawOk = $true
+    try { $null = $Host.UI.RawUI.KeyAvailable } catch { $rawOk = $false }
+    if (-not $rawOk) { return Select-ToolsInteractiveText }
+
+    $cur = 0
+    $startTop = $null
+    while ($true) {
+        # --- Reposicionar cursor para redibujar en el lugar ---
+        if ($null -eq $startTop) {
+            Write-Host ''
+            Write-Host '  == Selector de herramientas ==' -ForegroundColor Cyan
+            Write-Host '  ↑/↓ mover · espacio marcar · a todo · n nada · g grupo · Enter instalar' -ForegroundColor DarkGray
+            Write-Host ''
+            try { $startTop = [Console]::CursorTop } catch { $startTop = -1 }
+        } else {
+            try { [Console]::SetCursorPosition(0, $startTop) } catch { }
+        }
+
+        # --- Pintar filas agrupadas ---
+        $prevG = ''
+        for ($di = 0; $di -lt $m; $di++) {
+            $row = $rows[$di]
+            if ($row.Group -ne $prevG) {
+                Write-Host ("  [{0}]                                        " -f $row.Group) -ForegroundColor White
+                $prevG = $row.Group
+            }
+            $box = if ($marked[$row.Key]) { '[x]' } else { '[ ]' }
+            $ptr = if ($di -eq $cur) { '>' } else { ' ' }
+            $color = if ($di -eq $cur) { 'Cyan' } elseif ($marked[$row.Key]) { 'Green' } else { 'Gray' }
+            Write-Host ("  {0} {1} {2,-18} {3}" -f $ptr, $box, $row.Key, $row.Name).PadRight(60) -ForegroundColor $color
+        }
+
+        # --- Leer tecla ---
+        $k = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+        switch ($k.VirtualKeyCode) {
+            38 { $cur = ($cur - 1 + $m) % $m }                       # Up
+            40 { $cur = ($cur + 1) % $m }                            # Down
+            32 { $key = $rows[$cur].Key; $marked[$key] = (-not $marked[$key]) }  # Space
+            13 { return @($keys | Where-Object { $marked[$_] }) }    # Enter
+            default {
+                switch ([char]$k.Character) {
+                    'k' { $cur = ($cur - 1 + $m) % $m }
+                    'j' { $cur = ($cur + 1) % $m }
+                    'a' { foreach ($key in $keys) { $marked[$key] = $true } }
+                    'n' { foreach ($key in $keys) { $marked[$key] = $false } }
+                    'g' {
+                        $cg = $rows[$cur].Group
+                        $grpKeys = ($rows | Where-Object { $_.Group -eq $cg }).Key
+                        $allOn = $true
+                        foreach ($key in $grpKeys) { if (-not $marked[$key]) { $allOn = $false } }
+                        foreach ($key in $grpKeys) { $marked[$key] = (-not $allOn) }
+                    }
+                    'q' { return @($keys | Where-Object { $marked[$_] }) }
+                }
+            }
+        }
+    }
+}
+
+# Fallback por texto (hosts sin ReadKey crudo). Marca/desmarca por numero.
+function Select-ToolsInteractiveText {
+    $keys   = $TOOLS_CATALOG | ForEach-Object { $_.Key }
+    $groups = @('core', 'shell', 'dev', 'cloud', 'fonts', 'extras')
+    $marked = @{}
+    foreach ($k in $keys) { $marked[$k] = $true }
+
     while ($true) {
         Write-Host ''
         Write-Host '  == Selector de herramientas ==' -ForegroundColor Cyan

@@ -149,6 +149,9 @@ TOOLS_CATALOG=(
     "eza|shell|Reemplazo moderno de ls"
     "lazygit|shell|UI de git en terminal"
     "blesh|shell|Syntax highlighting en bash (estilo PSReadLine)"
+    "zsh|shell|Shell zsh (alternativa a bash)"
+    "zsh-autosuggestions|shell|Sugerencias inline en zsh (estilo PSReadLine)"
+    "zsh-syntax-highlighting|shell|Syntax highlighting en zsh (estilo ble.sh)"
     "node|dev|Runtime JS + npm"
     "codex|dev|Codex CLI (OpenAI)"
     "claude|dev|Claude Code CLI"
@@ -178,6 +181,9 @@ tool_installed() {
         eza)             has_cmd eza ;;
         lazygit)         has_cmd lazygit ;;
         blesh)           [[ -f "$HOME/.local/share/blesh/ble.sh" ]] ;;
+        zsh)                     has_cmd zsh ;;
+        zsh-autosuggestions)     [[ -f "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] ;;
+        zsh-syntax-highlighting) [[ -f "$HOME/.local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] ;;
         node)            has_cmd node ;;
         codex)           has_cmd codex ;;
         claude)          has_cmd claude ;;
@@ -196,8 +202,24 @@ tool_installed() {
 # install_tool <id> — instala la herramienta (logica por distro preservada)
 install_tool() {
     case "$1" in
-        neovim|ripgrep|fzf|curl|wget|unzip|bash-completion)
+        neovim|ripgrep|fzf|curl|wget|unzip|bash-completion|zsh)
             run_step "Instalar $1" $PKG_INSTALL "$1"
+            ;;
+        zsh-autosuggestions)
+            # Equivalente a ble.sh para zsh. No esta en repos con version/ruta
+            # consistente entre distros; se clona a ~/.local/share (el zshrc lo cablea).
+            run_step "Instalar zsh-autosuggestions" bash -c '
+                dir="$HOME/.local/share/zsh-autosuggestions"
+                if [[ -d "$dir/.git" ]]; then git -C "$dir" pull --ff-only --quiet
+                else git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "$dir"; fi
+            '
+            ;;
+        zsh-syntax-highlighting)
+            run_step "Instalar zsh-syntax-highlighting" bash -c '
+                dir="$HOME/.local/share/zsh-syntax-highlighting"
+                if [[ -d "$dir/.git" ]]; then git -C "$dir" pull --ff-only --quiet
+                else git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$dir"; fi
+            '
             ;;
         oh-my-posh)
             run_step "Instalar oh-my-posh" bash -c 'curl -s https://ohmyposh.dev/install.sh | bash -s'
@@ -759,6 +781,8 @@ migrate_old_backups() {
 BAK_DESTINATIONS=(
     "$HOME/.bashrc"
     "$HOME/.bash_profile"
+    "$HOME/.zshrc"
+    "$HOME/.zprofile"
     "$HOME/.gitconfig"
     "$HOME/.gitconfig-personal"
     "$HOME/.gitconfig-work"
@@ -841,6 +865,8 @@ copy_dotfile() {
 # Shell (symlinks: editar en el repo se ve al instante)
 copy_dotfile "shell/bashrc"         "$HOME/.bashrc"        "link"
 copy_dotfile "shell/bash_profile"   "$HOME/.bash_profile"  "link"
+copy_dotfile "shell/zshrc"          "$HOME/.zshrc"         "link"
+copy_dotfile "shell/zprofile"       "$HOME/.zprofile"      "link"
 
 # Git ignore (publico)
 copy_dotfile "git/ignore"           "$HOME/.config/git/ignore"    "link"
@@ -959,6 +985,85 @@ if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
         bash -c "dconf load /org/gnome/Ptyxis/ < '$_ptyxis_dump'"
 fi
 unset _ptyxis_dump
+
+# Shell por defecto (login shell). Si zsh esta instalado, ofrecemos elegir entre
+# bash y zsh con un menu de flechas (mismo estilo que el selector de herramientas)
+# y aplicamos 'chsh' solo si la eleccion difiere del shell actual. Sin TTY
+# (curl | bash) no se pregunta ni se toca el shell: red de seguridad.
+_choose_default_shell() {
+    has_cmd zsh || return 0          # sin zsh no hay nada que elegir
+    [[ "$DRY_RUN" == true ]] && { log "[DryRun] Selector de shell por defecto" "SKIP"; return 0; }
+    has_cmd chsh || { log "chsh no disponible — shell por defecto sin cambios" "SKIP"; return 0; }
+    { [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; } || {
+        log "Sin TTY interactiva — shell por defecto sin cambios" "SKIP"; return 0; }
+
+    local zsh_path bash_path current
+    zsh_path="$(command -v zsh)"
+    bash_path="$(command -v bash)"
+    current="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
+    [[ -n "$current" ]] || current="$SHELL"
+
+    # Opciones y cursor inicial sobre el shell actual
+    local -a sh_names sh_paths
+    sh_names=(bash zsh); sh_paths=("$bash_path" "$zsh_path")
+    local cur=0
+    [[ "$current" == "$zsh_path" ]] && cur=1
+
+    local saved_stty
+    saved_stty="$(stty -g < /dev/tty 2>/dev/null)" || saved_stty=""
+    if [[ -z "$saved_stty" ]]; then
+        # Fallback por texto si no hay modo raw
+        printf '\n  Shell por defecto: 1) bash  2) zsh  [Enter = sin cambios]\n  > ' > /dev/tty
+        local ans; read -r ans < /dev/tty || ans=""
+        case "$ans" in
+            1) cur=0 ;; 2) cur=1 ;; *) return 0 ;;
+        esac
+    else
+        stty -echo -icanon min 1 time 0 < /dev/tty
+        printf '\033[?25l' > /dev/tty
+        local nlines=0 i key="" rest=""
+        while true; do
+            local out=$'\n  \033[36m== Shell por defecto ==\033[0m\n'
+            out+=$'  \033[90m↑/↓ mover · Enter confirmar\033[0m\n\n'
+            for ((i = 0; i < 2; i++)); do
+                local ptr box='   '
+                [[ "${sh_paths[i]}" == "$current" ]] && box='[*]'
+                if (( i == cur )); then ptr=$'\033[36m❯\033[0m'; else ptr=' '; fi
+                out+="  $ptr $box ${sh_names[i]}"$'\n'
+            done
+            if (( nlines > 0 )); then printf '\033[%dA\033[J' "$nlines" > /dev/tty; fi
+            printf '%b' "$out" > /dev/tty
+            local nl="${out//[^$'\n']/}"; nlines=${#nl}
+            IFS= read -rsn1 key < /dev/tty || break
+            if [[ "$key" == $'\033' ]]; then
+                read -rsn2 -t 0.01 rest < /dev/tty || true
+                key+="$rest"
+            fi
+            case "$key" in
+                $'\033[A'|k|K) cur=$(( (cur - 1 + 2) % 2 )) ;;
+                $'\033[B'|j|J) cur=$(( (cur + 1) % 2 )) ;;
+                ''|$'\n')      break ;;
+                q|Q)           cur=-1; break ;;
+            esac
+        done
+        stty "$saved_stty" < /dev/tty 2>/dev/null || true
+        printf '\033[?25h' > /dev/tty
+        (( cur < 0 )) && return 0
+    fi
+
+    local target="${sh_paths[cur]}"
+    if [[ "$target" == "$current" ]]; then
+        log "Shell por defecto ya es ${sh_names[cur]} — sin cambios" "SKIP"
+        return 0
+    fi
+    if chsh -s "$target"; then
+        log "Shell por defecto cambiado a ${sh_names[cur]} ($target) — efectivo al reloguear" "OK"
+    else
+        log "No se pudo cambiar el shell (chsh fallo)" "WARN"
+        WARNINGS+=("Cambiar shell manualmente: chsh -s $target")
+    fi
+}
+_choose_default_shell
 
 # GNOME — atajos, dock, extensiones y favoritos (solo si corre GNOME).
 # Las extensiones de Fedora vienen como paquetes; primero se instalan, despues

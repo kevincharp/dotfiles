@@ -1,0 +1,5 @@
+# zprofile — login shell zsh.
+# zsh carga ~/.zshrc automaticamente en shells interactivos, asi que NO se
+# sourcea desde aca (a diferencia de bash_profile, que sourcea bashrc a mano).
+# Este archivo solo trae lo de ~/.profile (vars de entorno comunes de login).
+test -f ~/.profile && . ~/.profile

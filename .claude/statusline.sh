@@ -17,11 +17,37 @@ RESET=$'\033[0m'
 ORANGE=172; CYAN=73; PURPLE=141; GREEN=114; YELLOW=220; DIM=240
 SEP="$(c "$DIM") · ${RESET}"
 
-# --- Datos del JSON (jq con fallback defensivo) ---
-model="$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // "?"' 2>/dev/null)"
-[[ -z "$model" || "$model" == "null" ]] && model="?"
-cwd="$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // empty' 2>/dev/null)"
-[[ -z "$cwd" || "$cwd" == "null" ]] && cwd="$PWD"
+# --- Lectura del JSON ---
+# Usa jq si esta disponible; si no (ej. Git Bash en Windows, donde jq no suele
+# estar), cae a un parser con grep/sed que extrae el primer "clave":"valor".
+# Asi el statusline funciona en cualquier maquina sin depender de jq.
+_json_str() {
+    # $1 = json, $2... = claves candidatas (en orden de preferencia)
+    local json="$1"; shift
+    local key val
+    if command -v jq &>/dev/null; then
+        for key in "$@"; do
+            val="$(printf '%s' "$json" | jq -r "$key // empty" 2>/dev/null)"
+            [[ -n "$val" && "$val" != "null" ]] && { printf '%s' "$val"; return; }
+        done
+    else
+        # Fallback sin jq: $@ son nombres de campo planos (display_name, id, ...)
+        for key in "$@"; do
+            val="$(printf '%s' "$json" | grep -o "\"${key}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)"/\1/')"
+            [[ -n "$val" ]] && { printf '%s' "$val"; return; }
+        done
+    fi
+}
+
+if command -v jq &>/dev/null; then
+    model="$(_json_str "$input" '.model.display_name' '.model.id')"
+    cwd="$(_json_str "$input" '.workspace.current_dir' '.cwd')"
+else
+    model="$(_json_str "$input" 'display_name' 'id')"
+    cwd="$(_json_str "$input" 'current_dir' 'cwd')"
+fi
+[[ -z "$model" ]] && model="?"
+[[ -z "$cwd" ]] && cwd="$PWD"
 
 # --- Carpeta (solo el nombre, ~ si es HOME) ---
 if [[ "$cwd" == "$HOME" ]]; then

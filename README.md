@@ -291,23 +291,23 @@ menu arranca con todo pre-marcado:
 
 ## Configuracion de AWS SSO (solo laboral)
 
-Si se uso `-WithAws` / `--with-aws`, completar manualmente:
+Los datos de la cuenta (account id, portal SSO, rol) son infra privada y **no
+se versionan**: se leen de `~/.env`. Defini estas variables antes de correr el
+bootstrap con `--with-aws` / `-WithAws`:
 
 ```bash
-aws configure sso
+AWS_SSO_START_URL=https://<tu-org>.awsapps.com/start/#
+AWS_SSO_ACCOUNT_ID=<id-de-cuenta>
+AWS_SSO_ROLE_NAME=<rol>          # opcional (default: Bedrock_Access)
+AWS_SSO_REGION=us-east-1         # opcional (default: us-east-1)
 ```
 
-| Campo | Valor |
-|---|---|
-| SSO session name | `tu_usuario_de_red` |
-| SSO start URL | `https://<tu-org>.awsapps.com/start/#` |
-| SSO region | `us-east-1` |
-| Cuenta | **DATA** |
-| Profile name | `tu_usuario_de_red` |
+El bootstrap escribe `~/.aws/config` en formato `sso-session` (flujo PKCE: el
+login abre el navegador y confirma solo, sin pedir codigo de 6 digitos).
 
-Verificar: `aws sts get-caller-identity --profile tu_usuario_de_red`
+Verificar: `aws sts get-caller-identity --profile default`
 
-Renovar cuando expiran: `aws sso login --profile tu_usuario_de_red`
+Renovar cuando expira: `aws sso login --profile default`
 
 ---
 

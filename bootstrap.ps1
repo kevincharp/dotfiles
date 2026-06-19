@@ -901,28 +901,59 @@ if (-not $WithAws) {
         Write-Log "Cert Netskope no encontrado — máquina sin Netskope, SSL de AWS debería funcionar directo" 'INFO'
     }
 
-    # Pre-configurar perfil default con valores de SMG (igual que bootstrap.sh).
-    # Sin sso_account_id + sso_role_name, get-caller-identity da NoCredentials
-    # aunque el sso login funcione, y claude-smg entra en loop de "sesion caducada".
-    Invoke-Step "Pre-configurar perfil AWS SSO default (SMG/Bedrock)" {
-        aws configure set sso_start_url "https://<tu-org>.awsapps.com/start/#" --profile default
-        aws configure set sso_region "us-east-1" --profile default
-        aws configure set sso_account_id "<AWS_SSO_ACCOUNT_ID>" --profile default   # cuenta "Data"
-        aws configure set sso_role_name "Bedrock_Access" --profile default
-        aws configure set region "us-east-1" --profile default
-        aws configure set output "json" --profile default
+    # Datos de la org (cuenta, portal SSO, rol) NO se versionan: son infra
+    # privada. Se leen de ~/.env (KEY=VALUE). Sin ellos no hay que preconfigurar.
+    $ssoStartUrl  = $env:AWS_SSO_START_URL
+    $ssoAccountId = $env:AWS_SSO_ACCOUNT_ID
+    $ssoRoleName  = if ($env:AWS_SSO_ROLE_NAME) { $env:AWS_SSO_ROLE_NAME } else { "Bedrock_Access" }
+    $ssoRegion    = if ($env:AWS_SSO_REGION)    { $env:AWS_SSO_REGION }    else { "us-east-1" }
+    $envFileAws   = Join-Path $HOME ".env"
+    if (Test-Path $envFileAws) {
+        Get-Content $envFileAws | ForEach-Object {
+            if ($_ -match '^\s*AWS_SSO_START_URL\s*=\s*(.+?)\s*$')  { $ssoStartUrl  = $Matches[1].Trim('"').Trim("'") }
+            if ($_ -match '^\s*AWS_SSO_ACCOUNT_ID\s*=\s*(.+?)\s*$') { $ssoAccountId = $Matches[1].Trim('"').Trim("'") }
+            if ($_ -match '^\s*AWS_SSO_ROLE_NAME\s*=\s*(.+?)\s*$')  { $ssoRoleName  = $Matches[1].Trim('"').Trim("'") }
+            if ($_ -match '^\s*AWS_SSO_REGION\s*=\s*(.+?)\s*$')     { $ssoRegion    = $Matches[1].Trim('"').Trim("'") }
+        }
     }
 
-    if ($DryRun) {
-        Write-Log "[DryRun] Saltando aws sso login" 'SKIP'
+    if (-not $ssoAccountId -or -not $ssoStartUrl) {
+        Write-Log "Faltan AWS_SSO_START_URL / AWS_SSO_ACCOUNT_ID en ~/.env — salteo preconfig SSO" 'WARN'
+        $WARNINGS.Add("AWS SSO sin preconfigurar: defini AWS_SSO_START_URL, AWS_SSO_ACCOUNT_ID (y opcional AWS_SSO_ROLE_NAME) en ~/.env")
     } else {
-        Write-Log "Iniciando AWS SSO login (se abrirá el navegador)..." 'INFO'
-        aws sso login --profile default
-        if ($LASTEXITCODE -eq 0) {
-            Write-Log "AWS SSO login completado exitosamente" 'OK'
+        # Escribo ~/.aws/config con formato sso-session: habilita el flujo PKCE
+        # (login por navegador sin codigo de 6 digitos). 'aws configure set' no
+        # sabe escribir bloques [sso-session], por eso se escribe el archivo.
+        Invoke-Step "Pre-configurar perfil AWS SSO default (formato sso-session/PKCE)" {
+            $awsDir = Join-Path $HOME ".aws"
+            New-Item -ItemType Directory -Force -Path $awsDir | Out-Null
+            $cfg = @"
+[sso-session default]
+sso_start_url = $ssoStartUrl
+sso_region = $ssoRegion
+sso_registration_scopes = sso:account:access
+
+[default]
+sso_session = default
+sso_account_id = $ssoAccountId
+sso_role_name = $ssoRoleName
+region = $ssoRegion
+output = json
+"@
+            Set-Content -Path (Join-Path $awsDir "config") -Value $cfg -Encoding ascii
+        }
+
+        if ($DryRun) {
+            Write-Log "[DryRun] Saltando aws sso login" 'SKIP'
         } else {
-            Write-Log "AWS SSO login falló o fue cancelado" 'WARN'
-            $WARNINGS.Add("AWS SSO login incompleto — correr 'aws sso login --profile default'")
+            Write-Log "Iniciando AWS SSO login (se abrirá el navegador)..." 'INFO'
+            aws sso login --profile default
+            if ($LASTEXITCODE -eq 0) {
+                Write-Log "AWS SSO login completado exitosamente" 'OK'
+            } else {
+                Write-Log "AWS SSO login falló o fue cancelado" 'WARN'
+                $WARNINGS.Add("AWS SSO login incompleto — correr 'aws sso login --profile default'")
+            }
         }
     }
 }

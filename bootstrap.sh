@@ -879,19 +879,44 @@ if [[ "$WITH_AWS" != true ]]; then
     log "Saltando configuracion AWS SSO (usa --with-aws para incluirla)" "SKIP"
     log "  Nota: AWS CLI ya esta instalado para claude-smg, pero SSO requiere --with-aws" "INFO"
 else
-    if has_cmd aws; then
-        # Pre-configurar perfil default con valores de SMG
-        log "Configurando perfil AWS SSO default para Swiss Medical..." "INFO"
+    # Datos de la org (cuenta, portal SSO, rol) NO se versionan: son infra
+    # privada. Se leen de ~/.env. Sin ellos no hay nada que preconfigurar.
+    [[ -f "$HOME/.env" ]] && { set -a; . "$HOME/.env"; set +a; }
+    : "${AWS_SSO_START_URL:=}" "${AWS_SSO_ACCOUNT_ID:=}"
+    : "${AWS_SSO_ROLE_NAME:=Bedrock_Access}" "${AWS_SSO_REGION:=us-east-1}"
 
-        aws configure set sso_start_url "https://<tu-org>.awsapps.com/start/#" --profile default
-        aws configure set sso_region "us-east-1" --profile default
-        # Cuenta + rol con acceso a Bedrock (sin esto get-caller-identity da NoCredentials)
-        aws configure set sso_account_id "<AWS_SSO_ACCOUNT_ID>" --profile default   # cuenta "Data"
-        aws configure set sso_role_name "Bedrock_Access" --profile default
-        aws configure set region "us-east-1" --profile default
-        aws configure set output "json" --profile default
+    if ! has_cmd aws; then
+        log "AWS CLI no disponible — error inesperado" "ERROR"
+        WARNINGS+=("AWS CLI deberia estar instalado pero no se encuentra")
+    elif [[ -z "$AWS_SSO_ACCOUNT_ID" || -z "$AWS_SSO_START_URL" ]]; then
+        log "Faltan AWS_SSO_START_URL / AWS_SSO_ACCOUNT_ID en ~/.env — salteo preconfig SSO" "WARN"
+        WARNINGS+=("AWS SSO sin preconfigurar: defini AWS_SSO_START_URL, AWS_SSO_ACCOUNT_ID (y opcional AWS_SSO_ROLE_NAME) en ~/.env")
+    else
+        # Escribo ~/.aws/config con formato sso-session: habilita el flujo PKCE
+        # (login por navegador sin codigo de 6 digitos). 'aws configure set' no
+        # sabe escribir bloques [sso-session], por eso se escribe el archivo.
+        log "Configurando perfil AWS SSO default (formato sso-session/PKCE)..." "INFO"
+        mkdir -p "$HOME/.aws"
+        [[ -f "$HOME/.aws/config" ]] && cp "$HOME/.aws/config" "$BACKUP_DIR/aws-config.bak" 2>/dev/null
+        if [[ "$DRY_RUN" == true ]]; then
+            log "[DryRun] Escribir ~/.aws/config (sso-session default)" "SKIP"
+        else
+            cat > "$HOME/.aws/config" <<AWSCFG
+[sso-session default]
+sso_start_url = $AWS_SSO_START_URL
+sso_region = $AWS_SSO_REGION
+sso_registration_scopes = sso:account:access
 
-        log "Perfil default pre-configurado" "OK"
+[default]
+sso_session = default
+sso_account_id = $AWS_SSO_ACCOUNT_ID
+sso_role_name = $AWS_SSO_ROLE_NAME
+region = $AWS_SSO_REGION
+output = json
+AWSCFG
+            chmod 600 "$HOME/.aws/config"
+            log "Perfil default pre-configurado" "OK"
+        fi
         log "" "INFO"
         log "Iniciando AWS SSO login (se abrirá el navegador)..." "INFO"
         log "Seguí las instrucciones en el navegador para completar el login." "INFO"
@@ -909,9 +934,6 @@ else
         else
             log "[DryRun] Saltando aws sso login" "SKIP"
         fi
-    else
-        log "AWS CLI no disponible — error inesperado" "ERROR"
-        WARNINGS+=("AWS CLI deberia estar instalado pero no se encuentra")
     fi
 fi
 

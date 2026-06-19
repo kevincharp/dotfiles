@@ -102,6 +102,8 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 │   ├── profile.ps1           # Perfil PowerShell 7 (Windows)
 │   ├── bashrc                # Perfil Bash (Linux / Git Bash)
 │   ├── bash_profile          # Loader de bashrc
+│   ├── zshrc                 # Perfil Zsh (Linux / macOS) — espejo de bashrc
+│   ├── zprofile              # Login shell zsh (carga ~/.profile)
 │   └── themes/
 │       └── claude-code.omp.json  # Tema Oh My Posh custom
 ├── terminal/
@@ -508,7 +510,10 @@ Flags disponibles:
 | fzf | Busqueda difusa (Ctrl+R) | winget | dnf | apt |
 | zoxide | `cd` inteligente con memoria | winget | curl script | curl script |
 | eza | Reemplazo moderno de `ls` | - | dnf | apt (repo gierens) |
-| ble.sh | Syntax highlighting en la linea de input (equivalente a PSReadLine) | - (PSReadLine nativo) | tarball release | tarball release |
+| ble.sh | Syntax highlighting en la linea de input de bash (equivalente a PSReadLine) | - (PSReadLine nativo) | tarball release | tarball release |
+| zsh | Shell alternativa a bash (opcional; el bootstrap ofrece elegir login shell) | - (PowerShell nativo) | dnf | apt |
+| zsh-autosuggestions | Sugerencias inline en zsh (equivalente a PSReadLine prediction) | - | git clone | git clone |
+| zsh-syntax-highlighting | Syntax highlighting en zsh (equivalente a ble.sh) | - | git clone | git clone |
 | age | Encriptacion de claves SSH | winget | dnf | apt |
 | glab | GitLab CLI | winget | dnf | binario GitLab |
 | FiraCode Nerd Font | Fuente con glifos (oh-my-posh) | descarga nerd-fonts | descarga nerd-fonts | descarga nerd-fonts |
@@ -556,7 +561,16 @@ gclone -p work -u git@gitlab.com-<work>:grupo/repo.git
 
 ## Shell — Funciones y aliases
 
-Disponibles en PowerShell (`profile.ps1`) y Bash (`bashrc`). Usar `spf` para listar todas.
+Disponibles en PowerShell (`profile.ps1`), Bash (`bashrc`) y Zsh (`zshrc`). Usar `spf` para listar todas.
+
+> **Zsh (Linux/macOS).** `shell/zshrc` es un espejo idiomatico de `bashrc` con la misma
+> paleta, prompt (oh-my-posh), funciones y aliases. El equivalente a ble.sh son
+> `zsh-autosuggestions` + `zsh-syntax-highlighting` (clonados en `~/.local/share`). El
+> bootstrap de Linux ofrece elegir el login shell (bash o zsh) y aplica `chsh`. Diferencias
+> no-1:1 con bash: `HISTTIMEFORMAT` → `setopt EXTENDED_HISTORY` (se ve con `history -i`);
+> `checkwinsize` es automatico en zsh; `cdspell` ≈ `setopt CORRECT`; y `~/.zprofile` **no**
+> sourcea `~/.zshrc` (zsh lo carga solo en shells interactivos). `test-bootstrap.sh` verifica
+> la paridad de funciones entre `.bashrc` y `.zshrc`.
 
 ### Atajos Linux (PowerShell)
 
@@ -665,6 +679,8 @@ El bootstrap crea esta estructura inspirada en Linux:
 │   └── *.pub / *                     # claves (desencriptadas del vault)
 ├── .bashrc                           # (Linux / Git Bash)
 ├── .bash_profile                     # (Linux / Git Bash)
+├── .zshrc                            # (Linux / macOS, si elegis zsh)
+├── .zprofile                         # (Linux / macOS, si elegis zsh)
 ├── .gitconfig                        # git config principal
 ├── .gitconfig-personal
 ├── .gitconfig-work

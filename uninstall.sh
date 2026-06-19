@@ -47,6 +47,8 @@ BACKUPS_DIR="$HOME/.local/backups/bootstrap"
 DOTFILES_TARGETS=(
     "$HOME/.bashrc"
     "$HOME/.bash_profile"
+    "$HOME/.zshrc"
+    "$HOME/.zprofile"
     "$HOME/.config/git/ignore"
     "$HOME/.gitconfig"
     "$HOME/.gitconfig-personal"
@@ -69,6 +71,7 @@ PACKAGES=(
     oh-my-posh
     zoxide
     lazygit
+    zsh
     eza
     age
     gh

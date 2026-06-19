@@ -59,6 +59,9 @@ $DIRS = @(
 # Formato: @{ Id='...'; Name='...'; Optional=$false; Key='...'; Group='...' }
 #   Key   = identificador corto para -Tools y el selector (igual idea que en bash)
 #   Group = core | shell | dev | cloud | fonts | extras
+# NOTA: zsh (+ zsh-autosuggestions/zsh-syntax-highlighting) son Linux/macOS-only
+# y por eso NO estan en este catalogo. En Windows el shell unificado es
+# PowerShell + PSReadLine (ver profile.ps1), que ya replica la misma paleta.
 $WINGET_PACKAGES = @(
     @{ Id='Microsoft.WindowsTerminal';      Name='Windows Terminal';        Optional=$false; Key='windows-terminal'; Group='core'   }
     @{ Id='Microsoft.PowerShell';           Name='PowerShell 7';            Optional=$false; Key='pwsh';             Group='core'   }

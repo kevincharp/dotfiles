@@ -432,7 +432,7 @@ _select_interactive() {
     order=()
     for g in "${groups[@]}"; do
         for ((i = 0; i < n; i++)); do
-            [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$g" ]] && order+=("$i")
+            if [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$g" ]]; then order+=("$i"); fi
         done
     done
     local m="${#order[@]}" cur=0
@@ -510,8 +510,9 @@ _select_interactive() {
 
     SELECTED_TOOLS=()
     for ((i = 0; i < n; i++)); do
-        [[ "${marked[i]}" == "1" ]] && SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}")
+        if [[ "${marked[i]}" == "1" ]]; then SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}"); fi
     done
+    return 0
 }
 
 # Fallback por texto (terminales sin modo raw). Marca/desmarca por numero.
@@ -588,8 +589,9 @@ _select_interactive_text() {
 
     SELECTED_TOOLS=()
     for ((i = 0; i < n; i++)); do
-        [[ "${marked[i]}" == "1" ]] && SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}")
+        if [[ "${marked[i]}" == "1" ]]; then SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}"); fi
     done
+    return 0
 }
 
 # Punto de entrada: resuelve SELECTED_TOOLS segun la prioridad documentada

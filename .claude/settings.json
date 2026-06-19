@@ -2,6 +2,10 @@
   "model": "sonnet",
   "effortLevel": "medium",
   "theme": "auto",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.dotfiles/.claude/statusline.sh"
+  },
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": true
   }

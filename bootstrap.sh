@@ -446,8 +446,6 @@ _select_interactive() {
     fi
     stty -echo -icanon min 1 time 0 < /dev/tty
     printf '\033[?25l' > /dev/tty   # ocultar cursor
-    # Restaurar terminal pase lo que pase
-    trap 'stty "$saved_stty" < /dev/tty 2>/dev/null; printf "\033[?25h" > /dev/tty' RETURN
 
     local out nlines=0 di box pointer prev_g line
     while true; do
@@ -477,7 +475,7 @@ _select_interactive() {
         local nl="${out//[^$'\n']/}"; nlines=${#nl}
 
         # --- Leer tecla (maneja secuencias de flechas) ---
-        local key rest
+        local key="" rest=""
         IFS= read -rsn1 key < /dev/tty || break
         if [[ "$key" == $'\033' ]]; then
             read -rsn2 -t 0.01 rest < /dev/tty || true
@@ -507,6 +505,10 @@ _select_interactive() {
             q|Q)            break ;;
         esac
     done
+
+    # Restaurar terminal (modo normal + cursor visible)
+    stty "$saved_stty" < /dev/tty 2>/dev/null || true
+    printf '\033[?25h' > /dev/tty
 
     SELECTED_TOOLS=()
     for ((i = 0; i < n; i++)); do

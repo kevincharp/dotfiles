@@ -480,12 +480,12 @@ _select_interactive() {
         local key rest
         IFS= read -rsn1 key < /dev/tty || break
         if [[ "$key" == $'\033' ]]; then
-            read -rsn2 -t 0.01 rest < /dev/tty
+            read -rsn2 -t 0.01 rest < /dev/tty || true
             key+="$rest"
         fi
         case "$key" in
-            $'\033[A'|k|K)  (( cur = (cur - 1 + m) % m )) ;;
-            $'\033[B'|j|J)  (( cur = (cur + 1) % m )) ;;
+            $'\033[A'|k|K)  cur=$(( (cur - 1 + m) % m )) ;;
+            $'\033[B'|j|J)  cur=$(( (cur + 1) % m )) ;;
             ' ')            i="${order[cur]}"; marked[i]=$((1 - marked[i])) ;;
             a|A)            for ((i = 0; i < n; i++)); do marked[i]=1; done ;;
             n|N)            for ((i = 0; i < n; i++)); do marked[i]=0; done ;;

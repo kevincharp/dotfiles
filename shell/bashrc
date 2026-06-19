@@ -643,6 +643,72 @@ claude-smg() {
 }
 
 # ==============================================================================
+# ICLOUD DRIVE — montar/desmontar via rclone (backend iclouddrive)
+# ------------------------------------------------------------------------------
+# rclone expone iCloud Drive como una carpeta local (equivalente Linux al cliente
+# iCloud de Windows). El remote 'icloud' se configura UNA sola vez con
+# 'rclone config' (pide Apple ID + codigo 2FA del iPhone). El token resultante
+# queda en ~/.config/rclone/rclone.conf y NO se versiona por ser sensible.
+# Solo Linux (usa FUSE/fusermount3). Overridables: $ICLOUD_REMOTE, $ICLOUD_MOUNT.
+# ==============================================================================
+
+ICLOUD_REMOTE="${ICLOUD_REMOTE:-icloud}"
+ICLOUD_MOUNT="${ICLOUD_MOUNT:-$HOME/icloud}"
+export ICLOUD_REMOTE ICLOUD_MOUNT
+
+# Verifica que rclone este instalado y el remote configurado. Devuelve 1 si no.
+_icloud_check() {
+    if ! command -v rclone &>/dev/null; then
+        echo "rclone no esta instalado (bootstrap: bash install.sh --tools=rclone)" >&2
+        return 1
+    fi
+    if ! rclone listremotes 2>/dev/null | grep -qx "${ICLOUD_REMOTE}:"; then
+        echo "Remote '${ICLOUD_REMOTE}' no configurado. Ejecuta: rclone config" >&2
+        return 1
+    fi
+}
+
+# --- icloud-mount: montar iCloud Drive en ~/icloud ---
+icloud-mount() {
+    _icloud_check || return 1
+    if mountpoint -q "$ICLOUD_MOUNT" 2>/dev/null; then
+        echo "Ya montado en $ICLOUD_MOUNT"
+        return 0
+    fi
+    mkdir -p "$ICLOUD_MOUNT"
+    rclone mount "${ICLOUD_REMOTE}:" "$ICLOUD_MOUNT" --vfs-cache-mode full --daemon \
+        && echo "iCloud Drive montado en $ICLOUD_MOUNT"
+}
+
+# --- icloud-umount: desmontar iCloud Drive ---
+icloud-umount() {
+    if mountpoint -q "$ICLOUD_MOUNT" 2>/dev/null; then
+        fusermount3 -u "$ICLOUD_MOUNT" 2>/dev/null || fusermount -u "$ICLOUD_MOUNT"
+        echo "Desmontado $ICLOUD_MOUNT"
+    else
+        echo "No estaba montado: $ICLOUD_MOUNT"
+    fi
+}
+
+# --- icloud-ls: listar una carpeta de iCloud sin descargar nada ---
+# Uso: icloud-ls [carpeta]   (sin argumento lista la raiz)
+icloud-ls() {
+    _icloud_check || return 1
+    rclone lsf "${ICLOUD_REMOTE}:${1:-}"
+}
+
+# --- icloud-pull: copiar una carpeta de iCloud al destino (incremental) ---
+# Mas rapido que el explorador: descarga en paralelo y sin generar miniaturas.
+# Uso: icloud-pull <carpeta-remota> <destino-local>
+# Ej:  icloud-pull images /run/media/$USER/disco-externo/Fotos
+icloud-pull() {
+    local src="${1:?Uso: icloud-pull <carpeta-remota> <destino-local>}"
+    local dst="${2:?Uso: icloud-pull <carpeta-remota> <destino-local>}"
+    _icloud_check || return 1
+    rclone copy "${ICLOUD_REMOTE}:${src}" "$dst" -P --transfers 8
+}
+
+# ==============================================================================
 # SPF — listado de funciones/aliases del bashrc
 # ==============================================================================
 

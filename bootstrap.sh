@@ -832,10 +832,13 @@ fi
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
 
 # Claude Code
+# settings.local.json NO se copia: es config por-maquina (permisos con rutas
+# absolutas), cada PC mantiene el suyo. statusline.sh tampoco: el settings.json
+# lo referencia directo desde el repo (~/.dotfiles/.claude/statusline.sh).
 copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"
-copy_dotfile ".claude/settings.local.json"   "$HOME/.claude/settings.local.json"
 mkdir -p "$HOME/.claude/plugins"
-copy_dotfile ".claude/plugins/installed_plugins.json" "$HOME/.claude/plugins/installed_plugins.json"
+copy_dotfile ".claude/plugins/installed_plugins.json"  "$HOME/.claude/plugins/installed_plugins.json"
+copy_dotfile ".claude/plugins/known_marketplaces.json" "$HOME/.claude/plugins/known_marketplaces.json"
 
 # Tema oh-my-posh claude-code
 _omp_themes_dst="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes"

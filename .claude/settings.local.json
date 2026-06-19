@@ -36,7 +36,27 @@
       "Bash(bash bootstrap.sh --dry-run)",
       "Bash(git config *)",
       "Read(//tmp/**)",
-      "Bash(/tmp/pwsh/pwsh *)"
+      "Bash(/tmp/pwsh/pwsh *)",
+      "Bash(rclone version *)",
+      "Bash(lsblk -o NAME,LABEL,MOUNTPOINT,FSTYPE,SIZE)",
+      "Bash(dnf info *)",
+      "Bash(dnf list *)",
+      "Bash(sudo dnf install -y rclone)",
+      "Bash(rclone help *)",
+      "Bash(rclone lsd *)",
+      "Bash(mkdir -p ~/icloud)",
+      "Bash(command -v fusermount3)",
+      "Bash(rclone mount *)",
+      "Bash(mount)",
+      "Bash(bash -ic 'source shell/bashrc 2>/dev/null; type icloud-mount icloud-pull icloud-ls _icloud_check >/dev/null 2>&1 && echo \"funciones icloud cargadas OK\"; ICLOUD_REMOTE=icloud icloud-ls 2>&1 | head -6')",
+      "Bash(mkdir -p /home/kevincharp/.dotfiles-vault/rclone)",
+      "Bash(cp /home/kevincharp/.config/rclone/rclone.conf /home/kevincharp/.dotfiles-vault/rclone/rclone.conf)",
+      "Bash(chmod 600 /home/kevincharp/.dotfiles-vault/rclone/rclone.conf)",
+      "Bash(git -C /home/kevincharp/.dotfiles-vault status -s)",
+      "Bash(bash -ic 'source shell/bashrc 2>/dev/null; spf icloud')",
+      "Bash(git -C /home/kevincharp/.dotfiles check-ignore .claude/settings.local.json)",
+      "Bash(git -C /home/kevincharp/.dotfiles ls-files .claude/settings.local.json)",
+      "Bash(git *)"
     ]
   }
 }

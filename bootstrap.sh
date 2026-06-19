@@ -157,6 +157,7 @@ TOOLS_CATALOG=(
     "gh|cloud|GitHub CLI (PRs/issues + clonado del vault)"
     "glab|cloud|GitLab CLI"
     "age|cloud|Encriptacion de claves SSH"
+    "rclone|cloud|Sync nube (iCloud Drive, etc.) - ver icloud-mount"
     "firacode|fonts|FiraCode Nerd Font"
 )
 
@@ -185,6 +186,7 @@ tool_installed() {
         gh)              has_cmd gh ;;
         glab)            has_cmd glab ;;
         age)             has_cmd age ;;
+        rclone)          has_cmd rclone ;;
         firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
                          [[ "$(fc-list | grep -ci "FiraCode Nerd Font")" != "0" ]] ;;
         *)               return 1 ;;
@@ -326,6 +328,16 @@ install_tool() {
                     sudo install /tmp/bin/glab /usr/local/bin
                     rm -rf /tmp/bin /tmp/glab.tar.gz
                 '
+            fi
+            ;;
+        rclone)
+            # rclone esta en repos de dnf/apt/pacman con version reciente
+            # (Fedora 44 trae 1.74; el backend iclouddrive existe desde 1.69).
+            # La config del remote 'icloud' es manual (rclone config, pide 2FA).
+            if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "apt" || "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar rclone" $PKG_INSTALL rclone
+            else
+                run_step "Instalar rclone (script oficial)" bash -c 'curl -fsSL https://rclone.org/install.sh | sudo bash'
             fi
             ;;
         age)
@@ -756,6 +768,16 @@ if [[ -f "$VAULT_DIR/ssh/config" ]]; then
 else
     log "Vault no encontrado — saltando ssh/config" "WARN"
     WARNINGS+=("~/.ssh/config no aplicado — falta el vault")
+fi
+
+# rclone.conf (vault privado): contiene el token de iCloud Drive.
+# Se COPIA (no symlink) porque rclone reescribe el archivo al refrescar el
+# token de Apple, y un symlink ensuciaria el working tree del vault. El token
+# 2FA caduca cada tanto: si rclone pide reautenticar, corre 'rclone config'
+# y luego 'cp ~/.config/rclone/rclone.conf <vault>/rclone/' para reversionarlo.
+if [[ -f "$VAULT_DIR/rclone/rclone.conf" ]]; then
+    copy_dotfile "$VAULT_DIR/rclone/rclone.conf"  "$HOME/.config/rclone/rclone.conf"
+    run_step "Permisos ~/.config/rclone/rclone.conf" chmod 600 "$HOME/.config/rclone/rclone.conf"
 fi
 
 # SSH keys (encriptadas con age, en el vault privado)

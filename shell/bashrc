@@ -891,6 +891,11 @@ if [[ -n "${BLE_VERSION:-}" ]]; then
     # Sugerencia desde el historial mientras escribis (como PSReadLine prediction)
     bleopt complete_auto_complete=1
 
+    # No mostrar la marca '[ble: exit N]' tras un comando fallido: el estado lo
+    # reporta el segmento 'status' de oh-my-posh (paridad con Windows, donde lo
+    # hace el prompt y no PSReadLine). Evita el reporte duplicado del exit code.
+    bleopt exec_errexit_mark=
+
     # El prompt de oh-my-posh es multilinea (linea de info + linea del ❯) y ademas
     # se arma desde PROMPT_COMMAND. Sin esto, ble.sh asume 1 linea al adjuntarse y
     # solo redibuja la ultima, dejando huerfana la linea de info → prompt duplicado

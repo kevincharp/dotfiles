@@ -3,13 +3,24 @@
 .DS_Store
 
 # Claude Code: versionar config importante, excluir temporal/sensible
+# Estrategia: ignorar TODO en .claude/ y whitelistear solo lo portable.
+# settings.local.json NO se versiona a proposito: es config por-maquina
+# (permisos con rutas absolutas) — la convencion .local de Claude = no compartir.
 .claude/*
 !.claude/settings.json
-!.claude/settings.local.json
 !.claude/statusline.sh
+!.claude/CLAUDE.md
+# Configs propias (skills/agents/commands/hooks/estilos) — se versionan si existen
+!.claude/skills/
+!.claude/agents/
+!.claude/commands/
+!.claude/hooks/
+!.claude/output-styles/
+# Plugins: solo la lista de instalados y los marketplaces (el cache se redescarga)
 !.claude/plugins/
 .claude/plugins/*
 !.claude/plugins/installed_plugins.json
+!.claude/plugins/known_marketplaces.json
 !.claude/worktrees/
 
 # Lo sensible (ssh keys, identidades git, bookmarks) vive en el repo

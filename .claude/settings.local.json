@@ -56,7 +56,11 @@
       "Bash(bash -ic 'source shell/bashrc 2>/dev/null; spf icloud')",
       "Bash(git -C /home/kevincharp/.dotfiles check-ignore .claude/settings.local.json)",
       "Bash(git -C /home/kevincharp/.dotfiles ls-files .claude/settings.local.json)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(command -v jq)",
+      "Bash(jq --version)",
+      "Bash(command -v python3)",
+      "Bash(chmod +x /home/kevincharp/.dotfiles/.claude/statusline.sh)"
     ]
   }
 }

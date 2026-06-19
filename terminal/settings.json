@@ -160,7 +160,7 @@
                 "cellHeight": "1",
                 "face": "FiraCode Nerd Font Mono",
                 "size": 7,
-                "weight": "semibold"
+                "weight": "semi-bold"
             },
             "intenseTextStyle": "all",
             "opacity": 90,

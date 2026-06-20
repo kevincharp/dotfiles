@@ -867,6 +867,7 @@ copy_dotfile "shell/bashrc"         "$HOME/.bashrc"        "link"
 copy_dotfile "shell/bash_profile"   "$HOME/.bash_profile"  "link"
 copy_dotfile "shell/zshrc"          "$HOME/.zshrc"         "link"
 copy_dotfile "shell/zprofile"       "$HOME/.zprofile"      "link"
+copy_dotfile "shell/tmux.conf"      "$HOME/.config/tmux/tmux.conf"  "link"
 
 # Git ignore (publico)
 copy_dotfile "git/ignore"           "$HOME/.config/git/ignore"    "link"

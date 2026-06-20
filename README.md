@@ -139,31 +139,50 @@ unica `main`**: al abrir una terminal se hace `attach -t main || new -s main`,
 asi siempre caes en la misma sesion (no se acumulan zombis). Al salir de tmux la
 terminal se cierra (`exit`), sin loop de rearranque.
 
-- **Persistencia:** cerrar la ventana (Alt+W / Alt+F4) hace _detach_, la sesion
-  sigue viva; reabris y volves a donde estabas. Para matarla: `tmux kill-server`.
+- **Persistencia:** cerrar la ventana (Alt+F4) o hacer detach (`Ctrl+a d`) deja la
+  sesion viva; reabris y volves a donde estabas. Para matarla: `tmux kill-server`.
 - **Desactivar el autoarranque** en una shell: `DOTFILES_NO_TMUX=1` antes de abrirla.
+- **Prefijo `Ctrl+a`** (mas comodo que el default `Ctrl+b`). Para mandar un `Ctrl+a`
+  literal a la shell, pulsarlo dos veces (`Ctrl+a Ctrl+a`).
+- **Status line** estilizada con la paleta Claude Code (sesion en purpura, ventana
+  activa en naranja), no el verde default de tmux.
 - **No aplica a Windows** (alla los paneles los da Windows Terminal nativo).
 
-Atajos de **splits directos sin prefijo** (paridad con Windows Terminal: mismo
-gesto en ambos SO). Se eligio `Alt+simbolo` y no `Ctrl++`/`` Ctrl+` `` porque esas
-teclas no tienen codigo portable en tmux y la `` ` `` es tecla muerta en teclado
-espanol. **Si cambias el mapeo, sincronizalo con `terminal/settings.json` (WT).**
+### Atajos directos (sin prefijo) — paridad con Windows Terminal
 
-| Accion | Atajo (directo) |
-|---|---|
-| Split horizontal (arriba/abajo) | `Alt` `-` |
-| Split vertical (lado a lado) | `Alt` `.` |
-| Moverse entre paneles | `Alt` + flechas (o clic, mouse activado) |
-| Cerrar panel | `Alt` `W` (requiere liberar Alt+W en Ptyxis) |
-
-El resto sigue por prefijo `Ctrl+b` (se puede pasar a `Ctrl+a` descomentando en `tmux.conf`):
+Mismo gesto en ambos SO. Se eligio `Alt+simbolo` y no `Ctrl++`/`` Ctrl+` `` porque
+esas teclas no tienen codigo portable en tmux y la `` ` `` es tecla muerta en
+teclado espanol. **Si cambias el mapeo, sincronizalo con `terminal/settings.json`.**
 
 | Accion | Atajo |
 |---|---|
-| Nueva ventana (pestaña) | `Ctrl+b` `c` |
-| Split (respaldo memoria muscular tmux) | `Ctrl+b` `\|` / `Ctrl+b` `-` |
-| Detach (salir dejando vivo) | `Ctrl+b` `d` |
-| Recargar `tmux.conf` | `Ctrl+b` `r` |
+| Split horizontal (arriba/abajo) | `Alt` `-` |
+| Split vertical (lado a lado) | `Alt` `.` |
+| Mover el **foco** entre paneles | `Alt` + flechas (o clic, mouse activado) |
+| Cerrar panel | `Alt` `W` (pide confirmar; requiere liberar Alt+W en Ptyxis) |
+
+> **Guarda TUI:** los atajos directos (tabla `root`) interceptan la tecla _antes_
+> de pasarla a la app. Para que apps de pantalla completa (Claude Code, nvim, fzf,
+> lazygit…) no disparen un bind por error y cierren un panel, `Alt+W` reenvia la
+> tecla cruda a la app cuando hay una TUI en foco, en vez de matar el panel.
+
+### Atajos con prefijo `Ctrl+a`
+
+| Accion | Atajo |
+|---|---|
+| **Mover/intercambiar** panel (por geometria) | `Ctrl+a` + flecha |
+| Zoom: maximiza el panel / lo restaura | `Ctrl+a` `z` |
+| Nueva ventana (pestaña) | `Ctrl+a` `c` |
+| Ir a la ventana N | `Ctrl+a` `1`…`9` |
+| Split (respaldo memoria muscular tmux) | `Ctrl+a` `\|` / `Ctrl+a` `-` |
+| Detach (salir dejando vivo) | `Ctrl+a` `d` |
+| Modo copia / scroll | `Ctrl+a` `[` |
+| Recargar `tmux.conf` | `Ctrl+a` `r` |
+| Ayuda (lista todos los atajos) | `Ctrl+a` `?` |
+
+> **Por que mover paneles es con prefijo y no `Ctrl+flecha` directo:** `Ctrl+flecha`
+> choca con las TUIs (Claude/nvim lo usan para navegar por palabras). Con prefijo
+> nunca choca: mueve siempre, haya o no una TUI abierta.
 
 ---
 
@@ -663,7 +682,9 @@ Configuracion en `terminal/settings.json`:
 - Tema: Ubuntu 22.04 ColorScheme
 - Opacidad: 90% con acrylic
 - Perfiles: PowerShell, Git Bash, Linux (WSL), Ubuntu, CMD, Windows PowerShell, Azure Cloud Shell
-- `Alt+Shift+D`: dividir panel
+- **Atajos de paneles en paridad con tmux** (mismo gesto en ambos SO): `Alt+-`
+  split abajo, `Alt+.` split al lado, `Alt+W` cerrar panel, `Ctrl+F4` cerrar
+  pestaña, `Ctrl`+flechas mover panel (swapPane)
 
 > FiraCode Nerd Font la instala el bootstrap automaticamente (descarga de
 > nerd-fonts y la registra para el usuario) en Windows y Linux. Si la necesitas

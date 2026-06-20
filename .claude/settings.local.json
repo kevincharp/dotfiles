@@ -60,7 +60,15 @@
       "Bash(command -v jq)",
       "Bash(jq --version)",
       "Bash(command -v python3)",
-      "Bash(chmod +x /home/kevincharp/.dotfiles/.claude/statusline.sh)"
+      "Bash(chmod +x /home/kevincharp/.dotfiles/.claude/statusline.sh)",
+      "Bash(ls -la claude/)",
+      "Bash(find . -name \"settings*.json\" -not -path \"*/node_modules/*\")",
+      "Bash(ls -la ~/.claude/*.json)",
+      "Bash(python3 -c \"import json;json.load\\(open\\('/c/Users/kecharpen/.dotfiles/.claude/settings.json'\\)\\);print\\('repo OK'\\)\")",
+      "Bash(python3 -c \"import json;json.load\\(open\\('/c/Users/kecharpen/.claude/settings.json'\\)\\);print\\('home OK'\\)\")",
+      "Bash(node -e \"require\\('/c/Users/kecharpen/.dotfiles/.claude/settings.json'\\);console.log\\('repo OK'\\)\")",
+      "Bash(node -e \"require\\('/c/Users/kecharpen/.claude/settings.json'\\);console.log\\('home OK'\\)\")",
+      "Bash(node *)"
     ]
   }
 }

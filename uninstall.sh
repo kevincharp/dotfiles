@@ -59,6 +59,7 @@ DOTFILES_TARGETS=(
     "$HOME/.ssh/config"
     "$HOME/.editorconfig"
     "$HOME/.claude/settings.json"
+    "$HOME/.claude/CLAUDE.md"
     "$HOME/.claude/settings.local.json"
     "$HOME/.claude/plugins/installed_plugins.json"
     "$HOME/.config/oh-my-posh/themes/claude-code.omp.json"

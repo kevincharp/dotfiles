@@ -966,6 +966,9 @@ copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
 # absolutas), cada PC mantiene el suyo. statusline.sh tampoco se copia: el
 # settings.json lo referencia directo desde el repo (~/.dotfiles/.claude/statusline.sh).
 copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
+# CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
+# que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
+copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
 mkdir -p "$HOME/.claude/plugins"
 copy_dotfile ".claude/plugins/installed_plugins.json"  "$HOME/.claude/plugins/installed_plugins.json"
 copy_dotfile ".claude/plugins/known_marketplaces.json" "$HOME/.claude/plugins/known_marketplaces.json"

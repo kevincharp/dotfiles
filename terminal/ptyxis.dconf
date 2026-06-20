@@ -20,6 +20,7 @@ login-shell=false
 palette='linux'
 
 [Shortcuts]
-close-tab='<Alt>w'
+close-tab='<Control>F4'
 reset=''
+set-title='<Control><Alt>r'
 undo-close-tab='<Shift><Control>t'

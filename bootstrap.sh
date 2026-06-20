@@ -958,10 +958,13 @@ fi
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
 
 # Claude Code
-# settings.local.json NO se copia: es config por-maquina (permisos con rutas
-# absolutas), cada PC mantiene el suyo. statusline.sh tampoco: el settings.json
-# lo referencia directo desde el repo (~/.dotfiles/.claude/statusline.sh).
-copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"
+# settings.json va por symlink: editarlo en el repo (o cambios via /config que
+# no sean per-maquina) se versionan al instante. El modelo por defecto es sonnet;
+# los cambios de modelo se hacen en la sesion, no se persisten aca.
+# settings.local.json NO se toca: es config por-maquina (permisos con rutas
+# absolutas), cada PC mantiene el suyo. statusline.sh tampoco se copia: el
+# settings.json lo referencia directo desde el repo (~/.dotfiles/.claude/statusline.sh).
+copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
 mkdir -p "$HOME/.claude/plugins"
 copy_dotfile ".claude/plugins/installed_plugins.json"  "$HOME/.claude/plugins/installed_plugins.json"
 copy_dotfile ".claude/plugins/known_marketplaces.json" "$HOME/.claude/plugins/known_marketplaces.json"

@@ -159,8 +159,10 @@ $DOTFILES = @(
     @{ Src='terminal\settings.json';  Dst="$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"; Mode='link' }
     # Editorconfig (symlink)
     @{ Src='.editorconfig';           Dst="$HOME\.editorconfig"                  ; Mode='link' }
-    # Claude Code
-    @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         }
+    # Claude Code (settings.json por symlink: se versiona al editar en el repo.
+    # Modelo por defecto sonnet; los cambios de modelo se hacen en sesion.
+    # settings.local.json queda copia: es per-maquina.)
+    @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link' }
     @{ Src='.claude\settings.local.json';   Dst="$HOME\.claude\settings.local.json"   }
     @{ Src='.claude\plugins\installed_plugins.json'; Dst="$HOME\.claude\plugins\installed_plugins.json" }
 )

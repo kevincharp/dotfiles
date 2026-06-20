@@ -154,6 +154,7 @@ espanol. **Si cambias el mapeo, sincronizalo con `terminal/settings.json` (WT).*
 | Split horizontal (arriba/abajo) | `Alt` `-` |
 | Split vertical (lado a lado) | `Alt` `.` |
 | Moverse entre paneles | `Alt` + flechas (o clic, mouse activado) |
+| Cerrar panel | `Alt` `W` (requiere liberar Alt+W en Ptyxis) |
 
 El resto sigue por prefijo `Ctrl+b` (se puede pasar a `Ctrl+a` descomentando en `tmux.conf`):
 

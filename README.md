@@ -104,6 +104,7 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 │   ├── bash_profile          # Loader de bashrc
 │   ├── zshrc                 # Perfil Zsh (Linux / macOS) — espejo de bashrc
 │   ├── zprofile              # Login shell zsh (carga ~/.profile)
+│   ├── tmux.conf             # tmux → ~/.config/tmux/tmux.conf (symlink)
 │   └── themes/
 │       └── claude-code.omp.json  # Tema Oh My Posh custom
 ├── terminal/
@@ -127,6 +128,41 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 > NO estan aca: viven en el repo privado **dotfiles-vault**.
 
 > Nota: Neovim se instala como binario (`dnf`/`winget`) pero **no** se incluye configuracion en el repo. Cada vez se arranca pelado para configurarlo desde cero segun la maquina.
+
+---
+
+## tmux (paneles en Linux)
+
+Linux/Fedora usa **tmux** para tener paneles estilo Windows Terminal dentro de
+Ptyxis (que solo trae pestañas). El `bashrc`/`zshrc` autoarranca una **sesion
+unica `main`**: al abrir una terminal se hace `attach -t main || new -s main`,
+asi siempre caes en la misma sesion (no se acumulan zombis). Al salir de tmux la
+terminal se cierra (`exit`), sin loop de rearranque.
+
+- **Persistencia:** cerrar la ventana (Alt+W / Alt+F4) hace _detach_, la sesion
+  sigue viva; reabris y volves a donde estabas. Para matarla: `tmux kill-server`.
+- **Desactivar el autoarranque** en una shell: `DOTFILES_NO_TMUX=1` antes de abrirla.
+- **No aplica a Windows** (alla los paneles los da Windows Terminal nativo).
+
+Atajos de **splits directos sin prefijo** (paridad con Windows Terminal: mismo
+gesto en ambos SO). Se eligio `Alt+simbolo` y no `Ctrl++`/`` Ctrl+` `` porque esas
+teclas no tienen codigo portable en tmux y la `` ` `` es tecla muerta en teclado
+espanol. **Si cambias el mapeo, sincronizalo con `terminal/settings.json` (WT).**
+
+| Accion | Atajo (directo) |
+|---|---|
+| Split horizontal (arriba/abajo) | `Alt` `-` |
+| Split vertical (lado a lado) | `Alt` `.` |
+| Moverse entre paneles | `Alt` + flechas (o clic, mouse activado) |
+
+El resto sigue por prefijo `Ctrl+b` (se puede pasar a `Ctrl+a` descomentando en `tmux.conf`):
+
+| Accion | Atajo |
+|---|---|
+| Nueva ventana (pestaña) | `Ctrl+b` `c` |
+| Split (respaldo memoria muscular tmux) | `Ctrl+b` `\|` / `Ctrl+b` `-` |
+| Detach (salir dejando vivo) | `Ctrl+b` `d` |
+| Recargar `tmux.conf` | `Ctrl+b` `r` |
 
 ---
 

@@ -162,6 +162,9 @@ TOOLS_CATALOG=(
     "age|cloud|Encriptacion de claves SSH"
     "rclone|cloud|Sync nube (iCloud Drive, etc.) - ver icloud-mount"
     "firacode|fonts|FiraCode Nerd Font"
+    "gmail|apps|Gmail como app de escritorio (Pake)"
+    "teams|apps|Microsoft Teams como app (Pake)"
+    "outlook|apps|Outlook como app (Pake)"
 )
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
@@ -195,6 +198,8 @@ tool_installed() {
         rclone)          has_cmd rclone ;;
         firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
                          [[ "$(fc-list | grep -ci "FiraCode Nerd Font")" != "0" ]] ;;
+        gmail|teams|outlook)  # apps Pake: el AppImage compilado vive en ~/.local/share/pake-apps
+                         [[ -f "$HOME/.local/share/pake-apps/$1.AppImage" ]] ;;
         *)               return 1 ;;
     esac
 }
@@ -387,10 +392,77 @@ install_tool() {
                 fc-cache -fv > /dev/null
             '
             ;;
+        gmail|teams|outlook)
+            # Apps de escritorio via Pake: aseguramos la cadena de deps (Rust +
+            # libs Tauri) y compilamos la app desde su receta (apps/pake-apps.txt).
+            if _ensure_pake_deps; then
+                run_step "Compilar app '$1' (Pake) — tarda varios minutos" \
+                    bash "$REPO_ROOT/apps/build-pake-app.sh" "$1"
+            else
+                log "Deps de Pake no disponibles — '$1' no se compilo" "WARN"
+                WARNINGS+=("App '$1' no instalada — faltan dependencias de Pake")
+            fi
+            ;;
         *)
             log "Herramienta desconocida: $1" "WARN"
             ;;
     esac
+}
+
+# ==============================================================================
+# PAKE — cadena de dependencias para compilar apps de escritorio (web envueltas)
+# ------------------------------------------------------------------------------
+# Idempotente: instala SOLO lo que falte. Devuelve 0 si todo quedo disponible, 1
+# si no se pudo (la app entonces se saltea con warning). Node esta en el catalogo
+# aparte; pake-cli se usa via 'npx' (no se instala global).
+# ==============================================================================
+_ensure_pake_deps() {
+    # 1) Node (necesario para npx pake-cli). No lo instalamos aca: es una tool del
+    #    catalogo; si falta, avisamos (mismo criterio que codex).
+    if ! has_cmd node; then
+        log "Node.js no disponible — necesario para Pake (selecciona la tool 'node')" "WARN"
+        WARNINGS+=("Pake requiere Node.js — no instalado")
+        return 1
+    fi
+
+    # 2) Rust/cargo (Pake compila con Tauri). rustup deja el env en ~/.cargo/env.
+    if ! has_cmd cargo; then
+        run_step "Instalar Rust (rustup, para Pake)" bash -c \
+            "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable"
+        [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+    fi
+    # En --dry-run cargo no se instala de verdad; no abortamos por eso.
+    if ! has_cmd cargo && [[ "$DRY_RUN" != true ]]; then
+        log "No se pudo instalar Rust — Pake no puede compilar" "WARN"
+        WARNINGS+=("Pake requiere Rust — instalacion fallo")
+        return 1
+    fi
+
+    # 3) Dependencias de sistema de Tauri (varian por distro).
+    case "$PKG_MANAGER" in
+        dnf)
+            run_step "Deps Tauri (Pake)" sudo dnf install -y \
+                webkit2gtk4.1-devel openssl-devel curl wget file \
+                libappindicator-gtk3-devel librsvg2-devel libxdo-devel
+            run_step "Grupo c-development (Pake)" sudo dnf group install -y c-development
+            ;;
+        apt)
+            run_step "Deps Tauri (Pake)" sudo apt install -y \
+                libwebkit2gtk-4.1-dev build-essential curl wget file \
+                libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+            ;;
+        pacman)
+            run_step "Deps Tauri (Pake)" sudo pacman -S --needed --noconfirm \
+                webkit2gtk-4.1 base-devel curl wget file openssl \
+                libappindicator-gtk3 librsvg xdotool
+            ;;
+        *)
+            log "Distro no reconocida para deps de Tauri — instalalas a mano (ver Tauri prerequisites)" "WARN"
+            WARNINGS+=("Pake: deps de Tauri no instaladas (distro desconocida)")
+            return 1
+            ;;
+    esac
+    return 0
 }
 
 # ==============================================================================
@@ -447,7 +519,7 @@ _select_interactive() {
     local i n="${#TOOLS_CATALOG[@]}"
     for ((i = 0; i < n; i++)); do marked[i]=1; done   # todo pre-marcado
 
-    local groups=(core shell dev cloud fonts)
+    local groups=(core shell dev cloud fonts apps)
     local g entry id grp desc
 
     # Orden de display: indices del catalogo agrupados (solo filas navegables)
@@ -545,7 +617,7 @@ _select_interactive_text() {
     local i n="${#TOOLS_CATALOG[@]}"
     for ((i = 0; i < n; i++)); do marked[i]=1; done   # todo pre-marcado
 
-    local groups=(core shell dev cloud fonts)
+    local groups=(core shell dev cloud fonts apps)
     local g entry id grp desc
 
     while true; do
@@ -566,7 +638,7 @@ _select_interactive_text() {
                 fi
             done
         done
-        printf '\n  Comandos: numeros (ej "1 3 5") | grupo (core/shell/dev/cloud/fonts) | todo | nada | ok\n' > /dev/tty
+        printf '\n  Comandos: numeros (ej "1 3 5") | grupo (core/shell/dev/cloud/fonts/apps) | todo | nada | ok\n' > /dev/tty
         printf '  > ' > /dev/tty
 
         local input
@@ -582,7 +654,7 @@ _select_interactive_text() {
             case "$tok" in
                 todo)  for ((i = 0; i < n; i++)); do marked[i]=1; done ;;
                 nada)  for ((i = 0; i < n; i++)); do marked[i]=0; done ;;
-                core|shell|dev|cloud|fonts)
+                core|shell|dev|cloud|fonts|apps)
                     # Toggle de grupo: si esta todo marcado lo apaga, si no lo prende
                     local all_on=1
                     for ((i = 0; i < n; i++)); do

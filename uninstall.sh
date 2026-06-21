@@ -49,7 +49,6 @@ DOTFILES_TARGETS=(
     "$HOME/.bash_profile"
     "$HOME/.zshrc"
     "$HOME/.zprofile"
-    "$HOME/.config/tmux/tmux.conf"
     "$HOME/.config/git/ignore"
     "$HOME/.gitconfig"
     "$HOME/.gitconfig-personal"

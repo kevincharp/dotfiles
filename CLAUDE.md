@@ -16,8 +16,6 @@ git y Claude Code, reproducibles en cualquier máquina vía `bootstrap`.
 Cualquier función o alias que se toque en un shell **debe replicarse en los otros**:
 
 - `shell/bashrc` ↔ `shell/zshrc` ↔ `shell/profile.ps1` (PowerShell, cuando aplique).
-- Atajos de paneles: `shell/tmux.conf` (Linux) ↔ `terminal/settings.json` (Windows
-  Terminal). Mismo gesto en ambos SO — si cambiás uno, sincronizá el otro.
 - `test-bootstrap.sh` verifica la paridad de funciones bash↔zsh. Correr tras tocar
   los shells: `bash test-bootstrap.sh`.
 
@@ -50,22 +48,7 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   difieren Linux/Windows). **No editarlo para resolver conflictos**: en un rebase,
   quedarse con la versión ya commiteada y descartar lo demás.
 
-## tmux (Linux)
-
-Paneles dentro de Ptyxis (que solo trae pestañas). Detalles no obvios:
-
-- Autoarranque en `bashrc`/`zshrc`: sesión única `main` persistente. Al salir de
-  tmux la terminal se cierra (`exit`). Desactivar: `DOTFILES_NO_TMUX=1`.
-- Prefijo `Ctrl+a`. Splits directos sin prefijo: `Alt+-` / `Alt+.`. Mover panel:
-  `Ctrl+a`+flecha (NO `Ctrl+flecha`, choca con TUIs).
-- **Guarda TUI** (`is_tui` en `tmux.conf`): los binds `bind -n` (tabla root)
-  interceptan teclas antes de pasarlas a la app. Apps de pantalla completa
-  (Claude/nvim/lazygit) podían disparar un bind y cerrar la terminal. La guarda
-  reenvía la tecla cruda a la app cuando hay una TUI en foco. Al agregar binds
-  root nuevos, considerá si necesitan esta guarda.
-
 ## Verificación
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.
-- tmux carga: `tmux -f shell/tmux.conf new-session -d -s _t && tmux kill-session -t _t`.
 - `bash test-bootstrap.sh` tras cambios en shells/symlinks.

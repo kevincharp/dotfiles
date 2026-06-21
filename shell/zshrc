@@ -25,27 +25,6 @@ case "$(uname -s)" in
 esac
 
 # ==============================================================================
-# TMUX — autoarranque con sesion unica 'main' persistente
-# ------------------------------------------------------------------------------
-# Espejo del bloque TMUX en bashrc (paridad). Va ANTES de oh-my-posh: si vamos a
-# saltar a tmux no tiene sentido inicializar prompt/plugins en la shell de afuera
-# (tmux relanza este mismo zshrc adentro, donde si corren).
-#
-# Logica:
-#   - Solo en shell interactiva ([[ -o interactive ]]) y si NO estamos ya dentro.
-#   - 'attach -t main' reusa la sesion existente; '|| new -s main' la crea.
-#     Siempre es la MISMA sesion main → no se acumulan sesiones zombi.
-#   - El 'exit' final cierra la terminal al salir de tmux (sin loop de rearranque).
-# Para desactivar, exportar DOTFILES_NO_TMUX=1 antes de abrir la shell.
-# (No hace falta chequear Windows: zsh no corre en Git Bash, ver header.)
-# ==============================================================================
-if [[ -o interactive ]] && [[ -z "$TMUX" ]] && [[ -z "$DOTFILES_NO_TMUX" ]] \
-   && command -v tmux &>/dev/null; then
-    tmux attach -t main 2>/dev/null || tmux new -s main
-    exit
-fi
-
-# ==============================================================================
 # PATH — Agregar ~/.local/bin (para oh-my-posh, zoxide, etc.)
 # ==============================================================================
 

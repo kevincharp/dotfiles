@@ -390,7 +390,8 @@ section "11. Funciones shell"
 
 # Lista compartida: cada funcion debe existir en bash Y (si hay zsh) en zsh.
 SHELL_FUNCTIONS=(gclone gset-profile ginit gremote gsw gsync gcoi gup gpsu \
-                 port killport killdev claude-smg spf icloud-mount _load_dotenv)
+                 port killport killdev claude-smg spf icloud-mount _load_dotenv \
+                 pake-app)
 
 # fn_in_file <funcion> <archivo> — 0 si la funcion esta definida ahi
 fn_in_file() {

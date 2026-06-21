@@ -848,6 +848,21 @@ gnome-load() {
     done
 }
 
+# --- pake-app: (re)compilar una app de escritorio desde apps/pake-apps.txt ---
+# Envuelve una web como app nativa (via Pake). Sin args, lista las apps de la
+# receta. La definicion de las apps vive en ~/.dotfiles/apps/pake-apps.txt.
+pake-app() {
+    local script="$HOME/.dotfiles/apps/build-pake-app.sh"
+    local recipe="$HOME/.dotfiles/apps/pake-apps.txt"
+    if [[ -z "$1" ]]; then
+        echo "Uso: pake-app <id>   (compila e integra la app al menu)"
+        echo "Apps en la receta:"
+        grep -vE '^[[:space:]]*#' "$recipe" 2>/dev/null | awk -F'|' 'NF{printf "  %-10s %s\n", $1, $3}'
+        return 1
+    fi
+    bash "$script" "$1"
+}
+
 # ==============================================================================
 # BLE.SH — paleta de colores (faces)
 # ------------------------------------------------------------------------------

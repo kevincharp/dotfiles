@@ -1,0 +1,21 @@
+# pake-apps.txt — Recetas de apps de escritorio (Pake)
+# ==============================================================================
+# Cada linea define una web a envolver como app nativa (via Pake/Tauri).
+# El bootstrap (categoria 'apps') y la funcion de shell 'pake-app <id>' las usan.
+#
+# Formato:  id|Nombre|URL|icono[|flags extra de pake]
+#   - id      : identificador corto (= el del catalogo del bootstrap y el AppImage)
+#   - Nombre  : nombre visible de la app (titulo de ventana y del .desktop)
+#   - URL     : pagina a envolver
+#   - icono   : ruta del PNG relativa a apps/ (ej. icons/gmail.png)
+#   - flags   : opcional; banderas extra que se pasan a pake-cli tal cual
+#
+# Para agregar una app: suma una linea aca + el PNG en apps/icons/, y corre
+# 'pake-app <id>' (o re-bootstrap eligiendo la app). Lineas con # se ignoran.
+#
+# NOTA: --safe-domain mantiene los callbacks de login (SSO) dentro de la app.
+# Microsoft (Teams/Outlook) usa login.microsoftonline.com para el SSO corporativo.
+# ==============================================================================
+gmail|Gmail|https://mail.google.com|icons/gmail.png
+teams|Teams|https://teams.microsoft.com|icons/teams.png|--safe-domain login.microsoftonline.com
+outlook|Outlook|https://outlook.office.com|icons/outlook.png|--safe-domain login.microsoftonline.com

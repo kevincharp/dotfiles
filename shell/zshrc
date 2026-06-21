@@ -37,6 +37,10 @@ if [[ -d "$HOME/.opencode/bin" ]]; then
     export PATH="$HOME/.opencode/bin:$PATH"
 fi
 
+# Rust/cargo (rustup deja el env en ~/.cargo/env). Espejo del bloque en bashrc:
+# fuente unica versionada para tener cargo/rustc en el PATH (usado por Pake).
+[[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+
 # ==============================================================================
 # PROMPT — oh-my-posh con tema claude-code
 # ==============================================================================

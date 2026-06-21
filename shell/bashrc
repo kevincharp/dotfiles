@@ -29,6 +29,12 @@ if [[ -d "$HOME/.opencode/bin" ]]; then
     export PATH="$HOME/.opencode/bin:$PATH"
 fi
 
+# Rust/cargo (rustup deja el env en ~/.cargo/env). Se usa para Pake (apps/) y
+# cualquier herramienta Rust. Fuente unica versionada: rustup ademas mete esta
+# linea en ~/.profile y ~/.bash_profile, pero esos se mantienen limpios y la
+# carga vive aca (idempotente: solo si el archivo existe).
+[[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+
 # ==============================================================================
 # BLE.SH — syntax highlighting + autosugerencias en la linea de input
 # ------------------------------------------------------------------------------

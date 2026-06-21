@@ -48,7 +48,21 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   difieren Linux/Windows). **No editarlo para resolver conflictos**: en un rebase,
   quedarse con la versión ya commiteada y descartar lo demás.
 
+## Apps de escritorio (Pake) — `apps/`
+
+Webs envueltas como apps nativas (Gmail/Teams/Outlook) vía Pake. Solo Linux.
+
+- **Receta versionada:** `apps/pake-apps.txt` (`id|Nombre|URL|icono[|flags]`).
+  Agregar app = línea ahí + PNG en `apps/icons/`.
+- **Compila con Rust/Tauri** (`npx pake-cli`): la categoría `apps` del bootstrap
+  arrastra la cadena de deps vía `_ensure_pake_deps` (Rust + libs Tauri). Node
+  está aparte en el catálogo.
+- **`apps/build-pake-app.sh <id>`** compila e integra al menú (AppImage +
+  `.desktop` + icono en `~/.local/share/`). También vía la función `pake-app`.
+- Los AppImages **no son symlinks**: `uninstall.sh` los borra en su bloque propio,
+  no en `DOTFILES_TARGETS`.
+
 ## Verificación
 
-- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.
-- `bash test-bootstrap.sh` tras cambios en shells/symlinks.
+- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`, `bash -n apps/build-pake-app.sh`.
+- `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad, incl. `pake-app`).

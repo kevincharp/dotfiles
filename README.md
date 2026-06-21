@@ -109,6 +109,10 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 ├── terminal/
 │   ├── settings.json         # Windows Terminal (symlink)
 │   └── ptyxis.dconf          # Ptyxis / Fedora (dump dconf)
+├── apps/                     # Apps de escritorio web (Pake) — solo Linux
+│   ├── pake-apps.txt         # Receta: que webs envolver (id|nombre|url|icono)
+│   ├── build-pake-app.sh     # Compila una app e integra al menu GNOME
+│   └── icons/                # Iconos PNG de cada app
 └── gnome/                    # Config del escritorio GNOME (dumps dconf)
     ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T)
     ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
@@ -127,6 +131,36 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 > NO estan aca: viven en el repo privado **dotfiles-vault**.
 
 > Nota: Neovim se instala como binario (`dnf`/`winget`) pero **no** se incluye configuracion en el repo. Cada vez se arranca pelado para configurarlo desde cero segun la maquina.
+
+---
+
+## Apps de escritorio (Pake) — solo Linux
+
+Firefox no tiene "instalar como PWA", asi que para tener webs (Gmail, Teams,
+Outlook…) como **apps de escritorio aisladas** se usa [Pake](https://github.com/tw93/Pake):
+envuelve una URL en una app nativa liviana que usa el WebKitGTK del sistema
+(no empaqueta un navegador como Electron). Genera un **AppImage** y lo integra al
+menu de GNOME con su `.desktop` e icono.
+
+**Recetas versionadas.** Las apps se declaran en `apps/pake-apps.txt`
+(`id|Nombre|URL|icono[|flags]`). En una maquina nueva, elegir la app en el
+selector del bootstrap la **recompila** desde su receta — mismo set de apps en
+todas tus PCs.
+
+- **Instalar via bootstrap:** en el selector, categoria **`apps`** (Gmail/Teams/
+  Outlook). Elegir cualquiera **arrastra la cadena de dependencias** (Rust + libs
+  Tauri + usa `npx pake-cli`). Si no elegis ninguna, nada de eso se instala
+  (una VM solo-terminal queda limpia).
+- **Fabricar/actualizar a mano:** `pake-app <id>` (funcion de shell). Sin args
+  lista las apps de la receta.
+- **Agregar una app nueva:** suma una linea a `apps/pake-apps.txt` + un PNG en
+  `apps/icons/`, y corre `pake-app <id>`.
+
+> **Compila con Rust/Tauri:** cada app se compila localmente (tarda varios minutos
+> la primera vez) y deps ~1.5-2 GB. El resultado es liviano. Los AppImages viven
+> en `~/.local/share/pake-apps/` (no son symlinks; `uninstall.sh` los borra en su
+> bloque propio). Teams/Outlook usan `--safe-domain login.microsoftonline.com`
+> para que el callback del SSO de Microsoft quede dentro de la app.
 
 ---
 

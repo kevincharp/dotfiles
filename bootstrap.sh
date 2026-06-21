@@ -163,7 +163,6 @@ TOOLS_CATALOG=(
     "rclone|cloud|Sync nube (iCloud Drive, etc.) - ver icloud-mount"
     "firacode|fonts|FiraCode Nerd Font"
     "gmail|apps|Gmail como app de escritorio (Pake)"
-    "teams|apps|Microsoft Teams como app (Pake)"
     "outlook|apps|Outlook como app (Pake)"
 )
 
@@ -198,7 +197,7 @@ tool_installed() {
         rclone)          has_cmd rclone ;;
         firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
                          [[ "$(fc-list | grep -ci "FiraCode Nerd Font")" != "0" ]] ;;
-        gmail|teams|outlook)  # apps Pake: el AppImage compilado vive en ~/.local/share/pake-apps
+        gmail|outlook)   # apps Pake: el AppImage compilado vive en ~/.local/share/pake-apps
                          [[ -f "$HOME/.local/share/pake-apps/$1.AppImage" ]] ;;
         *)               return 1 ;;
     esac
@@ -392,7 +391,7 @@ install_tool() {
                 fc-cache -fv > /dev/null
             '
             ;;
-        gmail|teams|outlook)
+        gmail|outlook)
             # Apps de escritorio via Pake: aseguramos la cadena de deps (Rust +
             # libs Tauri) y compilamos la app desde su receta (apps/pake-apps.txt).
             if _ensure_pake_deps; then

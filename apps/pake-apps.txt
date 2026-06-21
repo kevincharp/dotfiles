@@ -14,8 +14,10 @@
 # 'pake-app <id>' (o re-bootstrap eligiendo la app). Lineas con # se ignoran.
 #
 # NOTA: --safe-domain mantiene los callbacks de login (SSO) dentro de la app.
-# Microsoft (Teams/Outlook) usa login.microsoftonline.com para el SSO corporativo.
+# Microsoft (Outlook) usa login.microsoftonline.com para el SSO corporativo.
+#
+# Teams se descarto: las videollamadas no funcionan en WebKitGTK (limite del
+# motor + Teams web restringe a Chrome/Edge). Solo servia para chat.
 # ==============================================================================
 gmail|Gmail|https://mail.google.com|icons/gmail.png
-teams|Teams|https://teams.microsoft.com|icons/teams.png|--safe-domain login.microsoftonline.com
 outlook|Outlook|https://outlook.office.com|icons/outlook.png|--safe-domain login.microsoftonline.com

@@ -50,7 +50,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
 
 ## Apps de escritorio (Pake) — `apps/`
 
-Webs envueltas como apps nativas (Gmail/Teams/Outlook) vía Pake. Solo Linux.
+Webs envueltas como apps nativas (Gmail/Outlook) vía Pake. Solo Linux.
+(Teams se descartó: sus videollamadas no funcionan en WebKitGTK.)
 
 - **Receta versionada:** `apps/pake-apps.txt` (`id|Nombre|URL|icono[|flags]`).
   Agregar app = línea ahí + PNG en `apps/icons/`.

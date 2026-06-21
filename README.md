@@ -136,8 +136,8 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 
 ## Apps de escritorio (Pake) — solo Linux
 
-Firefox no tiene "instalar como PWA", asi que para tener webs (Gmail, Teams,
-Outlook…) como **apps de escritorio aisladas** se usa [Pake](https://github.com/tw93/Pake):
+Firefox no tiene "instalar como PWA", asi que para tener webs (Gmail, Outlook…)
+como **apps de escritorio aisladas** se usa [Pake](https://github.com/tw93/Pake):
 envuelve una URL en una app nativa liviana que usa el WebKitGTK del sistema
 (no empaqueta un navegador como Electron). Genera un **AppImage** y lo integra al
 menu de GNOME con su `.desktop` e icono.
@@ -147,7 +147,7 @@ menu de GNOME con su `.desktop` e icono.
 selector del bootstrap la **recompila** desde su receta — mismo set de apps en
 todas tus PCs.
 
-- **Instalar via bootstrap:** en el selector, categoria **`apps`** (Gmail/Teams/
+- **Instalar via bootstrap:** en el selector, categoria **`apps`** (Gmail/
   Outlook). Elegir cualquiera **arrastra la cadena de dependencias** (Rust + libs
   Tauri + usa `npx pake-cli`). Si no elegis ninguna, nada de eso se instala
   (una VM solo-terminal queda limpia).
@@ -159,8 +159,12 @@ todas tus PCs.
 > **Compila con Rust/Tauri:** cada app se compila localmente (tarda varios minutos
 > la primera vez) y deps ~1.5-2 GB. El resultado es liviano. Los AppImages viven
 > en `~/.local/share/pake-apps/` (no son symlinks; `uninstall.sh` los borra en su
-> bloque propio). Teams/Outlook usan `--safe-domain login.microsoftonline.com`
-> para que el callback del SSO de Microsoft quede dentro de la app.
+> bloque propio). Outlook usa `--safe-domain login.microsoftonline.com` para que
+> el callback del SSO de Microsoft quede dentro de la app.
+
+> **Teams quedo descartado:** las videollamadas no funcionan envueltas en WebKitGTK
+> (limitacion del motor + Teams web restringe a Chrome/Edge). Sirve solo para chat,
+> asi que no vale la pena. Para videollamadas, usar Chrome/Edge.
 
 ---
 

@@ -109,7 +109,12 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
     Write-Host "oh-my-posh no instalado → winget install JanDeDobbeleer.OhMyPosh" -ForegroundColor DarkYellow
 }
 
-if (Ensure-Module 'Terminal-Icons') {
+# Terminal-Icons: carga diferida. Importarlo al arranque costaba ~500ms;
+# lo posponemos a la primera vez que se listan archivos con objetos (ll).
+$global:__TerminalIconsLoaded = $false
+function _Ensure-TerminalIcons {
+    if ($global:__TerminalIconsLoaded) { return }
+    $global:__TerminalIconsLoaded = $true
     _TryImportModule Terminal-Icons -Quiet
 }
 
@@ -357,6 +362,7 @@ function la {
 .EXAMPLE ll
 #>
 function ll {
+    _Ensure-TerminalIcons
     Get-ChildItem -Force | Sort-Object @{e='PSIsContainer';Descending=$true},Name
 }
 

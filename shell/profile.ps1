@@ -27,6 +27,40 @@ function _TryImportModule {
 }
 
 <#
+.SYNOPSIS evaluar la salida de un `init` cacheada a disco
+.DESCRIPTION Muchas herramientas (oh-my-posh, zoxide) generan su script de
+init lanzando un proceso externo en cada arranque. Cacheamos esa salida y solo
+regeneramos si alguno de los archivos "fuente" (binario, tema) es más nuevo que
+el cache. Ahorra el costo de arrancar el proceso en cada terminal nueva.
+#>
+function _Invoke-CachedInit {
+    param(
+        [Parameter(Mandatory)][string]$Key,        # nombre del archivo de cache
+        [Parameter(Mandatory)][scriptblock]$Generate, # genera el script de init
+        [string[]]$Sources = @()                    # rutas que invalidan el cache
+    )
+    $cacheDir = Join-Path ($env:LOCALAPPDATA ?? $env:TEMP) 'pwsh-init-cache'
+    if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+    $cacheFile = Join-Path $cacheDir "$Key.ps1"
+
+    $stale = $true
+    if (Test-Path $cacheFile) {
+        $cacheTime = (Get-Item $cacheFile).LastWriteTimeUtc
+        $newest = $Sources |
+            Where-Object { $_ -and (Test-Path $_) } |
+            ForEach-Object { (Get-Item $_).LastWriteTimeUtc } |
+            Sort-Object -Descending | Select-Object -First 1
+        $stale = $newest -and ($newest -gt $cacheTime)
+    }
+
+    if ($stale) {
+        try { (& $Generate | Out-String) | Set-Content -LiteralPath $cacheFile -Encoding UTF8 }
+        catch { return }
+    }
+    . $cacheFile
+}
+
+<#
 .SYNOPSIS verificar existencia de módulo, avisar si falta
 #>
 function Ensure-Module {
@@ -57,11 +91,14 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
         "$_repoRoot\shell\themes\claude-code.omp.json"
     } else { $null }
     if ($_ompTheme) {
-        oh-my-posh init pwsh --config $_ompTheme | Invoke-Expression
+        $_ompBin = (Get-Command oh-my-posh).Source
+        _Invoke-CachedInit -Key 'oh-my-posh' -Sources @($_ompBin, $_ompTheme) -Generate {
+            oh-my-posh init pwsh --config $_ompTheme
+        }.GetNewClosure()
     } else {
         Write-Host "oh-my-posh tema no encontrado — ejecutar bootstrap.ps1" -ForegroundColor DarkYellow
     }
-    Remove-Variable _ompTheme, _profileItem, _repoRoot -ErrorAction SilentlyContinue
+    Remove-Variable _ompTheme, _profileItem, _repoRoot, _ompBin -ErrorAction SilentlyContinue
 
     # Le indica a PSReadLine cual es el ultimo glifo del prompt para que no
     # lo re-pinte con su color default (verde) al editar la linea.
@@ -83,7 +120,11 @@ if (Ensure-Module 'Terminal-Icons') {
 # ==============================================================================
 
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (zoxide init powershell | Out-String) })
+    $_zoxideBin = (Get-Command zoxide).Source
+    _Invoke-CachedInit -Key 'zoxide' -Sources @($_zoxideBin) -Generate {
+        zoxide init powershell
+    }
+    Remove-Variable _zoxideBin -ErrorAction SilentlyContinue
 } else {
     Write-Verbose "zoxide no instalado — cd funcionando en modo normal"
 }

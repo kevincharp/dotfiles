@@ -64,6 +64,7 @@ DOTFILES_TARGETS=(
     "$HOME/.config/oh-my-posh/themes/claude-code.omp.json"
     "$HOME/.config/ulauncher/settings.json"
     "$HOME/.config/ulauncher/shortcuts.json"
+    "$HOME/.config/ulauncher/user-themes"
     "$HOME/.config/autostart/ulauncher.desktop"
 )
 

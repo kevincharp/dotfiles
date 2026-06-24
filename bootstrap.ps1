@@ -77,6 +77,7 @@ $WINGET_PACKAGES = @(
     @{ Id='GitHub.cli';                     Name='GitHub CLI (gh)';         Optional=$true ; Key='gh';               Group='cloud'  }
     @{ Id='GLab.GLab';                      Name='GitLab CLI (glab)';       Optional=$true ; Key='glab';             Group='cloud'  }
     @{ Id='FiloSottile.age';                Name='age (encriptacion)';      Optional=$true ; Key='age';              Group='cloud'  }
+    @{ Id='Flow-Launcher.Flow-Launcher';    Name='Flow Launcher';           Optional=$true ; Key='flowlauncher';     Group='extras' }
     @{ Id='Obsidian.Obsidian';              Name='Obsidian';                Optional=$true ; Key='obsidian';         Group='extras' }
     @{ Id='Logitech.OptionsPlus';           Name='Logitech Options+';       Optional=$true ; Key='logitech';         Group='extras' }
     @{ Id='Microsoft.Sysinternals.SDelete'; Name='SDelete (Sysinternals)';  Optional=$true ; Key='sdelete';          Group='extras' }

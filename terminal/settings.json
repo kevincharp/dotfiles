@@ -6,22 +6,6 @@
         {
             "command": 
             {
-                "action": "splitPane",
-                "split": "down"
-            },
-            "id": "User.splitPane.D5151347"
-        },
-        {
-            "command": 
-            {
-                "action": "copy",
-                "singleLine": false
-            },
-            "id": "User.copy.644BA8F2"
-        },
-        {
-            "command": 
-            {
                 "action": "swapPane",
                 "direction": "left"
             },
@@ -36,17 +20,24 @@
             "id": "User.moveFocus.787314EB"
         },
         {
-            "command": "paste",
-            "id": "User.paste"
+            "command": 
+            {
+                "action": "splitPane",
+                "split": "down"
+            },
+            "id": "User.splitPane.D5151347"
         },
         {
             "command": 
             {
-                "action": "splitPane",
-                "split": "auto",
-                "splitMode": "duplicate"
+                "action": "copy",
+                "singleLine": false
             },
-            "id": "User.splitPane.A6751878"
+            "id": "User.copy.644BA8F2"
+        },
+        {
+            "command": "paste",
+            "id": "User.paste"
         },
         {
             "command": 
@@ -59,6 +50,15 @@
         {
             "command": "find",
             "id": "User.find"
+        },
+        {
+            "command": 
+            {
+                "action": "splitPane",
+                "split": "auto",
+                "splitMode": "duplicate"
+            },
+            "id": "User.splitPane.A6751878"
         },
         {
             "command": 
@@ -79,22 +79,29 @@
         {
             "command": 
             {
-                "action": "openSettings",
-                "target": "settingsFile"
-            },
-            "id": "User.openSettings.D3F0B923"
-        },
-        {
-            "command": 
-            {
                 "action": "sendInput",
                 "input": "\u001b\r"
             },
             "id": "User.sendInput.ShiftEnter"
         },
         {
+            "command": 
+            {
+                "action": "openSettings",
+                "target": "settingsFile"
+            },
+            "id": "User.openSettings.D3F0B923"
+        },
+        {
             "command": "openTabRenamer",
             "id": "User.openTabRenamer"
+        },
+        {
+            "command": 
+            {
+                "action": "closeTab"
+            },
+            "id": "User.closeTab.0"
         },
         {
             "command": 
@@ -107,16 +114,13 @@
         {
             "command": 
             {
-                "action": "closeTab"
-            },
-            "id": "User.closeTab.0"
-        },
-        {
-            "command": 
-            {
                 "action": "globalSummon"
             },
             "id": "User.globalSummon.51A3D78C"
+        },
+        {
+            "command": "openTabColorPicker",
+            "id": "User.openTabColorPicker"
         }
     ],
     "alwaysShowTabs": true,
@@ -133,12 +137,20 @@
             "keys": "ctrl+c"
         },
         {
+            "id": "User.find",
+            "keys": "ctrl+shift+f"
+        },
+        {
             "id": "Terminal.PasteFromClipboard",
             "keys": "ctrl+v"
         },
         {
-            "id": "User.find",
-            "keys": "ctrl+shift+f"
+            "id": "User.swapPane.F747588A",
+            "keys": "ctrl+down"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+3"
         },
         {
             "id": "Terminal.DuplicatePaneAuto",
@@ -146,19 +158,11 @@
         },
         {
             "id": null,
-            "keys": "ctrl+shift+3"
-        },
-        {
-            "id": "User.swapPane.F747588A",
-            "keys": "ctrl+down"
+            "keys": "ctrl+shift+8"
         },
         {
             "id": "User.swapPane.87C324ED",
             "keys": "ctrl+right"
-        },
-        {
-            "id": null,
-            "keys": "ctrl+shift+8"
         },
         {
             "id": "User.swapPane.2A0DA8E0",
@@ -271,6 +275,10 @@
         {
             "id": "User.globalSummon.51A3D78C",
             "keys": "ctrl+alt+t"
+        },
+        {
+            "id": "User.openTabColorPicker",
+            "keys": "ctrl+alt+q"
         }
     ],
     "newTabMenu": 

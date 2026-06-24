@@ -167,6 +167,7 @@ TOOLS_CATALOG=(
     "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
     "gmail|apps|Gmail como app de escritorio (Pake)"
     "outlook|apps|Outlook como app (Pake)"
+    "teams|apps|Teams for Linux (Flatpak — llamadas funcionan)"
 )
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
@@ -206,6 +207,12 @@ tool_installed() {
                          rpm -q samba &>/dev/null && systemctl is-enabled smb &>/dev/null ;;
         gmail|outlook)   # apps Pake: el AppImage compilado vive en ~/.local/share/pake-apps
                          [[ -f "$HOME/.local/share/pake-apps/$1.AppImage" ]] ;;
+        teams)           # app Flatpak: instalada si flatpak la lista (app-id en la receta)
+                         local _fpid
+                         _fpid="$(grep -vE '^[[:space:]]*#' "$REPO_ROOT/apps/flatpak-apps.txt" 2>/dev/null \
+                                  | awk -F'|' -v id="$1" '$1==id {print $3; exit}')"
+                         [[ -n "$_fpid" ]] && has_cmd flatpak \
+                            && flatpak info "$_fpid" &>/dev/null ;;
         *)               return 1 ;;
     esac
 }
@@ -469,6 +476,19 @@ install_tool() {
             else
                 log "Deps de Pake no disponibles — '$1' no se compilo" "WARN"
                 WARNINGS+=("App '$1' no instalada — faltan dependencias de Pake")
+            fi
+            ;;
+        teams)
+            # App de escritorio via Flatpak (Flathub). A diferencia de Pake, no
+            # compila: baja el binario y crea el .desktop. Sirve para Teams porque
+            # corre sobre Electron/Chromium (las videollamadas funcionan, cosa que
+            # WebKitGTK/Pake no soporta). La receta esta en apps/flatpak-apps.txt.
+            if has_cmd flatpak; then
+                run_step "Instalar app '$1' (Flatpak)" \
+                    bash "$REPO_ROOT/apps/build-flatpak-app.sh" "$1"
+            else
+                log "flatpak no disponible — '$1' no se instalo" "WARN"
+                WARNINGS+=("App '$1' no instalada — falta flatpak")
             fi
             ;;
         *)

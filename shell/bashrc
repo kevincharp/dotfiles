@@ -870,6 +870,21 @@ pake-app() {
     bash "$script" "$1"
 }
 
+# --- flatpak-app: instalar una app de Flathub desde apps/flatpak-apps.txt -----
+# A diferencia de pake-app (que compila), baja el binario de Flathub. Sin args,
+# lista las apps de la receta (~/.dotfiles/apps/flatpak-apps.txt).
+flatpak-app() {
+    local script="$HOME/.dotfiles/apps/build-flatpak-app.sh"
+    local recipe="$HOME/.dotfiles/apps/flatpak-apps.txt"
+    if [[ -z "$1" ]]; then
+        echo "Uso: flatpak-app <id>   (instala la app de Flathub e integra al menu)"
+        echo "Apps en la receta:"
+        grep -vE '^[[:space:]]*#' "$recipe" 2>/dev/null | awk -F'|' 'NF{printf "  %-10s %s\n", $1, $2}'
+        return 1
+    fi
+    bash "$script" "$1"
+}
+
 # ==============================================================================
 # BLE.SH — paleta de colores (faces)
 # ------------------------------------------------------------------------------

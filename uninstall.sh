@@ -62,6 +62,9 @@ DOTFILES_TARGETS=(
     "$HOME/.claude/settings.local.json"
     "$HOME/.claude/plugins/installed_plugins.json"
     "$HOME/.config/oh-my-posh/themes/claude-code.omp.json"
+    "$HOME/.config/ulauncher/settings.json"
+    "$HOME/.config/ulauncher/shortcuts.json"
+    "$HOME/.config/autostart/ulauncher.desktop"
 )
 
 # Lista de paquetes instalados (solo si --remove-packages)
@@ -80,6 +83,7 @@ PACKAGES=(
     opencode
     aws
     claude
+    ulauncher
 )
 
 # ==============================================================================

@@ -1183,7 +1183,7 @@ _choose_default_shell
 if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
     # Extensiones (paquetes nativos en Fedora; en otras distros se omiten)
     if [[ "$PKG_MANAGER" == "dnf" ]]; then
-        for _ext_pkg in gnome-shell-extension-dash-to-dock gnome-shell-extension-gpaste; do
+        for _ext_pkg in gnome-shell-extension-dash-to-dock gnome-shell-extension-gpaste gnome-shell-extension-blur-my-shell; do
             if rpm -q "$_ext_pkg" &>/dev/null; then
                 log "$_ext_pkg ya instalado" "SKIP"
             else
@@ -1198,6 +1198,7 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         "/org/gnome/settings-daemon/plugins/media-keys/:media-keys.dconf"
         "/org/gnome/desktop/wm/keybindings/:wm-keybindings.dconf"
         "/org/gnome/shell/extensions/dash-to-dock/:dash-to-dock.dconf"
+        "/org/gnome/shell/extensions/blur-my-shell/:blur-my-shell.dconf"
         "/org/gnome/GPaste/:gpaste.dconf"
         "/org/gnome/shell/:shell.dconf"
     )

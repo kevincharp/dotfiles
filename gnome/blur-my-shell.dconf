@@ -1,0 +1,6 @@
+[applications]
+blur=true
+brightness=0.59999999999999998
+enable-all=true
+opacity=255
+sigma=30

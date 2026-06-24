@@ -92,6 +92,7 @@ $WINGET_PACKAGES = @(
 $EXTRA_TOOLS = @(
     @{ Key='codex';    Name='Codex CLI';            Group='dev'   }
     @{ Key='claude';   Name='Claude Code';          Group='dev'   }
+    @{ Key='lazyssh';  Name='lazyssh (TUI SSH)';    Group='shell' }
     @{ Key='firacode'; Name='FiraCode Nerd Font';   Group='fonts' }
 )
 
@@ -639,6 +640,40 @@ if ($SkipWinget) {
                 }
                 Remove-Item $zip -Force -ErrorAction SilentlyContinue
                 Remove-Item $ext -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    # --- lazyssh (TUI para SSH) ---
+    # No esta en winget/scoop: se baja el binario del release oficial a
+    # ~/.local/bin (igual que en Linux) y se agrega ese dir al PATH de usuario.
+    if (-not (Test-ToolSelected 'lazyssh')) {
+        Write-Log "lazyssh no seleccionado, saltando" 'SKIP'
+    } elseif (Test-CommandAvailable 'lazyssh') {
+        Write-Log "lazyssh ya instalado" 'SKIP'
+    } elseif ($DryRun) {
+        Write-Log "[DryRun] Descargar e instalar lazyssh" 'SKIP'
+    } else {
+        Invoke-Step "Instalar lazyssh (binario)" {
+            $binDir = Join-Path $HOME '.local\bin'
+            New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+            $tag = (Invoke-RestMethod -Uri 'https://api.github.com/repos/Adembc/lazyssh/releases/latest').tag_name
+            $zip = Join-Path $env:TEMP 'lazyssh.zip'
+            $ext = Join-Path $env:TEMP 'lazyssh-extract'
+            $arch = if ([Environment]::Is64BitOperatingSystem) { 'x86_64' } else { 'i386' }
+            Invoke-WebRequest -Uri "https://github.com/Adembc/lazyssh/releases/download/$tag/lazyssh_Windows_$arch.zip" -OutFile $zip -UseBasicParsing
+            if (Test-Path $ext) { Remove-Item $ext -Recurse -Force }
+            Expand-Archive -Path $zip -DestinationPath $ext -Force
+            Copy-Item -LiteralPath (Join-Path $ext 'lazyssh.exe') -Destination (Join-Path $binDir 'lazyssh.exe') -Force
+            Remove-Item $zip -Force -ErrorAction SilentlyContinue
+            Remove-Item $ext -Recurse -Force -ErrorAction SilentlyContinue
+
+            # Asegurar que ~/.local/bin este en el PATH de usuario
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+            if ($userPath -notlike "*$binDir*") {
+                [Environment]::SetEnvironmentVariable('Path', "$userPath;$binDir", 'User')
+                $env:Path += ";$binDir"
+                Write-Log "  Agregado $binDir al PATH de usuario (reinicia la terminal)" 'INFO'
             }
         }
     }

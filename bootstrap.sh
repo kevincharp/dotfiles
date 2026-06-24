@@ -162,6 +162,7 @@ TOOLS_CATALOG=(
     "age|cloud|Encriptacion de claves SSH"
     "rclone|cloud|Sync nube (iCloud Drive, etc.) - ver icloud-mount"
     "firacode|fonts|FiraCode Nerd Font"
+    "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
     "gmail|apps|Gmail como app de escritorio (Pake)"
     "outlook|apps|Outlook como app (Pake)"
 )
@@ -197,6 +198,7 @@ tool_installed() {
         rclone)          has_cmd rclone ;;
         firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
                          [[ "$(fc-list | grep -ci "FiraCode Nerd Font")" != "0" ]] ;;
+        ulauncher)       has_cmd ulauncher ;;
         gmail|outlook)   # apps Pake: el AppImage compilado vive en ~/.local/share/pake-apps
                          [[ -f "$HOME/.local/share/pake-apps/$1.AppImage" ]] ;;
         *)               return 1 ;;
@@ -390,6 +392,25 @@ install_tool() {
                 rm /tmp/FiraCode.zip
                 fc-cache -fv > /dev/null
             '
+            ;;
+        ulauncher)
+            # Fedora 44+: ya viene en los repos oficiales (dnf directo).
+            # Debian/Ubuntu: no esta en repos base, hace falta el PPA.
+            # Arch: AUR (no automatizable desde aqui).
+            if [[ "$PKG_MANAGER" == "dnf" ]]; then
+                run_step "Instalar ulauncher" $PKG_INSTALL ulauncher
+            elif [[ "$PKG_MANAGER" == "apt" ]]; then
+                run_step "Instalar ulauncher (PPA)" bash -c '
+                    sudo add-apt-repository -y ppa:agornostal/ulauncher
+                    sudo apt update && sudo apt install -y ulauncher
+                '
+            elif [[ "$PKG_MANAGER" == "pacman" ]]; then
+                log "ulauncher: instalar manualmente desde AUR — yay -S ulauncher" "WARN"
+                WARNINGS+=("ulauncher no instalado — disponible en AUR")
+            else
+                log "ulauncher: instalar manualmente — https://ulauncher.io" "WARN"
+                WARNINGS+=("ulauncher no instalado")
+            fi
             ;;
         gmail|outlook)
             # Apps de escritorio via Pake: aseguramos la cadena de deps (Rust +

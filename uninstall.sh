@@ -85,6 +85,7 @@ PACKAGES=(
     aws
     claude
     ulauncher
+    samba
 )
 
 # ==============================================================================
@@ -136,6 +137,7 @@ pkg_cmd() {
     case "$1" in
         neovim)  echo "nvim" ;;
         ripgrep) echo "rg" ;;
+        samba)   echo "smbd" ;;
         *)       echo "$1" ;;
     esac
 }
@@ -311,6 +313,13 @@ else
                     ;;
                 aws)
                     log "Saltando aws (instalador custom, desinstalar manualmente)" "SKIP"
+                    ;;
+                samba)
+                    # Servicio: parar y deshabilitar antes de remover el paquete.
+                    if has_cmd smbd; then
+                        sudo systemctl disable --now smb &>/dev/null || true
+                        $PKG_REMOVE samba && log "Desinstalado: samba" "OK" || log "Fallo al desinstalar samba" "WARN"
+                    fi
                     ;;
                 *)
                     if has_cmd "$(pkg_cmd "$pkg")"; then

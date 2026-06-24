@@ -1074,6 +1074,20 @@ if [[ -f "$_omp_src" ]]; then
 fi
 unset _omp_themes_dst _omp_src
 
+# Ulauncher (lanzador estilo Spotlight) — solo si esta instalado.
+# settings.json y shortcuts.json van por symlink: editarlos por la GUI se
+# versiona al instante (mismo criterio que .claude/settings.json).
+# El atajo Ctrl+Space NO se cablea aca: vive en gnome/media-keys.dconf y lo
+# aplica el bloque de GNOME (dconf load). En Wayland el hotkey interno de
+# Ulauncher no funciona, por eso lo dispara un atajo de GNOME -> ulauncher-toggle.
+# El autostart se copia (no symlink) a ~/.config/autostart: GNOME reescribe ese
+# .desktop si se togglea desde la GUI de "Aplicaciones al inicio".
+if has_cmd ulauncher; then
+    copy_dotfile "ulauncher/settings.json"   "$HOME/.config/ulauncher/settings.json"   "link"
+    copy_dotfile "ulauncher/shortcuts.json"  "$HOME/.config/ulauncher/shortcuts.json"  "link"
+    copy_dotfile "ulauncher/autostart.desktop" "$HOME/.config/autostart/ulauncher.desktop"
+fi
+
 # Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un
 # archivo), asi que no se puede symlinkear: se restaura con 'dconf load'.
 # El dump versionado se actualiza con el helper 'ptyxis-save' (ver bashrc).

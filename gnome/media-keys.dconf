@@ -1,6 +1,6 @@
 [/]
 control-center=['<Super>c']
-custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']
+custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/']
 email=['<Super>q']
 home=['<Super>e']
 search=['<Super>b']
@@ -10,3 +10,8 @@ www=['<Super>w']
 binding='<Control><Alt>t'
 command='ptyxis'
 name='Terminal'
+
+[custom-keybindings/custom1]
+binding='<Control>space'
+command='ulauncher-toggle'
+name='Ulauncher'

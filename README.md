@@ -113,12 +113,16 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 │   ├── pake-apps.txt         # Receta: que webs envolver (id|nombre|url|icono)
 │   ├── build-pake-app.sh     # Compila una app e integra al menu GNOME
 │   └── icons/                # Iconos PNG de cada app
-└── gnome/                    # Config del escritorio GNOME (dumps dconf)
-    ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T)
-    ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
-    ├── dash-to-dock.dconf     # Config del dock
-    ├── gpaste.dconf           # GPaste (Alt+Super+V, historial)
-    └── shell.dconf            # Favoritos del dock + extensiones habilitadas
+├── gnome/                    # Config del escritorio GNOME (dumps dconf)
+│   ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T, Ctrl+Space)
+│   ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
+│   ├── dash-to-dock.dconf     # Config del dock
+│   ├── gpaste.dconf           # GPaste (Alt+Super+V, historial)
+│   └── shell.dconf            # Favoritos del dock + extensiones habilitadas
+└── ulauncher/                # Lanzador de apps (Spotlight) — solo Linux
+    ├── settings.json         # Preferencias (symlink)
+    ├── shortcuts.json        # Atajos de busqueda web (symlink)
+    └── autostart.desktop     # Arranque al inicio (copia → ~/.config/autostart)
 ```
 
 > **Terminales y GNOME usan dconf, no symlinks.** Windows Terminal y el shell
@@ -555,6 +559,7 @@ Flags disponibles:
 | age | Encriptacion de claves SSH | winget | dnf | apt |
 | glab | GitLab CLI | winget | dnf | binario GitLab |
 | FiraCode Nerd Font | Fuente con glifos (oh-my-posh) | descarga nerd-fonts | descarga nerd-fonts | descarga nerd-fonts |
+| Launcher de apps (estilo Spotlight) | Flow Launcher (Win) / Ulauncher (Linux) | winget (`Flow-Launcher`) | dnf | PPA `agornostal/ulauncher` |
 | Windows Terminal | Terminal con paneles y tabs | winget | - | - |
 | AWS CLI | Acceso a Bedrock *(opcional)* | winget | installer oficial | installer oficial |
 | GitHub CLI | PRs e issues + clonado del vault *(opcional)* | winget | dnf | repo oficial GitHub |

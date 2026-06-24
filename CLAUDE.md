@@ -38,6 +38,22 @@ que **no se symlinkean**. Se sincronizan con helpers definidos en `bashrc`:
 Tras cambiar atajos/tema por la GUI, hay que correr el `*-save` para versionarlo.
 Editar el `.dconf` a mano no aplica nada hasta hacer `*-load`.
 
+## Launcher de apps (Ulauncher / Flow Launcher)
+
+Lanzador estilo Spotlight, **uno por SO** (ninguno cruza): Linux → Ulauncher
+(catálogo `apps`), Windows → Flow Launcher (winget, grupo `extras`).
+
+Ulauncher tiene tres piezas, versionadas distinto:
+
+- **Config** (`ulauncher/settings.json`, `shortcuts.json`) → **symlink** a
+  `~/.config/ulauncher/` (cambios por GUI se versionan al instante).
+- **Atajo `Ctrl+Space`** → NO va en `ulauncher/`. Vive en
+  `gnome/media-keys.dconf` (`custom1` → `ulauncher-toggle`) y lo aplica el bloque
+  GNOME del bootstrap. En **Wayland el hotkey interno de Ulauncher no funciona**,
+  por eso lo dispara un atajo de GNOME. Para reversionarlo: `gnome-save`.
+- **Autostart** (`ulauncher/autostart.desktop`) → **copia** (no symlink) a
+  `~/.config/autostart/`: GNOME reescribe ese `.desktop` desde su GUI.
+
 ## Claude Code (`.claude/`)
 
 Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:

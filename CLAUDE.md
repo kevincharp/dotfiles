@@ -53,6 +53,13 @@ Ulauncher tiene tres piezas, versionadas distinto:
   por eso lo dispara un atajo de GNOME. Para reversionarlo: `gnome-save`.
 - **Autostart** (`ulauncher/autostart.desktop`) → **copia** (no symlink) a
   `~/.config/autostart/`: GNOME reescribe ese `.desktop` desde su GUI.
+- **Temas** (`ulauncher/user-themes/`) → **symlink** a
+  `~/.config/ulauncher/user-themes/`. Trae Liquid Glass (dark/light), vendorizado
+  desde [kayozxo/ulauncher-liquid-glass]. El tema activo se fija con `theme-name`
+  en `settings.json`. El efecto vidrio esmerilado real lo da la extensión GNOME
+  **Blur My Shell** (`blur-my-shell@aunetx`), instalada por el bootstrap y con su
+  config versionada en `gnome/blur-my-shell.dconf`. En **Wayland una extensión
+  recién instalada no carga hasta reiniciar la sesión** (logout/login).
 
 ## Claude Code (`.claude/`)
 

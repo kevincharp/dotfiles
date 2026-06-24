@@ -117,12 +117,14 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 │   ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T, Ctrl+Space)
 │   ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
 │   ├── dash-to-dock.dconf     # Config del dock
+│   ├── blur-my-shell.dconf    # Blur de ventanas (efecto glass de Ulauncher)
 │   ├── gpaste.dconf           # GPaste (Alt+Super+V, historial)
 │   └── shell.dconf            # Favoritos del dock + extensiones habilitadas
 └── ulauncher/                # Lanzador de apps (Spotlight) — solo Linux
     ├── settings.json         # Preferencias (symlink)
     ├── shortcuts.json        # Atajos de busqueda web (symlink)
-    └── autostart.desktop     # Arranque al inicio (copia → ~/.config/autostart)
+    ├── autostart.desktop     # Arranque al inicio (copia → ~/.config/autostart)
+    └── user-themes/          # Temas custom (Liquid Glass dark/light, symlink)
 ```
 
 > **Terminales y GNOME usan dconf, no symlinks.** Windows Terminal y el shell

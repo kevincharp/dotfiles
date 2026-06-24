@@ -163,6 +163,7 @@ TOOLS_CATALOG=(
     "rclone|cloud|Sync nube (iCloud Drive, etc.) - ver icloud-mount"
     "firacode|fonts|FiraCode Nerd Font"
     "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
+    "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
     "gmail|apps|Gmail como app de escritorio (Pake)"
     "outlook|apps|Outlook como app (Pake)"
 )
@@ -199,6 +200,8 @@ tool_installed() {
         firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
                          [[ "$(fc-list | grep -ci "FiraCode Nerd Font")" != "0" ]] ;;
         ulauncher)       has_cmd ulauncher ;;
+        samba)           # listo si el paquete esta y el servicio quedo habilitado
+                         rpm -q samba &>/dev/null && systemctl is-enabled smb &>/dev/null ;;
         gmail|outlook)   # apps Pake: el AppImage compilado vive en ~/.local/share/pake-apps
                          [[ -f "$HOME/.local/share/pake-apps/$1.AppImage" ]] ;;
         *)               return 1 ;;
@@ -410,6 +413,35 @@ install_tool() {
             else
                 log "ulauncher: instalar manualmente — https://ulauncher.io" "WARN"
                 WARNINGS+=("ulauncher no instalado")
+            fi
+            ;;
+        samba)
+            # Servidor SMB para compartir el home por red local (p.ej. la app
+            # Archivos del iPhone, que solo habla SMB, no SFTP). El smb.conf por
+            # defecto de Fedora ya trae el share [homes] con lectura/escritura, no
+            # hace falta tocarlo. Solo en Fedora/dnf (servicio + firewalld + SELinux).
+            # La contrasena SMB NO se versiona: es secreto, queda como paso manual
+            # ('sudo smbpasswd -a <usuario>'), igual que las claves SSH.
+            if [[ "$PKG_MANAGER" != "dnf" ]]; then
+                log "samba: cableado solo para Fedora/dnf — instalar manualmente en esta distro" "WARN"
+                WARNINGS+=("samba no configurado — distro no soportada por el bootstrap")
+            else
+                run_step "Instalar samba" $PKG_INSTALL samba
+                run_step "Habilitar servicio smb" sudo systemctl enable --now smb
+                # Firewall (firewalld): abrir el servicio samba de forma permanente
+                if has_cmd firewall-cmd; then
+                    run_step "Abrir samba en el firewall" bash -c '
+                        sudo firewall-cmd --permanent --add-service=samba
+                        sudo firewall-cmd --reload
+                    '
+                fi
+                # SELinux: sin este booleano, compartir el home da permiso denegado
+                if has_cmd setsebool; then
+                    run_step "SELinux: permitir compartir home dirs" \
+                        sudo setsebool -P samba_enable_home_dirs on
+                fi
+                log "  Falta tu contrasena SMB: corre 'sudo smbpasswd -a $USER'" "INFO"
+                WARNINGS+=("Samba: define tu contrasena con 'sudo smbpasswd -a $USER' (no se versiona)")
             fi
             ;;
         gmail|outlook)

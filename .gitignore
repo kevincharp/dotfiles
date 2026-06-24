@@ -2,6 +2,10 @@
 .env
 .DS_Store
 
+# Ulauncher genera este CSS en runtime por cada tema (wrapper que importa
+# theme.css). Es por-maquina y se regenera solo: no se versiona.
+ulauncher/user-themes/*/generated.css
+
 # Claude Code: versionar config importante, excluir temporal/sensible
 # Estrategia: ignorar TODO en .claude/ y whitelistear solo lo portable.
 # settings.local.json NO se versiona a proposito: es config por-maquina

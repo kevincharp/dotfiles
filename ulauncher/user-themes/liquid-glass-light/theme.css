@@ -1,7 +1,7 @@
 /**
  * App Window
  */
-@define-color bg_color rgba(255, 255, 255, 0.6);
+@define-color bg_color rgba(255, 255, 255, 0.85);
 @define-color window_bg @bg_color;
 @define-color window_border_color rgba(255, 255, 255, 0.25);
 @define-color prefs_backgroud rgba(255, 255, 255, 0.75);
@@ -32,7 +32,7 @@
   margin-right: -20px;
 
   /* GTK-compatible glass effect with better readability */
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(255, 255, 255, 0.85);
 
   border: none;
   border-radius: 34px;

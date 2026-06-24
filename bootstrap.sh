@@ -157,6 +157,7 @@ TOOLS_CATALOG=(
     "claude|dev|Claude Code CLI"
     "opencode|dev|opencode (SST)"
     "aws|cloud|AWS CLI (Bedrock)"
+    "lazyssh|shell|TUI para gestionar conexiones SSH (estilo lazygit)"
     "gh|cloud|GitHub CLI (PRs/issues + clonado del vault)"
     "glab|cloud|GitLab CLI"
     "age|cloud|Encriptacion de claves SSH"
@@ -184,6 +185,7 @@ tool_installed() {
         zoxide)          has_cmd zoxide ;;
         eza)             has_cmd eza ;;
         lazygit)         has_cmd lazygit ;;
+        lazyssh)         has_cmd lazyssh ;;
         blesh)           [[ -f "$HOME/.local/share/blesh/ble.sh" ]] ;;
         zsh)                     has_cmd zsh ;;
         zsh-autosuggestions)     [[ -f "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] ;;
@@ -255,6 +257,20 @@ install_tool() {
                     rm -f /tmp/lazygit /tmp/lazygit.tar.gz
                 '
             fi
+            ;;
+        lazyssh)
+            # TUI para SSH (lee/escribe ~/.ssh/config). No esta en repos de distro
+            # ni en gestores; se baja el binario del release oficial a ~/.local/bin
+            # (ya en PATH, sin sudo). El asset es lazyssh_<uname>_<arch>.tar.gz.
+            run_step "Instalar lazyssh (binario)" bash -c '
+                tag=$(curl -fsSL "https://api.github.com/repos/Adembc/lazyssh/releases/latest" | grep -Po "\"tag_name\": \"\K[^\"]*")
+                tmp="$(mktemp -d)"
+                curl -fsSL "https://github.com/Adembc/lazyssh/releases/download/${tag}/lazyssh_$(uname)_$(uname -m).tar.gz" -o "$tmp/lazyssh.tar.gz"
+                tar xzf "$tmp/lazyssh.tar.gz" -C "$tmp"
+                mkdir -p "$HOME/.local/bin"
+                install "$tmp/lazyssh" "$HOME/.local/bin/lazyssh"
+                rm -rf "$tmp"
+            '
             ;;
         blesh)
             # ble.sh (Bash Line Editor): syntax highlighting + autosugerencias.

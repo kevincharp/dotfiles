@@ -74,7 +74,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
 ## Apps de escritorio (Pake) — `apps/`
 
 Webs envueltas como apps nativas (Gmail/Outlook) vía Pake. Solo Linux.
-(Teams se descartó: sus videollamadas no funcionan en WebKitGTK.)
+(Teams **no** va por Pake: sus videollamadas no funcionan en WebKitGTK; se
+instala por Flatpak — ver abajo.)
 
 - **Receta versionada:** `apps/pake-apps.txt` (`id|Nombre|URL|icono[|flags]`).
   Agregar app = línea ahí + PNG en `apps/icons/`.
@@ -86,7 +87,23 @@ Webs envueltas como apps nativas (Gmail/Outlook) vía Pake. Solo Linux.
 - Los AppImages **no son symlinks**: `uninstall.sh` los borra en su bloque propio,
   no en `DOTFILES_TARGETS`.
 
+## Apps de escritorio (Flatpak) — `apps/`
+
+Para apps que necesitan Chromium/Electron y que Pake (WebKitGTK) no cubre, p.ej.
+**Teams** (las videollamadas sí funcionan acá). Solo Linux. Mismo patrón que Pake
+pero sin compilar: Flatpak baja el binario y crea el `.desktop` solo.
+
+- **Receta versionada:** `apps/flatpak-apps.txt` (`id|Nombre|app-id-de-flathub`).
+  Agregar app = una línea ahí.
+- **`apps/build-flatpak-app.sh <id>`** instala desde Flathub. También vía la
+  función `flatpak-app`. Agrega el remote **flathub completo a nivel usuario**
+  (el de Fedora viene `filtered` y no lista todas las apps).
+- Las apps Flatpak **no son symlinks**: `uninstall.sh` las quita con
+  `flatpak uninstall` recorriendo la receta, no en `DOTFILES_TARGETS`.
+
 ## Verificación
 
-- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`, `bash -n apps/build-pake-app.sh`.
-- `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad, incl. `pake-app`).
+- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`, `bash -n apps/build-pake-app.sh`,
+  `bash -n apps/build-flatpak-app.sh`.
+- `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad, incl.
+  `pake-app` y `flatpak-app`).

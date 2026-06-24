@@ -109,10 +109,12 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 ├── terminal/
 │   ├── settings.json         # Windows Terminal (symlink)
 │   └── ptyxis.dconf          # Ptyxis / Fedora (dump dconf)
-├── apps/                     # Apps de escritorio web (Pake) — solo Linux
-│   ├── pake-apps.txt         # Receta: que webs envolver (id|nombre|url|icono)
-│   ├── build-pake-app.sh     # Compila una app e integra al menu GNOME
-│   └── icons/                # Iconos PNG de cada app
+├── apps/                     # Apps de escritorio (Pake + Flatpak) — solo Linux
+│   ├── pake-apps.txt         # Receta Pake: que webs envolver (id|nombre|url|icono)
+│   ├── build-pake-app.sh     # Compila una app Pake e integra al menu GNOME
+│   ├── flatpak-apps.txt      # Receta Flatpak: apps de Flathub (id|nombre|app-id)
+│   ├── build-flatpak-app.sh  # Instala una app de Flathub (p.ej. Teams)
+│   └── icons/                # Iconos PNG de cada app Pake
 ├── gnome/                    # Config del escritorio GNOME (dumps dconf)
 │   ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T, Ctrl+Space)
 │   ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
@@ -168,9 +170,35 @@ todas tus PCs.
 > bloque propio). Outlook usa `--safe-domain login.microsoftonline.com` para que
 > el callback del SSO de Microsoft quede dentro de la app.
 
-> **Teams quedo descartado:** las videollamadas no funcionan envueltas en WebKitGTK
-> (limitacion del motor + Teams web restringe a Chrome/Edge). Sirve solo para chat,
-> asi que no vale la pena. Para videollamadas, usar Chrome/Edge.
+> **Teams NO va por Pake:** las videollamadas no funcionan envueltas en WebKitGTK
+> (limitacion del motor + Teams web restringe a Chrome/Edge). Se instala por
+> Flatpak (ver abajo), que corre sobre Electron/Chromium y sí soporta las llamadas.
+
+---
+
+## Apps de escritorio (Flatpak) — solo Linux
+
+Cuando una app necesita **Chromium/Electron** y Pake (WebKitGTK) no alcanza —el
+caso tipico es **Teams**, donde las videollamadas requieren WebRTC + codecs que
+solo trae Chromium— se instala por [Flatpak](https://flatpak.org) desde Flathub.
+Misma idea que Pake (receta versionada + funcion de shell), pero **sin compilar**:
+Flatpak baja el binario ya armado, aislado en su sandbox, y crea el `.desktop`.
+
+**Recetas versionadas.** Las apps se declaran en `apps/flatpak-apps.txt`
+(`id|Nombre|app-id-de-flathub`). Elegir la app en el selector del bootstrap la
+instala desde Flathub — mismo set en todas tus PCs.
+
+- **Instalar via bootstrap:** en el selector, categoria **`apps`** (Teams).
+- **Instalar a mano:** `flatpak-app <id>` (funcion de shell). Sin args lista las
+  apps de la receta.
+- **Agregar una app nueva:** suma una linea a `apps/flatpak-apps.txt` con su
+  app-id de Flathub, y corre `flatpak-app <id>`.
+
+> **Flathub completo a nivel usuario:** Fedora trae Flathub `filtered` (censurado)
+> y no lista todas las apps (p.ej. teams-for-linux). El bootstrap/`flatpak-app`
+> agregan el remote oficial completo con `--user` (sin sudo, sin tocar el sistema).
+> Las apps Flatpak no son symlinks: `uninstall.sh` las quita con `flatpak uninstall`
+> recorriendo la receta.
 
 ---
 

@@ -1,6 +1,10 @@
-[applications]
-blur=true
-brightness=0.59999999999999998
-enable-all=true
-opacity=255
-sigma=30
+[/]
+# Blur My Shell se deja en su configuracion POR DEFECTO (de fabrica).
+# Probamos personalizar el blur de Ulauncher (tema Liquid Glass) pero el blur
+# rectangular no encaja con las esquinas redondeadas del tema y deja un recuadro
+# feo alrededor (bug conocido de la extension). Default da un blur correcto en
+# panel/dock/overview sin pelear con las ventanas de apps.
+#
+# Este archivo a proposito no fija claves: 'dconf load' no cambia nada y la
+# extension usa sus valores por defecto. Si algun dia se ajusta, correr
+# 'gnome-save' para volcar la config real aca.

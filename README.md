@@ -567,10 +567,13 @@ Flags disponibles:
 | GitHub CLI | PRs e issues + clonado del vault *(opcional)* | winget | dnf | repo oficial GitHub |
 | dash-to-dock | Extension GNOME del dock | - | dnf | - |
 | GPaste | Gestor de portapapeles GNOME | - | dnf | - |
+| Samba | Compartir el home por SMB (app Archivos de iPhone, etc.) *(opcional)* | - | dnf + servicio/firewall/SELinux | - |
 
 > En Fedora todo lo que tiene paquete nativo se instala via `dnf` (para que se actualice con `dnf upgrade`). El método por binario/curl queda como fallback solo para distros sin el paquete en repos.
 
 > Las extensiones de GNOME (dash-to-dock, GPaste) solo se instalan en Fedora con GNOME, y su configuracion se aplica desde `gnome/*.dconf` (ver seccion "Ptyxis y GNOME").
+
+> Samba comparte el home (share `[homes]` del `smb.conf` por defecto de Fedora) y deja listo el servicio, el firewall y el booleano SELinux `samba_enable_home_dirs`. La contrasena SMB **no se versiona** (es secreto): definila a mano con `sudo smbpasswd -a <usuario>`. Desde el iPhone: app Archivos → "Conectar a un servidor" → `smb://<ip-de-la-pc>`.
 
 ### Manuales (solo Windows, ver Paso 1)
 

@@ -258,6 +258,19 @@ done
 command -v update-desktop-database &>/dev/null && \
     update-desktop-database "$HOME/.local/share/applications" &>/dev/null || true
 
+# Apps de escritorio (Flatpak): se desinstalan con flatpak, no borrando archivos.
+# Recorre la receta (apps/flatpak-apps.txt) y quita lo que este instalado a --user.
+_flatpak_recipe="$DOTFILES_DIR/apps/flatpak-apps.txt"
+if command -v flatpak &>/dev/null && [[ -f "$_flatpak_recipe" ]]; then
+    while IFS='|' read -r _fp_id _fp_name _fp_appid; do
+        [[ "$_fp_id" =~ ^[[:space:]]*# || -z "${_fp_appid:-}" ]] && continue
+        if flatpak info --user "$_fp_appid" &>/dev/null; then
+            flatpak uninstall -y --user "$_fp_appid" &>/dev/null \
+                && log "Removido: $_fp_appid (Flatpak)" "OK"
+        fi
+    done < "$_flatpak_recipe"
+fi
+
 # ==============================================================================
 # 5. RESTAURAR BACKUPS
 # ==============================================================================

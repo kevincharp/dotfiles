@@ -1,15 +1,16 @@
 {
-  "model": "sonnet",
-  "effortLevel": "medium",
-  "theme": "auto",
   "env": {
     "CLAUDE_CODE_ENABLE_AUTO_MODE": "1"
   },
+  "model": "sonnet",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.dotfiles/.claude/statusline.sh"
   },
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": true
-  }
+  },
+  "effortLevel": "medium",
+  "theme": "auto",
+  "tui": "fullscreen"
 }

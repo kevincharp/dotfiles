@@ -68,7 +68,9 @@
       "Bash(python3 -c \"import json;json.load\\(open\\('/c/Users/kecharpen/.claude/settings.json'\\)\\);print\\('home OK'\\)\")",
       "Bash(node -e \"require\\('/c/Users/kecharpen/.dotfiles/.claude/settings.json'\\);console.log\\('repo OK'\\)\")",
       "Bash(node -e \"require\\('/c/Users/kecharpen/.claude/settings.json'\\);console.log\\('home OK'\\)\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(powershell.exe *)",
+      "WebFetch(domain:www.fortinet.com)"
     ]
   }
 }

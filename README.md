@@ -560,6 +560,7 @@ Flags disponibles:
 | zsh-syntax-highlighting | Syntax highlighting en zsh (equivalente a ble.sh) | - | git clone | git clone |
 | age | Encriptacion de claves SSH | winget | dnf | apt |
 | glab | GitLab CLI | winget | dnf | binario GitLab |
+| lazyssh | TUI para gestionar conexiones SSH (estilo lazygit) | binario GitHub → `~/.local/bin` | binario GitHub → `~/.local/bin` | binario GitHub → `~/.local/bin` |
 | FiraCode Nerd Font | Fuente con glifos (oh-my-posh) | descarga nerd-fonts | descarga nerd-fonts | descarga nerd-fonts |
 | Launcher de apps (estilo Spotlight) | Flow Launcher (Win) / Ulauncher (Linux) | winget (`Flow-Launcher`) | dnf | PPA `agornostal/ulauncher` |
 | Windows Terminal | Terminal con paneles y tabs | winget | - | - |

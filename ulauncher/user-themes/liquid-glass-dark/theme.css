@@ -92,12 +92,16 @@
   color: @item_name_selected;
 }
 
+/* Ocultar los hints de atajo (Alt+1, Alt+2...) que Ulauncher muestra por
+   resultado. No hay opcion en Preferencias para sacarlos; se ocultan por CSS. */
 .item-shortcut {
   color: @item_shortcut_color;
+  opacity: 0;
 }
 
 .selected.item-box .item-shortcut {
   color: @item_shortcut_color_sel;
+  opacity: 0;
 }
 
 .prefs-btn {

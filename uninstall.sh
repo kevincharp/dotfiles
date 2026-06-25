@@ -66,6 +66,7 @@ DOTFILES_TARGETS=(
     "$HOME/.config/ulauncher/shortcuts.json"
     "$HOME/.config/ulauncher/user-themes"
     "$HOME/.config/autostart/ulauncher.desktop"
+    "$HOME/.config/openlogi/config.toml"
 )
 
 # Lista de paquetes instalados (solo si --remove-packages)
@@ -86,6 +87,7 @@ PACKAGES=(
     claude
     ulauncher
     samba
+    openlogi
 )
 
 # ==============================================================================
@@ -332,6 +334,13 @@ else
                     if has_cmd smbd; then
                         sudo systemctl disable --now smb &>/dev/null || true
                         $PKG_REMOVE samba && log "Desinstalado: samba" "OK" || log "Fallo al desinstalar samba" "WARN"
+                    fi
+                    ;;
+                openlogi)
+                    # Servicio de usuario: parar/deshabilitar antes de remover el .rpm.
+                    if rpm -q openlogi &>/dev/null; then
+                        systemctl --user disable --now openlogi-agent.service &>/dev/null || true
+                        $PKG_REMOVE openlogi && log "Desinstalado: openlogi" "OK" || log "Fallo al desinstalar openlogi" "WARN"
                     fi
                     ;;
                 *)

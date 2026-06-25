@@ -875,6 +875,27 @@ flatpak-app() {
     bash "$script" "$1"
 }
 
+# --- update-all: actualizar todo lo que dnf NO cubre, en un solo comando -------
+# Espejo del de bashrc (paridad). dnf solo actualiza sus propios paquetes; esta
+# funcion recorre los demas gestores presentes (Flatpak, npm) ademas de dnf. Lo
+# instalado por curl (oh-my-posh, zoxide, opencode, claude) se autoactualiza aparte.
+update-all() {
+    if command -v dnf &>/dev/null; then
+        echo "==> dnf (paquetes del sistema)"
+        sudo dnf upgrade -y
+    fi
+    if command -v flatpak &>/dev/null; then
+        echo "==> flatpak (apps, p.ej. Teams)"
+        flatpak update -y
+    fi
+    if command -v npm &>/dev/null; then
+        echo "==> npm (paquetes globales, p.ej. codex)"
+        npm update -g
+    fi
+    echo "Listo. Nota: lazyssh (binario GitHub) y los instalados por curl"
+    echo "(oh-my-posh, zoxide, opencode, claude) se actualizan aparte."
+}
+
 # ==============================================================================
 # ZSH-SYNTAX-HIGHLIGHTING — paleta de colores
 # ------------------------------------------------------------------------------

@@ -243,6 +243,25 @@ function open-here {
 }
 
 <#
+.SYNOPSIS actualizar todo lo que winget no cubre, en un solo comando
+.DESCRIPTION Espejo del update-all de bash/zsh (paridad). winget cubre la mayoria
+de las apps; esta funcion suma npm (codex). Claude Code se autoactualiza solo;
+lazyssh (binario GitHub) se actualiza re-corriendo el bootstrap.
+#>
+function update-all {
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-Host "==> winget (apps del sistema)" -ForegroundColor Cyan
+        winget upgrade --all --accept-package-agreements --accept-source-agreements
+    }
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Write-Host "==> npm (paquetes globales, p.ej. codex)" -ForegroundColor Cyan
+        npm update -g
+    }
+    Write-Host "Listo. Nota: lazyssh (binario GitHub) se actualiza re-corriendo el bootstrap;"
+    Write-Host "Claude Code se autoactualiza solo."
+}
+
+<#
 .SYNOPSIS abrir directorio o archivo
 .EXAMPLE open path
 #>

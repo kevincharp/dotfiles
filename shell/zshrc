@@ -813,16 +813,18 @@ gnome-save() {
         echo "dconf no esta disponible"
         return 1
     fi
-    local entry path file
+    # OJO (zsh): no usar 'path' como local; zsh lo liga a $PATH y romperia el
+    # entorno dentro del loop. Por eso 'branch' (a diferencia de bashrc).
+    local entry branch file
     for entry in "${_GNOME_DCONF_MAP[@]}"; do
-        path="${entry%%:*}"
+        branch="${entry%%:*}"
         file="${entry##*:}"
         # shell.dconf se mantiene a mano (solo claves selectas), no se vuelca entero
         if [[ "$file" == "shell.dconf" ]]; then
             echo "omitido  $file (editar a mano: rama ruidosa)"
             continue
         fi
-        dconf dump "$path" > "$dir/$file" && echo "guardado $file"
+        dconf dump "$branch" > "$dir/$file" && echo "guardado $file"
     done
 }
 
@@ -833,12 +835,14 @@ gnome-load() {
         echo "dconf no esta disponible"
         return 1
     fi
-    local entry path file
+    # OJO (zsh): no usar 'path' como local; zsh lo liga a $PATH y romperia el
+    # entorno dentro del loop. Por eso 'branch' (a diferencia de bashrc).
+    local entry branch file
     for entry in "${_GNOME_DCONF_MAP[@]}"; do
-        path="${entry%%:*}"
+        branch="${entry%%:*}"
         file="${entry##*:}"
         if [[ -f "$dir/$file" ]]; then
-            dconf load "$path" < "$dir/$file" && echo "restaurado $file"
+            dconf load "$branch" < "$dir/$file" && echo "restaurado $file"
         else
             echo "falta    $file (no existe en el repo)"
         fi

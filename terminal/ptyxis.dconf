@@ -6,7 +6,7 @@ profile-uuids=['efb537879e29f6d38e04d1e56a2e4ff5']
 restore-session=false
 restore-window-size=true
 use-system-font=false
-window-size=(uint32 238, uint32 59)
+window-size=(uint32 118, uint32 61)
 
 [Profiles/8caec5e3863a9c03618dd2a46a1ccfb6]
 login-shell=true

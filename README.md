@@ -597,6 +597,7 @@ Flags disponibles:
 | dash-to-dock | Extension GNOME del dock | - | dnf | - |
 | GPaste | Gestor de portapapeles GNOME | - | dnf | - |
 | Samba | Compartir el home por SMB (app Archivos de iPhone, etc.) *(opcional)* | - | dnf + servicio/firewall/SELinux | - |
+| OpenLogi | Config de mouse Logitech MX por HID++ (alternativa a Options+) *(opcional)* | - | .rpm del release + servicio de usuario | - |
 
 > En Fedora todo lo que tiene paquete nativo se instala via `dnf` (para que se actualice con `dnf upgrade`). El método por binario/curl queda como fallback solo para distros sin el paquete en repos.
 

@@ -168,6 +168,7 @@ TOOLS_CATALOG=(
     "gmail|apps|Gmail como app de escritorio (Pake)"
     "outlook|apps|Outlook como app (Pake)"
     "teams|apps|Teams for Linux (Flatpak — llamadas funcionan)"
+    "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
 )
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
@@ -213,6 +214,7 @@ tool_installed() {
                                   | awk -F'|' -v id="$1" '$1==id {print $3; exit}')"
                          [[ -n "$_fpid" ]] && has_cmd flatpak \
                             && flatpak info "$_fpid" &>/dev/null ;;
+        openlogi)        rpm -q openlogi &>/dev/null ;;
         *)               return 1 ;;
     esac
 }
@@ -489,6 +491,29 @@ install_tool() {
             else
                 log "flatpak no disponible — '$1' no se instalo" "WARN"
                 WARNINGS+=("App '$1' no instalada — falta flatpak")
+            fi
+            ;;
+        openlogi)
+            # Config de mouse Logitech MX por HID++ (alternativa nativa a Options+).
+            # No esta en repos: se baja el .rpm firmado del release oficial. Trae
+            # reglas udev (acceso sin sudo a /dev/hidraw*) y un servicio de usuario
+            # (openlogi-agent) que hay que habilitar. Solo Fedora/dnf (rpm).
+            if [[ "$PKG_MANAGER" != "dnf" ]]; then
+                log "openlogi: cableado solo para Fedora/dnf (.rpm) — instalar manual en esta distro" "WARN"
+                WARNINGS+=("openlogi no instalado — distro no soportada por el bootstrap")
+            else
+                run_step "Instalar openlogi (.rpm del release oficial)" bash -c '
+                    url=$(curl -fsSL "https://api.github.com/repos/AprilNEA/OpenLogi/releases/latest" \
+                          | grep -oE "https://[^\"]*linux-amd64\.rpm" | head -1)
+                    [[ -n "$url" ]] || { echo "no se encontro el .rpm en el release"; exit 1; }
+                    tmp="$(mktemp -d)"
+                    curl -fsSL "$url" -o "$tmp/openlogi.rpm"
+                    sudo rpm -i --replacepkgs "$tmp/openlogi.rpm"
+                    rm -rf "$tmp"
+                '
+                # Servicio de usuario que intercepta los botones HID++
+                run_step "Habilitar openlogi-agent (servicio de usuario)" \
+                    systemctl --user enable --now openlogi-agent.service
             fi
             ;;
         *)
@@ -1154,6 +1179,14 @@ if has_cmd ulauncher; then
     copy_dotfile "ulauncher/settings.json"   "$HOME/.config/ulauncher/settings.json"   "link"
     copy_dotfile "ulauncher/shortcuts.json"  "$HOME/.config/ulauncher/shortcuts.json"  "link"
     copy_dotfile "ulauncher/autostart.desktop" "$HOME/.config/autostart/ulauncher.desktop"
+fi
+
+# OpenLogi (config del mouse Logitech MX) — solo si esta instalado. El config.toml
+# va por symlink: editarlo por la GUI se versiona al instante. OJO: el archivo
+# tiene el serial del mouse y el unit_id del receptor incrustados en las claves,
+# asi que es best-effort (sirve con el mismo mouse; si cambia, OpenLogi regenera).
+if has_cmd openlogi; then
+    copy_dotfile "openlogi/config.toml" "$HOME/.config/openlogi/config.toml" "link"
 fi
 
 # Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un

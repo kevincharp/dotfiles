@@ -977,7 +977,6 @@ BAK_DESTINATIONS=(
     "$HOME/.editorconfig"
     "$HOME/.claude/settings.json"
     "$HOME/.claude/settings.local.json"
-    "$HOME/.claude/plugins/installed_plugins.json"
 )
 
 if [[ "$DRY_RUN" == true ]]; then
@@ -1153,9 +1152,6 @@ copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "lin
 # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
 # que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
 copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
-mkdir -p "$HOME/.claude/plugins"
-copy_dotfile ".claude/plugins/installed_plugins.json"  "$HOME/.claude/plugins/installed_plugins.json"
-copy_dotfile ".claude/plugins/known_marketplaces.json" "$HOME/.claude/plugins/known_marketplaces.json"
 
 # Tema oh-my-posh claude-code
 _omp_themes_dst="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes"

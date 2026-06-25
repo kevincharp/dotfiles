@@ -20,11 +20,11 @@ ulauncher/user-themes/*/generated.css
 !.claude/commands/
 !.claude/hooks/
 !.claude/output-styles/
-# Plugins: solo la lista de instalados y los marketplaces (el cache se redescarga)
-!.claude/plugins/
-.claude/plugins/*
-!.claude/plugins/installed_plugins.json
-!.claude/plugins/known_marketplaces.json
+# Plugins: NO se versionan. installed_plugins.json y known_marketplaces.json
+# llevan rutas absolutas por-SO incrustadas (installPath/installLocation), que
+# difieren Linux/Windows y rompen /doctor al cruzarse. Son estado local que
+# Claude Code regenera; la lista portable de plugins vive en settings.json
+# (enabledPlugins). El cache se redescarga solo.
 !.claude/worktrees/
 
 # Lo sensible (ssh keys, identidades git, bookmarks) vive en el repo

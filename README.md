@@ -92,9 +92,7 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 ├── bootstrap.sh              # Setup automatico (Linux)
 ├── README.md
 ├── .claude/                  # Claude Code configuration
-│   ├── settings.json         # Global settings (hooks, plugins, model)
-│   └── plugins/
-│       └── installed_plugins.json  # Plugin tracking
+│   └── settings.json         # Global settings (hooks, plugins habilitados, model)
 ├── git/
 │   ├── config                # gitconfig principal (includeIf por remoto)
 │   └── ignore                # gitignore global
@@ -404,9 +402,8 @@ El bootstrap copia `.claude/*` a `~/.claude/` para sincronizar configuración en
 
 ### Archivos versionados
 
-- **`settings.json`**: Configuración global (hooks, plugins, modelo preferido, theme)
-- **`settings.local.json`**: Permisos allow-list específicos de cada proyecto
-- **`plugins/installed_plugins.json`**: Lista de plugins instalados y sus versiones
+- **`settings.json`**: Configuración global (hooks, plugins habilitados vía `enabledPlugins`, modelo preferido, theme)
+- **`settings.local.json`**: Permisos allow-list específicos de cada máquina (NO se versiona)
 
 ### Qué NO se versiona
 
@@ -415,11 +412,16 @@ El `.gitignore` excluye automáticamente:
 - `sessions/` — Sesiones activas
 - `cache/` — Caché de plugins y modelos
 - `.credentials.json` — Credenciales API
+- `plugins/installed_plugins.json` y `plugins/known_marketplaces.json` — estado local
+  con rutas absolutas por-SO (`installPath`/`installLocation`); se regeneran solos
 - Todos los archivos temporales y sensibles
 
 ### Sincronización de plugins
 
-El bootstrap copia `installed_plugins.json` a `~/.claude/plugins/`. Claude Code detecta e instala plugins faltantes al iniciar. Si un plugin no se instala automáticamente, ejecutá: `/plugin install <nombre>`
+Los plugins habilitados se declaran en `settings.json` (`enabledPlugins`), que sí se
+versiona. Claude Code detecta e instala los faltantes al iniciar y mantiene su estado
+local (`installed_plugins.json`, con la ruta del cache propia de cada SO) por fuera del
+repo. Si un plugin no aparece, ejecutá `/plugins` para refrescar el cache.
 
 ---
 

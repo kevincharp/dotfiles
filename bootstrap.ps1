@@ -166,7 +166,6 @@ $DOTFILES = @(
     # settings.local.json queda copia: es per-maquina.)
     @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link' }
     @{ Src='.claude\settings.local.json';   Dst="$HOME\.claude\settings.local.json"   }
-    @{ Src='.claude\plugins\installed_plugins.json'; Dst="$HOME\.claude\plugins\installed_plugins.json" }
 )
 
 # ==============================================================================

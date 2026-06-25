@@ -39,7 +39,6 @@ $DOTFILES_TARGETS = @(
     "$HOME\.editorconfig"
     "$HOME\.claude\settings.json"
     "$HOME\.claude\settings.local.json"
-    "$HOME\.claude\plugins\installed_plugins.json"
 )
 
 # Paquetes winget instalados por el bootstrap (Id winget). Solo con -RemovePackages.

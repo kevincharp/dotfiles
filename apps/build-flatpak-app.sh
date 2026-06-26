@@ -5,9 +5,9 @@
 #   Uso:   bash build-flatpak-app.sh <id>
 #          (tambien via la funcion de shell 'flatpak-app <id>')
 #
-#   A diferencia de Pake, Flatpak no compila nada: baja el binario ya armado de
-#   Flathub y crea la entrada de menu (.desktop) solo. El uninstall se hace con
-#   'flatpak uninstall', no borrando archivos a mano.
+#   Flatpak no compila nada: baja el binario ya armado de Flathub y crea la
+#   entrada de menu (.desktop) solo. El uninstall se hace con 'flatpak uninstall',
+#   no borrando archivos a mano.
 #
 #   El remote 'flathub' se agrega COMPLETO a nivel usuario (el de Fedora viene
 #   'filtered' y no lista todas las apps, p.ej. teams-for-linux).

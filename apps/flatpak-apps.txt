@@ -3,10 +3,10 @@
 # Cada linea define una app de Flathub a instalar. El bootstrap (categoria
 # 'apps') y la funcion de shell 'flatpak-app <id>' las usan.
 #
-# A diferencia de Pake (que compila un AppImage), Flatpak baja un binario ya
-# armado y crea el .desktop solo; no hay cadena de build. Las apps corren
-# aisladas (sandbox) y traen su propio runtime, por eso sirven para casos que
-# WebKitGTK no cubre (p.ej. Teams: necesita Chromium/Electron para las llamadas).
+# Flatpak baja un binario ya armado y crea el .desktop solo; no hay cadena de
+# build. Las apps corren aisladas (sandbox) y traen su propio runtime, por eso
+# sirven para casos que necesitan Chromium/Electron (p.ej. Teams: lo requiere
+# para las videollamadas).
 #
 # Formato:  id|Nombre|app-id-de-flathub
 #   - id      : identificador corto (= el del catalogo del bootstrap)

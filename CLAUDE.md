@@ -101,6 +101,26 @@ pero sin compilar: Flatpak baja el binario y crea el `.desktop` solo.
 - Las apps Flatpak **no son symlinks**: `uninstall.sh` las quita con
   `flatpak uninstall` recorriendo la receta, no en `DOTFILES_TARGETS`.
 
+## Historial estilo PSReadLine (flecha ↑ → lista fzf)
+
+Réplica del **ListView de PSReadLine**: al apretar **↑** se abre `fzf` con el
+historial en lista vertical, mostrando **solo el comando** (sin fecha/índice/
+duración) y **filtrado por prefijo** con lo ya tipeado (`cd` trae lo que empieza
+con `cd`, no donde la `c` y la `d` aparecen sueltas — el `^` ancla la query).
+
+- Implementado en `_fzf_history_widget` (función con paridad bash↔zsh).
+- **No es automático** (no flota mientras tipeás): aparece al apretar ↑. Es una
+  decisión consciente — en Linux **ninguna** herramienta combina lista vertical
+  minimalista *y* aparición automática. Se descartaron `zsh-autocomplete` (grilla
+  de completados, no historial) y `atuin` (columnas fecha/duración no removibles
+  en su v18). Lo automático inline lo cubre `zsh-autosuggestions`/`ble.sh` (gris).
+- `↑` reemplaza del todo el recorrido comando-por-comando; **Ctrl+R** sigue siendo
+  la búsqueda difusa por cualquier parte del comando (complementaria al prefijo).
+- **Paridad con matices:** mismo comportamiento, implementación distinta por shell.
+  En zsh es `zle -N` + `bindkey '^[[A'`. En bash el editor lo maneja **ble.sh**,
+  que captura las teclas con `ble-bind -x` (no el `bind` de readline); por eso el
+  bloque detecta `$BLE_VERSION` y cae a `bind -x` si ble.sh no está.
+
 ## Verificación
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`, `bash -n apps/build-pake-app.sh`,

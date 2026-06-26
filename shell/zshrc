@@ -234,6 +234,37 @@ fi
 bindkey '^[[1;5C' forward-word
 
 # ==============================================================================
+# FLECHA ARRIBA → lista de historial estilo PSReadLine ListView
+# ------------------------------------------------------------------------------
+# Replica el ListView de PSReadLine: al apretar ↑, abre fzf con el historial en
+# lista vertical, mostrando SOLO el comando (sin fecha/indice/duracion) y
+# filtrado por PREFIJO con lo ya tipeado ('cd' trae lo que empieza con cd, no
+# donde la c y la d aparecen sueltas). Ctrl+R sigue siendo la busqueda difusa
+# por cualquier parte del comando (ver bloque FZF). Espejo en bashrc via ble.sh.
+# 'path' esta ligado a $PATH en zsh: NO usar esa palabra como variable local.
+# ==============================================================================
+if command -v fzf &>/dev/null; then
+    _fzf_history_widget() {
+        local query="$LBUFFER" selection
+        # fc -rl 1: historial mas reciente primero. sed quita el numero de evento.
+        # awk deduplica conservando orden. El "^" ancla fzf al inicio (prefijo).
+        selection=$(fc -rl 1 \
+            | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' \
+            | awk '!seen[$0]++' \
+            | fzf ${query:+--query="^$query"} --no-sort --scheme=history \
+                  --tiebreak=index --prompt=' historial> ')
+        if [[ -n "$selection" ]]; then
+            BUFFER="$selection"
+            CURSOR=$#BUFFER
+        fi
+        zle reset-prompt
+    }
+    zle -N _fzf_history_widget
+    bindkey '^[[A' _fzf_history_widget   # flecha arriba (modo normal)
+    bindkey '^[OA' _fzf_history_widget   # flecha arriba (modo aplicacion)
+fi
+
+# ==============================================================================
 # GIT ALIASES — basicos
 # ==============================================================================
 

@@ -116,6 +116,8 @@ con `cd`, no donde la `c` y la `d` aparecen sueltas — el `^` ancla la query).
   en su v18). Lo automático inline lo cubre `zsh-autosuggestions`/`ble.sh` (gris).
 - `↑` reemplaza del todo el recorrido comando-por-comando; **Ctrl+R** sigue siendo
   la búsqueda difusa por cualquier parte del comando (complementaria al prefijo).
+- **`clear-history`** (función con paridad): sin args vacía todo el historial (con
+  confirmación); con un patrón borra solo las líneas que matcheen (p.ej. un token).
 - **Paridad con matices:** mismo comportamiento, implementación distinta por shell.
   En zsh es `zle -N` + `bindkey '^[[A'`. En bash el editor lo maneja **ble.sh**,
   que captura las teclas con `ble-bind -x` (no el `bind` de readline); por eso el

@@ -433,6 +433,28 @@ killdev() {
     done
 }
 
+# clear-history: vacia el historial (archivo + memoria de la sesion actual).
+# Sin args borra TODO; con un patron borra solo las lineas que matcheen
+# (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
+clear-history() {
+    if [[ -n "$1" ]]; then
+        # Borrado selectivo: quita del archivo las lineas que matcheen el patron.
+        grep -v -- "$1" "$HISTFILE" > "${HISTFILE}.tmp" && mv "${HISTFILE}.tmp" "$HISTFILE"
+        fc -p "$HISTFILE"   # recarga el historial limpio en la sesion
+        echo "Historial: borradas las lineas que matcheaban '$1'."
+    else
+        printf 'Vaciar TODO el historial (%s)? [y/N] ' "$HISTFILE"
+        local ans; read -r ans
+        if [[ "$ans" == [yY] ]]; then
+            : > "$HISTFILE"     # vacia el archivo
+            fc -p "$HISTFILE"   # limpia la memoria de la sesion
+            echo "Historial vaciado."
+        else
+            echo "Cancelado."
+        fi
+    fi
+}
+
 # ==============================================================================
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================

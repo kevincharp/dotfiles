@@ -165,8 +165,6 @@ TOOLS_CATALOG=(
     "firacode|fonts|FiraCode Nerd Font"
     "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
     "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
-    "gmail|apps|Gmail como app de escritorio (Pake)"
-    "outlook|apps|Outlook como app (Pake)"
     "teams|apps|Teams for Linux (Flatpak — llamadas funcionan)"
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
 )
@@ -206,8 +204,6 @@ tool_installed() {
         ulauncher)       has_cmd ulauncher ;;
         samba)           # listo si el paquete esta y el servicio quedo habilitado
                          rpm -q samba &>/dev/null && systemctl is-enabled smb &>/dev/null ;;
-        gmail|outlook)   # apps Pake: el AppImage compilado vive en ~/.local/share/pake-apps
-                         [[ -f "$HOME/.local/share/pake-apps/$1.AppImage" ]] ;;
         teams)           # app Flatpak: instalada si flatpak la lista (app-id en la receta)
                          local _fpid
                          _fpid="$(grep -vE '^[[:space:]]*#' "$REPO_ROOT/apps/flatpak-apps.txt" 2>/dev/null \
@@ -469,22 +465,11 @@ install_tool() {
                 WARNINGS+=("Samba: define tu contrasena con 'sudo smbpasswd -a $USER' (no se versiona)")
             fi
             ;;
-        gmail|outlook)
-            # Apps de escritorio via Pake: aseguramos la cadena de deps (Rust +
-            # libs Tauri) y compilamos la app desde su receta (apps/pake-apps.txt).
-            if _ensure_pake_deps; then
-                run_step "Compilar app '$1' (Pake) — tarda varios minutos" \
-                    bash "$REPO_ROOT/apps/build-pake-app.sh" "$1"
-            else
-                log "Deps de Pake no disponibles — '$1' no se compilo" "WARN"
-                WARNINGS+=("App '$1' no instalada — faltan dependencias de Pake")
-            fi
-            ;;
         teams)
-            # App de escritorio via Flatpak (Flathub). A diferencia de Pake, no
-            # compila: baja el binario y crea el .desktop. Sirve para Teams porque
-            # corre sobre Electron/Chromium (las videollamadas funcionan, cosa que
-            # WebKitGTK/Pake no soporta). La receta esta en apps/flatpak-apps.txt.
+            # App de escritorio via Flatpak (Flathub): baja el binario y crea el
+            # .desktop solo (sin compilar). Sirve para Teams porque corre sobre
+            # Electron/Chromium y las videollamadas funcionan. La receta esta en
+            # apps/flatpak-apps.txt.
             if has_cmd flatpak; then
                 run_step "Instalar app '$1' (Flatpak)" \
                     bash "$REPO_ROOT/apps/build-flatpak-app.sh" "$1"
@@ -520,62 +505,6 @@ install_tool() {
             log "Herramienta desconocida: $1" "WARN"
             ;;
     esac
-}
-
-# ==============================================================================
-# PAKE — cadena de dependencias para compilar apps de escritorio (web envueltas)
-# ------------------------------------------------------------------------------
-# Idempotente: instala SOLO lo que falte. Devuelve 0 si todo quedo disponible, 1
-# si no se pudo (la app entonces se saltea con warning). Node esta en el catalogo
-# aparte; pake-cli se usa via 'npx' (no se instala global).
-# ==============================================================================
-_ensure_pake_deps() {
-    # 1) Node (necesario para npx pake-cli). No lo instalamos aca: es una tool del
-    #    catalogo; si falta, avisamos (mismo criterio que codex).
-    if ! has_cmd node; then
-        log "Node.js no disponible — necesario para Pake (selecciona la tool 'node')" "WARN"
-        WARNINGS+=("Pake requiere Node.js — no instalado")
-        return 1
-    fi
-
-    # 2) Rust/cargo (Pake compila con Tauri). rustup deja el env en ~/.cargo/env.
-    if ! has_cmd cargo; then
-        run_step "Instalar Rust (rustup, para Pake)" bash -c \
-            "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable"
-        [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
-    fi
-    # En --dry-run cargo no se instala de verdad; no abortamos por eso.
-    if ! has_cmd cargo && [[ "$DRY_RUN" != true ]]; then
-        log "No se pudo instalar Rust — Pake no puede compilar" "WARN"
-        WARNINGS+=("Pake requiere Rust — instalacion fallo")
-        return 1
-    fi
-
-    # 3) Dependencias de sistema de Tauri (varian por distro).
-    case "$PKG_MANAGER" in
-        dnf)
-            run_step "Deps Tauri (Pake)" sudo dnf install -y \
-                webkit2gtk4.1-devel openssl-devel curl wget file \
-                libappindicator-gtk3-devel librsvg2-devel libxdo-devel
-            run_step "Grupo c-development (Pake)" sudo dnf group install -y c-development
-            ;;
-        apt)
-            run_step "Deps Tauri (Pake)" sudo apt install -y \
-                libwebkit2gtk-4.1-dev build-essential curl wget file \
-                libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-            ;;
-        pacman)
-            run_step "Deps Tauri (Pake)" sudo pacman -S --needed --noconfirm \
-                webkit2gtk-4.1 base-devel curl wget file openssl \
-                libappindicator-gtk3 librsvg xdotool
-            ;;
-        *)
-            log "Distro no reconocida para deps de Tauri — instalalas a mano (ver Tauri prerequisites)" "WARN"
-            WARNINGS+=("Pake: deps de Tauri no instaladas (distro desconocida)")
-            return 1
-            ;;
-    esac
-    return 0
 }
 
 # ==============================================================================

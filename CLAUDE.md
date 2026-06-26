@@ -71,27 +71,12 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   difieren Linux/Windows). **No editarlo para resolver conflictos**: en un rebase,
   quedarse con la versión ya commiteada y descartar lo demás.
 
-## Apps de escritorio (Pake) — `apps/`
-
-Webs envueltas como apps nativas (Gmail/Outlook) vía Pake. Solo Linux.
-(Teams **no** va por Pake: sus videollamadas no funcionan en WebKitGTK; se
-instala por Flatpak — ver abajo.)
-
-- **Receta versionada:** `apps/pake-apps.txt` (`id|Nombre|URL|icono[|flags]`).
-  Agregar app = línea ahí + PNG en `apps/icons/`.
-- **Compila con Rust/Tauri** (`npx pake-cli`): la categoría `apps` del bootstrap
-  arrastra la cadena de deps vía `_ensure_pake_deps` (Rust + libs Tauri). Node
-  está aparte en el catálogo.
-- **`apps/build-pake-app.sh <id>`** compila e integra al menú (AppImage +
-  `.desktop` + icono en `~/.local/share/`). También vía la función `pake-app`.
-- Los AppImages **no son symlinks**: `uninstall.sh` los borra en su bloque propio,
-  no en `DOTFILES_TARGETS`.
-
 ## Apps de escritorio (Flatpak) — `apps/`
 
-Para apps que necesitan Chromium/Electron y que Pake (WebKitGTK) no cubre, p.ej.
-**Teams** (las videollamadas sí funcionan acá). Solo Linux. Mismo patrón que Pake
-pero sin compilar: Flatpak baja el binario y crea el `.desktop` solo.
+Apps de escritorio nativas que necesitan Chromium/Electron, p.ej. **Teams** (las
+videollamadas funcionan acá). Solo Linux. Flatpak baja el binario ya armado de
+Flathub y crea el `.desktop` solo (sin compilar). Webs simples (Gmail, Outlook) se
+usan directamente desde el navegador, no se empaquetan.
 
 - **Receta versionada:** `apps/flatpak-apps.txt` (`id|Nombre|app-id-de-flathub`).
   Agregar app = una línea ahí.
@@ -125,7 +110,7 @@ con `cd`, no donde la `c` y la `d` aparecen sueltas — el `^` ancla la query).
 
 ## Verificación
 
-- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`, `bash -n apps/build-pake-app.sh`,
+- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`,
   `bash -n apps/build-flatpak-app.sh`.
 - `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad, incl.
-  `pake-app` y `flatpak-app`).
+  `flatpak-app`).

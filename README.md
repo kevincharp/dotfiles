@@ -107,12 +107,9 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 ├── terminal/
 │   ├── settings.json         # Windows Terminal (symlink)
 │   └── ptyxis.dconf          # Ptyxis / Fedora (dump dconf)
-├── apps/                     # Apps de escritorio (Pake + Flatpak) — solo Linux
-│   ├── pake-apps.txt         # Receta Pake: que webs envolver (id|nombre|url|icono)
-│   ├── build-pake-app.sh     # Compila una app Pake e integra al menu GNOME
+├── apps/                     # Apps de escritorio (Flatpak) — solo Linux
 │   ├── flatpak-apps.txt      # Receta Flatpak: apps de Flathub (id|nombre|app-id)
-│   ├── build-flatpak-app.sh  # Instala una app de Flathub (p.ej. Teams)
-│   └── icons/                # Iconos PNG de cada app Pake
+│   └── build-flatpak-app.sh  # Instala una app de Flathub (p.ej. Teams)
 ├── gnome/                    # Config del escritorio GNOME (dumps dconf)
 │   ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T, Ctrl+Space)
 │   ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
@@ -140,47 +137,13 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 
 ---
 
-## Apps de escritorio (Pake) — solo Linux
-
-Firefox no tiene "instalar como PWA", asi que para tener webs (Gmail, Outlook…)
-como **apps de escritorio aisladas** se usa [Pake](https://github.com/tw93/Pake):
-envuelve una URL en una app nativa liviana que usa el WebKitGTK del sistema
-(no empaqueta un navegador como Electron). Genera un **AppImage** y lo integra al
-menu de GNOME con su `.desktop` e icono.
-
-**Recetas versionadas.** Las apps se declaran en `apps/pake-apps.txt`
-(`id|Nombre|URL|icono[|flags]`). En una maquina nueva, elegir la app en el
-selector del bootstrap la **recompila** desde su receta — mismo set de apps en
-todas tus PCs.
-
-- **Instalar via bootstrap:** en el selector, categoria **`apps`** (Gmail/
-  Outlook). Elegir cualquiera **arrastra la cadena de dependencias** (Rust + libs
-  Tauri + usa `npx pake-cli`). Si no elegis ninguna, nada de eso se instala
-  (una VM solo-terminal queda limpia).
-- **Fabricar/actualizar a mano:** `pake-app <id>` (funcion de shell). Sin args
-  lista las apps de la receta.
-- **Agregar una app nueva:** suma una linea a `apps/pake-apps.txt` + un PNG en
-  `apps/icons/`, y corre `pake-app <id>`.
-
-> **Compila con Rust/Tauri:** cada app se compila localmente (tarda varios minutos
-> la primera vez) y deps ~1.5-2 GB. El resultado es liviano. Los AppImages viven
-> en `~/.local/share/pake-apps/` (no son symlinks; `uninstall.sh` los borra en su
-> bloque propio). Outlook usa `--safe-domain login.microsoftonline.com` para que
-> el callback del SSO de Microsoft quede dentro de la app.
-
-> **Teams NO va por Pake:** las videollamadas no funcionan envueltas en WebKitGTK
-> (limitacion del motor + Teams web restringe a Chrome/Edge). Se instala por
-> Flatpak (ver abajo), que corre sobre Electron/Chromium y sí soporta las llamadas.
-
----
-
 ## Apps de escritorio (Flatpak) — solo Linux
 
-Cuando una app necesita **Chromium/Electron** y Pake (WebKitGTK) no alcanza —el
-caso tipico es **Teams**, donde las videollamadas requieren WebRTC + codecs que
-solo trae Chromium— se instala por [Flatpak](https://flatpak.org) desde Flathub.
-Misma idea que Pake (receta versionada + funcion de shell), pero **sin compilar**:
-Flatpak baja el binario ya armado, aislado en su sandbox, y crea el `.desktop`.
+Para tener una app de escritorio nativa —el caso tipico es **Teams**, donde las
+videollamadas requieren WebRTC + codecs que solo trae Chromium— se instala por
+[Flatpak](https://flatpak.org) desde Flathub: baja el binario ya armado, aislado
+en su sandbox, y crea el `.desktop` (sin compilar). Webs simples (Gmail, Outlook)
+se usan directamente desde el navegador, no se empaquetan.
 
 **Recetas versionadas.** Las apps se declaran en `apps/flatpak-apps.txt`
 (`id|Nombre|app-id-de-flathub`). Elegir la app en el selector del bootstrap la

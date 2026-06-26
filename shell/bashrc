@@ -450,6 +450,29 @@ killdev() {
     done
 }
 
+# clear-history: vacia el historial (archivo + memoria de la sesion actual).
+# Sin args borra TODO; con un patron borra solo las lineas que matcheen
+# (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
+# Espejo del zshrc; en bash se usa 'history -c/-r' (no existe 'fc -p').
+clear-history() {
+    local hist="${HISTFILE:-$HOME/.bash_history}"
+    if [[ -n "$1" ]]; then
+        grep -v -- "$1" "$hist" > "${hist}.tmp" && mv "${hist}.tmp" "$hist"
+        history -c; history -r "$hist"   # recarga el historial limpio
+        echo "Historial: borradas las lineas que matcheaban '$1'."
+    else
+        printf 'Vaciar TODO el historial (%s)? [y/N] ' "$hist"
+        local ans; read -r ans
+        if [[ "$ans" == [yY] ]]; then
+            : > "$hist"          # vacia el archivo
+            history -c           # limpia la memoria de la sesion
+            echo "Historial vaciado."
+        else
+            echo "Cancelado."
+        fi
+    fi
+}
+
 # ==============================================================================
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================

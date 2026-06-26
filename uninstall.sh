@@ -247,18 +247,6 @@ for target in "${DOTFILES_TARGETS[@]}"; do
     fi
 done
 
-# Apps de escritorio (Pake): no son symlinks (AppImage + .desktop + icono
-# generados al compilar), por eso van aparte de DOTFILES_TARGETS.
-_pake_apps_dir="$HOME/.local/share/pake-apps"
-if [[ -d "$_pake_apps_dir" ]]; then
-    rm -rf "$_pake_apps_dir" && log "Removido: $_pake_apps_dir (AppImages Pake)" "OK"
-fi
-for f in "$HOME/.local/share/applications/"pake-*.desktop "$HOME/.local/share/icons/"pake-*.png; do
-    [[ -e "$f" ]] && rm -f "$f" && log "Removido: $f" "OK"
-done
-command -v update-desktop-database &>/dev/null && \
-    update-desktop-database "$HOME/.local/share/applications" &>/dev/null || true
-
 # Apps de escritorio (Flatpak): se desinstalan con flatpak, no borrando archivos.
 # Recorre la receta (apps/flatpak-apps.txt) y quita lo que este instalado a --user.
 _flatpak_recipe="$DOTFILES_DIR/apps/flatpak-apps.txt"

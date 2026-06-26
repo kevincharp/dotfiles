@@ -86,6 +86,22 @@ usan directamente desde el navegador, no se empaquetan.
 - Las apps Flatpak **no son symlinks**: `uninstall.sh` las quita con
   `flatpak uninstall` recorriendo la receta, no en `DOTFILES_TARGETS`.
 
+## Emojis a color en Chrome (`fontconfig/`)
+
+`fontconfig/fonts.conf` → **symlink** a `~/.config/fontconfig/fonts.conf`. Fuerza
+los emoji a color en Chrome/Chromium. El detalle no obvio: **Chrome en Linux NO usa
+el alias genérico `emoji` de fontconfig** — para cada carácter hace un match por
+cobertura de glifo (como `fc-match -s :charset=1f600`). En ese match, **Symbola** y
+**Noto Emoji** (monocromáticas) rankean por encima de **Noto Color Emoji**, así que
+los emoji salen en blanco y negro. El `fonts.conf` las desprioriza con `rejectfont`.
+
+- **Verificar el fix:** `fc-match -s ':charset=1f600' | head -1` debe dar
+  `Noto Color Emoji` (NO `fc-match emoji`, que Chrome ignora).
+- Tras cambiarlo: `fc-cache -f` y **reiniciar Chrome entero** (cachea la selección
+  de fuentes por proceso; cerrar la ventana no alcanza).
+- Arregla solo el **renderizado**. La **entrada** de emoji (Ctrl+. de GTK) no
+  funciona dentro de Chrome en Wayland (los campos de Chrome no son widgets GTK).
+
 ## Historial estilo PSReadLine (flecha ↑ → lista fzf)
 
 Réplica del **ListView de PSReadLine**: al apretar **↑** se abre `fzf` con el

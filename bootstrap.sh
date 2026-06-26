@@ -166,6 +166,7 @@ TOOLS_CATALOG=(
     "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
     "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
     "teams|apps|Teams for Linux (Flatpak — llamadas funcionan)"
+    "chrome|apps|Google Chrome (RPM oficial + repo para updates)"
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
 )
 
@@ -210,6 +211,7 @@ tool_installed() {
                                   | awk -F'|' -v id="$1" '$1==id {print $3; exit}')"
                          [[ -n "$_fpid" ]] && has_cmd flatpak \
                             && flatpak info "$_fpid" &>/dev/null ;;
+        chrome)          rpm -q google-chrome-stable &>/dev/null ;;
         openlogi)        rpm -q openlogi &>/dev/null ;;
         *)               return 1 ;;
     esac
@@ -476,6 +478,19 @@ install_tool() {
             else
                 log "flatpak no disponible — '$1' no se instalo" "WARN"
                 WARNINGS+=("App '$1' no instalada — falta flatpak")
+            fi
+            ;;
+        chrome)
+            # Google Chrome via el .rpm oficial de Google. Ese paquete deja el
+            # repo de Google configurado solo, asi que las updates llegan despues
+            # por 'dnf update'. Solo Fedora/dnf (rpm).
+            if [[ "$PKG_MANAGER" != "dnf" ]]; then
+                log "chrome: cableado solo para Fedora/dnf (.rpm) — instalar manual en esta distro" "WARN"
+                WARNINGS+=("chrome no instalado — distro no soportada por el bootstrap")
+            else
+                run_step "Instalar Google Chrome (.rpm oficial)" \
+                    sudo dnf install -y \
+                    "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
             fi
             ;;
         openlogi)

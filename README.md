@@ -145,6 +145,10 @@ videollamadas requieren WebRTC + codecs que solo trae Chromium— se instala por
 en su sandbox, y crea el `.desktop` (sin compilar). Webs simples (Gmail, Outlook)
 se usan directamente desde el navegador, no se empaquetan.
 
+**Google Chrome** (id `chrome` del catalogo) se instala aparte via el `.rpm`
+oficial de Google, que ademas deja el repo configurado para que las updates lleguen
+por `dnf update`. Solo Fedora/dnf.
+
 **Recetas versionadas.** Las apps se declaran en `apps/flatpak-apps.txt`
 (`id|Nombre|app-id-de-flathub`). Elegir la app en el selector del bootstrap la
 instala desde Flathub — mismo set en todas tus PCs.

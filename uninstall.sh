@@ -86,6 +86,7 @@ PACKAGES=(
     claude
     ulauncher
     samba
+    google-chrome-stable
     openlogi
 )
 
@@ -328,6 +329,16 @@ else
                     if rpm -q openlogi &>/dev/null; then
                         systemctl --user disable --now openlogi-agent.service &>/dev/null || true
                         $PKG_REMOVE openlogi && log "Desinstalado: openlogi" "OK" || log "Fallo al desinstalar openlogi" "WARN"
+                    fi
+                    ;;
+                google-chrome-stable)
+                    # Remueve el paquete y el .repo de Google que dejo el .rpm oficial.
+                    if rpm -q google-chrome-stable &>/dev/null; then
+                        $PKG_REMOVE google-chrome-stable \
+                            && log "Desinstalado: google-chrome-stable" "OK" \
+                            || log "Fallo al desinstalar google-chrome-stable" "WARN"
+                        sudo rm -f /etc/yum.repos.d/google-chrome.repo \
+                            && log "Removido: repo de Google" "OK"
                     fi
                     ;;
                 *)

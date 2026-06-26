@@ -1085,6 +1085,13 @@ fi
 # Editorconfig
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
 
+# Fontconfig: fuerza los emoji a color en Chrome/Chromium. Chrome en Linux NO usa
+# el alias generico "emoji" de fontconfig; hace un match por cobertura de glifo,
+# donde Symbola y Noto Emoji (monocromaticas) ganan y los emoji salen en B/N.
+# El fonts.conf las desprioriza para que gane Noto Color Emoji. Symlink: editarlo
+# en el repo se versiona al instante.
+copy_dotfile "fontconfig/fonts.conf"  "$HOME/.config/fontconfig/fonts.conf"  "link"
+
 # Claude Code
 # settings.json va por symlink: editarlo en el repo (o cambios via /config que
 # no sean per-maquina) se versionan al instante. El modelo por defecto es sonnet;

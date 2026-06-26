@@ -57,6 +57,7 @@ DOTFILES_TARGETS=(
     "$HOME/.config/git-identities.sh"
     "$HOME/.ssh/config"
     "$HOME/.editorconfig"
+    "$HOME/.config/fontconfig/fonts.conf"
     "$HOME/.claude/settings.json"
     "$HOME/.claude/CLAUDE.md"
     "$HOME/.claude/settings.local.json"

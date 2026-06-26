@@ -248,6 +248,42 @@ if command -v fzf &>/dev/null; then
 fi
 
 # ==============================================================================
+# FLECHA ARRIBA → lista de historial estilo PSReadLine ListView (espejo del zshrc)
+# ------------------------------------------------------------------------------
+# Mismo comportamiento que en zsh: ↑ abre fzf con el historial en lista vertical,
+# solo el comando, filtrado por PREFIJO con lo ya tipeado. Ctrl+R sigue siendo la
+# busqueda difusa (bloque FZF). En bash el editor de linea lo maneja ble.sh, que
+# captura las teclas con SU sistema ('ble-bind'), no con el 'bind' de readline:
+# por eso se detecta ble.sh y, si no esta, se cae al 'bind -x' clasico.
+# ==============================================================================
+if [[ $- == *i* ]] && command -v fzf &>/dev/null; then
+    # Construye la linea: historial reciente primero, sin numero de evento,
+    # deduplicado, filtrado por prefijo ("^") con lo ya escrito.
+    _fzf_history_widget() {
+        local query="$READLINE_LINE" selection
+        selection=$(history | tac \
+            | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//' \
+            | awk '!seen[$0]++' \
+            | fzf ${query:+--query="^$query"} --no-sort --scheme=history \
+                  --tiebreak=index --prompt=' historial> ')
+        if [[ -n "$selection" ]]; then
+            READLINE_LINE="$selection"
+            READLINE_POINT=${#READLINE_LINE}
+        fi
+    }
+    if [[ -n "${BLE_VERSION-}" ]]; then
+        # ble.sh activo: 'ble-bind -x' ejecuta una funcion bash que puede
+        # leer/escribir READLINE_LINE/POINT (igual que 'bind -x' de readline).
+        # ble.sh aplica estos binds al adjuntarse en el primer prompt.
+        ble-bind -x 'up' '_fzf_history_widget' 2>/dev/null
+    else
+        # readline puro (sin ble.sh): bind -x da acceso a READLINE_LINE.
+        bind -x '"\e[A": _fzf_history_widget' 2>/dev/null
+        bind -x '"\eOA": _fzf_history_widget' 2>/dev/null
+    fi
+fi
+
+# ==============================================================================
 # GIT ALIASES — basicos
 # ==============================================================================
 

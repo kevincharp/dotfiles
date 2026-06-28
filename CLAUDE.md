@@ -124,6 +124,22 @@ con `cd`, no donde la `c` y la `d` aparecen sueltas — el `^` ancla la query).
   que captura las teclas con `ble-bind -x` (no el `bind` de readline); por eso el
   bloque detecta `$BLE_VERSION` y cae a `bind -x` si ble.sh no está.
 
+## Capturas de pantalla (Flameshot + nativo de GNOME)
+
+Conviven **dos** recortadores, a propósito (paridad parcial con Windows):
+
+- **Flameshot** (recortador con anotaciones) → atajo **`Super+Shift+S`** (el mismo
+  que el recorte de Windows). Vive en `gnome/media-keys.dconf` como `custom3` y lo
+  aplica el bloque GNOME del bootstrap (`dconf load`). El paquete está en el
+  catálogo `apps` del bootstrap (dnf/pacman simple).
+- **Captura nativa de GNOME** → sigue en **`Print`** (intacta). NO se le quita la
+  tecla: en el notebook Lenovo `Print` depende de `Fn`, así que se dejó como estaba.
+- **Detalle no obvio (Wayland):** Flameshot NO es una app con ventana — es un daemon
+  de bandeja. GNOME no tiene system tray por defecto, así que lanzarlo desde el menú
+  "no abre nada" (corre en background). Se usa **solo por atajo** (`flameshot gui`).
+- El teclado del Lenovo además dispara Flameshot con **`Fn+F10`** por un keysym de
+  hardware (no es un atajo de dconf, no se versiona).
+
 ## Verificación
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`,

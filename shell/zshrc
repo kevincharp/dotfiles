@@ -934,6 +934,31 @@ update-all() {
         echo "==> npm (paquetes globales, p.ej. codex)"
         npm update -g
     fi
+    # OpenLogi se instala con 'rpm -i' desde un release de GitHub, no desde un
+    # repo de dnf, asi que 'dnf upgrade' no lo ve. Comparamos la version instalada
+    # contra el ultimo release y actualizamos solo si hay una nueva.
+    if command -v openlogi &>/dev/null && command -v rpm &>/dev/null; then
+        echo "==> openlogi (mouse MX, release de GitHub)"
+        local _ol_cur _ol_new _ol_url _ol_tmp
+        _ol_cur=$(rpm -q --qf '%{VERSION}' openlogi 2>/dev/null)
+        _ol_new=$(curl -fsSL "https://api.github.com/repos/AprilNEA/OpenLogi/releases/latest" \
+            | grep -oE '"tag_name": *"v?[^"]+"' | head -1 | grep -oE '[0-9][^"]*')
+        if [[ -z "$_ol_new" ]]; then
+            echo "   no se pudo consultar el ultimo release (sin red?), salteado"
+        elif [[ "$_ol_cur" == "$_ol_new" ]]; then
+            echo "   ya en la ultima ($_ol_cur)"
+        else
+            echo "   actualizando $_ol_cur -> $_ol_new"
+            _ol_tmp=$(mktemp -d)
+            _ol_url=$(curl -fsSL "https://api.github.com/repos/AprilNEA/OpenLogi/releases/latest" \
+                | grep -oE 'https://[^"]+linux-amd64\.rpm' | head -1)
+            if curl -fsSL "$_ol_url" -o "$_ol_tmp/openlogi.rpm"; then
+                sudo rpm -U --replacepkgs "$_ol_tmp/openlogi.rpm" \
+                    && systemctl --user restart openlogi-agent.service 2>/dev/null
+            fi
+            rm -rf "$_ol_tmp"
+        fi
+    fi
     echo "Listo. Nota: lazyssh (binario GitHub) y los instalados por curl"
     echo "(oh-my-posh, zoxide, opencode, claude) se actualizan aparte."
 }

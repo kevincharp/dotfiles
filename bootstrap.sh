@@ -168,6 +168,7 @@ TOOLS_CATALOG=(
     "teams|apps|Teams for Linux (Flatpak — llamadas funcionan)"
     "chrome|apps|Google Chrome (RPM oficial + repo para updates)"
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
+    "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
 )
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
@@ -213,6 +214,7 @@ tool_installed() {
                             && flatpak info "$_fpid" &>/dev/null ;;
         chrome)          rpm -q google-chrome-stable &>/dev/null ;;
         openlogi)        rpm -q openlogi &>/dev/null ;;
+        flameshot)       has_cmd flameshot ;;
         *)               return 1 ;;
     esac
 }
@@ -220,7 +222,7 @@ tool_installed() {
 # install_tool <id> — instala la herramienta (logica por distro preservada)
 install_tool() {
     case "$1" in
-        neovim|ripgrep|fzf|curl|wget|unzip|bash-completion|zsh)
+        neovim|ripgrep|fzf|curl|wget|unzip|bash-completion|zsh|flameshot)
             run_step "Instalar $1" $PKG_INSTALL "$1"
             ;;
         zsh-autosuggestions)

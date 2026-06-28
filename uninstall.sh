@@ -89,6 +89,7 @@ PACKAGES=(
     samba
     google-chrome-stable
     openlogi
+    flameshot
 )
 
 # ==============================================================================

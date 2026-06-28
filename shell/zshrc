@@ -902,6 +902,48 @@ gnome-load() {
     done
 }
 
+# ==============================================================================
+# BATERIA — limite de carga (Lenovo conservation mode)
+# ==============================================================================
+# Espejo del de bashrc (paridad). El ThinkBook usa el "conservation mode" del EC
+# (driver ideapad_laptop): on/off que topa la carga en ~80%. Es el MISMO ajuste
+# que Lenovo Vantage en Windows (vive en el firmware, persiste entre SO). No es un
+# porcentaje configurable. La ruta sysfs cuelga de VPC2004 (no de BAT0) y la
+# numeracion PCI puede variar, por eso se resuelve con 'find'.
+
+# --- battery-limit: ver/activar/desactivar el tope de carga -------------------
+# Uso: battery-limit [status|on|off]  (sin args -> status). on=~80%, off=100%.
+battery-limit() {
+    local cm
+    cm=$(find /sys/devices -name conservation_mode 2>/dev/null | head -1)
+    if [[ -z "$cm" ]]; then
+        echo "conservation_mode no disponible (¿no es un Lenovo ideapad?)"
+        return 1
+    fi
+    case "${1:-status}" in
+        on)
+            echo 1 | sudo tee "$cm" >/dev/null && echo "Tope de carga ACTIVADO (~80%)"
+            ;;
+        off)
+            echo 0 | sudo tee "$cm" >/dev/null && echo "Tope de carga DESACTIVADO (carga al 100%)"
+            ;;
+        status)
+            local cap st
+            cap=$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null)
+            st=$(cat /sys/class/power_supply/BAT0/status 2>/dev/null)
+            if [[ "$(cat "$cm")" == "1" ]]; then
+                echo "Tope: ON (~80%)  |  carga: ${cap}%  |  estado: ${st}"
+            else
+                echo "Tope: OFF (100%)  |  carga: ${cap}%  |  estado: ${st}"
+            fi
+            ;;
+        *)
+            echo "Uso: battery-limit [status|on|off]"
+            return 1
+            ;;
+    esac
+}
+
 # --- flatpak-app: instalar una app de Flathub desde apps/flatpak-apps.txt -----
 # Espejo del de bashrc (paridad). Baja el binario de Flathub y crea el .desktop.
 # Sin args lista las apps (~/.dotfiles/apps/flatpak-apps.txt).

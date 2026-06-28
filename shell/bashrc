@@ -914,6 +914,51 @@ gnome-load() {
     done
 }
 
+# ==============================================================================
+# BATERIA — limite de carga (Lenovo conservation mode)
+# ==============================================================================
+# El ThinkBook usa el "conservation mode" del EC (driver ideapad_laptop): un
+# interruptor on/off que topa la carga en ~80% para cuidar la bateria. Es el
+# MISMO ajuste que Lenovo Vantage en Windows (vive en el firmware, persiste entre
+# SO). NO es un porcentaje configurable: solo on (topa ~80%) u off (carga al 100%).
+# La ruta sysfs cuelga del dispositivo VPC2004 (no de BAT0) y la numeracion PCI
+# puede variar, por eso se resuelve con 'find' en vez de hardcodearla.
+
+# --- battery-limit: ver/activar/desactivar el tope de carga -------------------
+# Uso: battery-limit            -> status (alias de 'status')
+#      battery-limit status     -> estado + carga actual
+#      battery-limit on         -> activar tope (~80%), cuida la bateria
+#      battery-limit off        -> desactivar tope, carga al 100% (p.ej. viaje)
+battery-limit() {
+    local cm
+    cm=$(find /sys/devices -name conservation_mode 2>/dev/null | head -1)
+    if [[ -z "$cm" ]]; then
+        echo "conservation_mode no disponible (¿no es un Lenovo ideapad?)"
+        return 1
+    fi
+    case "${1:-status}" in
+        on)
+            echo 1 | sudo tee "$cm" >/dev/null && echo "Tope de carga ACTIVADO (~80%)"
+            ;;
+        off)
+            echo 0 | sudo tee "$cm" >/dev/null && echo "Tope de carga DESACTIVADO (carga al 100%)"
+            ;;
+        status)
+            local cap; cap=$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null)
+            local st;  st=$(cat /sys/class/power_supply/BAT0/status 2>/dev/null)
+            if [[ "$(cat "$cm")" == "1" ]]; then
+                echo "Tope: ON (~80%)  |  carga: ${cap}%  |  estado: ${st}"
+            else
+                echo "Tope: OFF (100%)  |  carga: ${cap}%  |  estado: ${st}"
+            fi
+            ;;
+        *)
+            echo "Uso: battery-limit [status|on|off]"
+            return 1
+            ;;
+    esac
+}
+
 # --- flatpak-app: instalar una app de Flathub desde apps/flatpak-apps.txt -----
 # Baja el binario de Flathub y crea el .desktop. Sin args, lista las apps de la
 # receta (~/.dotfiles/apps/flatpak-apps.txt).

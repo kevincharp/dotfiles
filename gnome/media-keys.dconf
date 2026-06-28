@@ -1,6 +1,6 @@
 [/]
 control-center=['<Super>c']
-custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/']
+custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/']
 email=['<Super>q']
 home=['<Super>e']
 search=['<Super>b']
@@ -20,3 +20,8 @@ name='Ulauncher'
 binding='<Control><Shift>Escape'
 command='gnome-system-monitor'
 name='Monitor del sistema'
+
+[custom-keybindings/custom3]
+binding='<Super><Shift>s'
+command='flameshot gui'
+name='Flameshot'

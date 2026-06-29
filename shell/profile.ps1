@@ -302,6 +302,42 @@ function edit {
     }
 }
 
+<#
+.SYNOPSIS limpiar el historial de PSReadLine (todo o por patron)
+.DESCRIPTION Espejo del clear-history de bash/zsh (paridad). Sin args vacia TODO el
+historial (con confirmacion); con un patron borra solo las lineas que lo contengan
+(util si pegaste un token/secreto). Opera sobre el archivo de PSReadLine
+(HistorySavePath) y limpia la sesion actual. Nota: 'Clear-History' nativo de
+PowerShell solo vacia la sesion, no el archivo; por eso esta funcion lo reemplaza.
+.EXAMPLE clear-history            # vacia todo (pregunta y/N)
+.EXAMPLE clear-history AWS_SECRET # borra solo lineas con ese texto
+#>
+function clear-history {
+    param([string]$Pattern)
+
+    $hist = (Get-PSReadLineOption).HistorySavePath
+    if (-not $hist -or -not (Test-Path -LiteralPath $hist)) {
+        Write-Host "No se encontro el archivo de historial de PSReadLine."
+        return
+    }
+
+    if ($Pattern) {
+        $kept = Get-Content -LiteralPath $hist | Where-Object { $_ -notlike "*$Pattern*" }
+        Set-Content -LiteralPath $hist -Value $kept
+        [Microsoft.PowerShell.PSConsoleReadLine]::ClearHistory()
+        Write-Host "Historial: borradas las lineas que matcheaban '$Pattern'."
+    } else {
+        $ans = Read-Host "Vaciar TODO el historial ($hist)? [y/N]"
+        if ($ans -eq 'y' -or $ans -eq 'Y') {
+            Clear-Content -LiteralPath $hist
+            [Microsoft.PowerShell.PSConsoleReadLine]::ClearHistory()
+            Write-Host "Historial vaciado."
+        } else {
+            Write-Host "Cancelado."
+        }
+    }
+}
+
 # ==============================================================================
 # ATAJOS LINUX
 # ==============================================================================

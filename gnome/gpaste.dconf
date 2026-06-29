@@ -1,5 +1,6 @@
 [/]
 images-support=true
+max-displayed-history-size=uint64 10
 open-centered=true
 show-history='<Alt><Super>v'
 track-changes=true

@@ -73,7 +73,9 @@ está físicamente y cuánto ocupa.
       fallar, sino porque tocar particiones siempre puede salir mal. Es la red.
       (Usás solo ~23 GB, así que es rápido.) Lo crítico ya está versionado:
       este repo de dotfiles + el `dotfiles-vault`.
-- [ ] **Pendrive ≥ 4 GB** para el medio de arranque (se borra entero al grabarlo).
+- [ ] **Medio de arranque:** ya tenés el pendrive **`Fedora-WS-Live-44`** (Fedora
+      Workstation 44 Live, dispositivo `sda` de ~58 GB). **Se reusa tal cual, NO se
+      graba nada.** Ver sección 3.
 - [ ] **Tener esta guía accesible desde OTRA pantalla** (celular, otra compu): durante
       la operación vas a estar en el sistema del USB, sin esta sesión de Claude viva.
 - [ ] **Recordar la passphrase de LUKS.** Vas a tener que escribirla para
@@ -84,42 +86,43 @@ está físicamente y cuánto ocupa.
 
 ---
 
-## 3. Crear el medio de arranque (desde tu Fedora actual, ANTES de reiniciar)
+## 3. El medio de arranque — REUSAR el Fedora Live que ya tenés
 
-Recomendado: **GParted Live** (ISO chico, herramienta dedicada con soporte LUKS,
-es lo más a prueba de balas para esta tarea). Alternativa: Fedora Workstation Live
-(más pesado; trae GNOME pero hay que instalar GParted a mano en la sesión live).
+**No hace falta grabar nada.** Ya existe el pendrive **`Fedora-WS-Live-44`** (Fedora
+Workstation 44 Live, `sda` ~58 GB), el mismo con el que se instaló este sistema.
+Sirve igual: trae un GNOME "en vivo" desde donde se instala GParted con un comando.
 
-### Opción A — GParted Live (recomendada)
+> ¿Por qué no GParted Live dedicado? Sería una alternativa válida (ISO chico,
+> GParted ya incluido), pero implicaría descargar y grabar el ISO, **borrando este
+> pendrive**. Como el Fedora Live ya está y funciona, se reusa y listo — solo se
+> instala GParted en la sesión viva (paso 4.3). GParted funciona idéntico instalado
+> en el live que en su propio ISO.
 
-1. Descargá el ISO desde <https://gparted.org/download.php> (amd64).
-2. Identificá tu pendrive (¡ojo de no equivocarte de disco!):
-   ```bash
-   lsblk -do NAME,SIZE,MODEL,TRAN
-   ```
-   El NVMe interno es `nvme0n1`. El pendrive será algo como `sda` (TRAN=usb).
-3. Grabá el ISO al pendrive (reemplazá `sdX` por tu pendrive REAL):
-   ```bash
-   sudo dd if=~/Descargas/gparted-live-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
-   ```
-   O usá **GNOME Disks** → "Restaurar imagen de disco" (gráfico, menos riesgo de
-   tipear mal el dispositivo).
-
-### Opción B — Fedora Live
-Grabás el ISO de Fedora Workstation igual que arriba. En la sesión live, antes de
-abrir GParted: `sudo dnf install -y gparted`.
+Antes de reiniciar, confirmá que el pendrive sigue siendo el de Fedora Live:
+```bash
+lsblk -o NAME,SIZE,LABEL,TRAN | grep -i usb   # debe listar 'Fedora-WS-Live-44'
+```
 
 ---
 
-## 4. Arrancar desde el USB
+## 4. Arrancar desde el USB y abrir GParted
 
 1. Reiniciá. Entrá al menú de arranque del Lenovo (suele ser **F12** al encender;
    si no, **Enter** → menú, o **F1/F2** para BIOS).
-2. Elegí el pendrive USB (no el "Windows Boot Manager" ni el disco interno).
-3. En GParted Live: aceptá los defaults (teclado/idioma) hasta que abra el escritorio
-   con GParted ya corriendo.
-4. Arriba a la derecha, asegurate de tener seleccionado **`/dev/nvme0n1`** (el disco
-   de 932 GiB), no el pendrive.
+2. Elegí el pendrive USB **`Fedora-WS-Live-44`** (no el disco interno).
+3. En el menú de Fedora elegí **"Test this media & start Fedora-Workstation-Live"**
+   (o "Start Fedora-Workstation-Live"). Cuando cargue, elegí **"Probar Fedora" /
+   "Try Fedora"** (NO "Instalar Fedora").
+4. Ya en el escritorio live, abrí **Terminal** (Actividades → escribí "Terminal")
+   e instalá GParted (en el live no pide contraseña de root):
+   ```bash
+   sudo dnf install -y gparted
+   sudo gparted
+   ```
+   > El live tiene red por WiFi/cable; si `dnf` falla, conectate a una red primero
+   > desde el ícono de red (arriba a la derecha) y reintentá.
+5. En GParted, arriba a la derecha, asegurate de tener seleccionado
+   **`/dev/nvme0n1`** (el disco de 932 GiB), **no** `/dev/sda` (que es el pendrive).
 
 ---
 
@@ -217,7 +220,7 @@ sudo ls /boot/efi/EFI/        # ver qué hay
 |---|---|
 | **No bootea / no pide passphrase / kernel panic** | Arrancá de nuevo desde el USB. Tus datos siguen en el LUKS (mover no los borra). Como fstab/crypttab usan UUID y el UUID no cambió, lo normal es que arranque bien. Si no, abrí el LUKS desde el live (`cryptsetup open /dev/nvme0n1pN luks`), montá y revisá `/etc/fstab`. Peor caso: restaurás el backup. |
 | **GParted falla a mitad ("operation failed")** | NO sigas a ciegas. Anotá el mensaje exacto. Mientras no se haya completado un *resize* corrupto, los datos están. Sacá foto del error y, de vuelta online, traémelo. |
-| **GParted no ofrece "Unlock" en p6** | La versión es vieja / sin soporte LUKS. Usá GParted Live actual (no una Fedora vieja). |
+| **GParted no ofrece "Unlock" en p6** | Falta soporte LUKS. En el Fedora 44 Live, asegurate de instalarlo completo (`sudo dnf install -y gparted`); la versión de F44 ya trae soporte LUKS. Si aun así no aparece, instalá también `cryptsetup` y reabrí GParted. |
 | **`df` sigue mostrando 194 GB tras reiniciar** | Corré `sudo btrfs filesystem resize max /` (sección 6). |
 | **El movimiento parece colgado >1h** | Para 195 GB en NVMe debería ser bastante menos, pero NO interrumpas a menos que estés segurísimo de que murió. Interrumpir es lo único que corrompe. |
 
@@ -253,8 +256,9 @@ sudo dracut -f
 ## Resumen del flujo
 
 ```
-AHORA (sesión Claude)         Live USB (solo, con esta guía)      Vuelta a Fedora
-- doc commiteado+pusheado  →  - mover /boot + Linux           →  - df / btrfs usage
-- backup + pendrive listos    - expandir Linux                   - grub2-mkconfig
-                              - sin Claude vivo                   - (opcional) TPM
+AHORA (sesión Claude)         Fedora Live USB (solo, con guía)    Vuelta a Fedora
+- doc commiteado+pusheado  →  - dnf install gparted           →  - df / btrfs usage
+- backup hecho                - mover /boot + Linux              - grub2-mkconfig
+- pendrive Fedora ya listo    - expandir Linux                   - (opcional) TPM
+                              - sin Claude vivo
 ```

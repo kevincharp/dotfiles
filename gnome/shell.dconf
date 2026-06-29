@@ -1,3 +1,5 @@
 [/]
+# favorite-apps (apps pineadas al dock) NO se versiona a proposito: cambia segun
+# la maquina y es estado personal, no config reproducible. Si estuviera aca,
+# 'dconf load' (gnome-load / bootstrap) pisaria el dock real con esta lista.
 enabled-extensions=['background-logo@fedorahosted.org', 'dash-to-dock@micxgx.gmail.com', 'GPaste@gnome-shell-extensions.gnome.org', 'blur-my-shell@aunetx']
-favorite-apps=['org.gnome.Settings.desktop', 'org.mozilla.firefox.desktop', 'org.gnome.Ptyxis.desktop', 'org.gnome.Nautilus.desktop']

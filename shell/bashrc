@@ -862,8 +862,9 @@ ptyxis-load() {
 #
 # Para versionar una rama nueva: agregala a _GNOME_DCONF_MAP con el formato
 # "ruta/dconf/:archivo.dconf". 'dconf load' es ADITIVO (solo escribe las claves
-# del archivo, no borra el resto), por eso shell.dconf puede traer solo
-# favorite-apps y enabled-extensions sin pisar el resto de /org/gnome/shell/.
+# del archivo, no borra el resto), por eso shell.dconf trae solo
+# enabled-extensions sin pisar el resto de /org/gnome/shell/. Las apps pineadas
+# (favorite-apps) NO se versionan: son estado personal y gnome-load las pisaria.
 
 # Mapa "rama dconf : archivo en gnome/" (relativo a ~/.dotfiles/gnome/)
 _GNOME_DCONF_MAP=(

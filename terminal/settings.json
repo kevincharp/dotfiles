@@ -6,18 +6,10 @@
         {
             "command": 
             {
-                "action": "swapPane",
-                "direction": "left"
+                "action": "copy",
+                "singleLine": false
             },
-            "id": "User.swapPane.2A0DA8E0"
-        },
-        {
-            "command": 
-            {
-                "action": "moveFocus",
-                "direction": "previousInOrder"
-            },
-            "id": "User.moveFocus.787314EB"
+            "id": "User.copy.644BA8F2"
         },
         {
             "command": 
@@ -30,26 +22,22 @@
         {
             "command": 
             {
-                "action": "copy",
-                "singleLine": false
+                "action": "moveFocus",
+                "direction": "previousInOrder"
             },
-            "id": "User.copy.644BA8F2"
-        },
-        {
-            "command": "paste",
-            "id": "User.paste"
+            "id": "User.moveFocus.787314EB"
         },
         {
             "command": 
             {
                 "action": "swapPane",
-                "direction": "up"
+                "direction": "left"
             },
-            "id": "User.swapPane.6CD791B"
+            "id": "User.swapPane.2A0DA8E0"
         },
         {
-            "command": "find",
-            "id": "User.find"
+            "command": "paste",
+            "id": "User.paste"
         },
         {
             "command": 
@@ -59,6 +47,18 @@
                 "splitMode": "duplicate"
             },
             "id": "User.splitPane.A6751878"
+        },
+        {
+            "command": "find",
+            "id": "User.find"
+        },
+        {
+            "command": 
+            {
+                "action": "swapPane",
+                "direction": "up"
+            },
+            "id": "User.swapPane.6CD791B"
         },
         {
             "command": 
@@ -79,18 +79,18 @@
         {
             "command": 
             {
-                "action": "sendInput",
-                "input": "\u001b\r"
-            },
-            "id": "User.sendInput.ShiftEnter"
-        },
-        {
-            "command": 
-            {
                 "action": "openSettings",
                 "target": "settingsFile"
             },
             "id": "User.openSettings.D3F0B923"
+        },
+        {
+            "command": 
+            {
+                "action": "sendInput",
+                "input": "\u001b\r"
+            },
+            "id": "User.sendInput.ShiftEnter"
         },
         {
             "command": "openTabRenamer",
@@ -119,6 +119,10 @@
             "id": "User.globalSummon.51A3D78C"
         },
         {
+            "command": "restoreLastClosed",
+            "id": "User.restoreLastClosed"
+        },
+        {
             "command": "openTabColorPicker",
             "id": "User.openTabColorPicker"
         }
@@ -137,20 +141,12 @@
             "keys": "ctrl+c"
         },
         {
-            "id": "User.find",
-            "keys": "ctrl+shift+f"
-        },
-        {
             "id": "Terminal.PasteFromClipboard",
             "keys": "ctrl+v"
         },
         {
-            "id": "User.swapPane.F747588A",
-            "keys": "ctrl+down"
-        },
-        {
-            "id": null,
-            "keys": "ctrl+shift+3"
+            "id": "User.find",
+            "keys": "ctrl+shift+f"
         },
         {
             "id": "Terminal.DuplicatePaneAuto",
@@ -158,11 +154,19 @@
         },
         {
             "id": null,
-            "keys": "ctrl+shift+8"
+            "keys": "ctrl+shift+3"
+        },
+        {
+            "id": "User.swapPane.F747588A",
+            "keys": "ctrl+down"
         },
         {
             "id": "User.swapPane.87C324ED",
             "keys": "ctrl+right"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+8"
         },
         {
             "id": "User.swapPane.2A0DA8E0",
@@ -241,6 +245,10 @@
             "keys": "ctrl+shift+2"
         },
         {
+            "id": "User.restoreLastClosed",
+            "keys": "ctrl+shift+t"
+        },
+        {
             "id": null,
             "keys": "ctrl+shift+4"
         },
@@ -279,6 +287,10 @@
         {
             "id": "User.openTabColorPicker",
             "keys": "ctrl+alt+q"
+        },
+        {
+            "id": "Terminal.OpenNewTab",
+            "keys": "ctrl+t"
         }
     ],
     "newTabMenu": 

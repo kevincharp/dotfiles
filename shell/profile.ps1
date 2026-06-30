@@ -338,6 +338,23 @@ function clear-history {
     }
 }
 
+<#
+.SYNOPSIS abrir el archivo de historial en el editor
+.DESCRIPTION Espejo del edit-history de bash/zsh (paridad). Reusa la funcion
+'edit' (VSCode si esta, si no Notepad). PowerShell guarda el historial en el
+archivo de PSReadLine (HistorySavePath). Ojo: la sesion actual reescribe el
+archivo al salir, asi que editarlo en vivo puede pisarse con lo que tipees.
+.EXAMPLE edit-history
+#>
+function edit-history {
+    $hist = (Get-PSReadLineOption).HistorySavePath
+    if (-not $hist -or -not (Test-Path -LiteralPath $hist)) {
+        Write-Host "No se encontro el archivo de historial de PSReadLine."
+        return
+    }
+    edit $hist
+}
+
 # ==============================================================================
 # ATAJOS LINUX
 # ==============================================================================

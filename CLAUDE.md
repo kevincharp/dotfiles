@@ -71,21 +71,6 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   difieren Linux/Windows). **No editarlo para resolver conflictos**: en un rebase,
   quedarse con la versión ya commiteada y descartar lo demás.
 
-## Apps de escritorio (Flatpak) — `apps/`
-
-Apps de escritorio nativas que necesitan Chromium/Electron, p.ej. **Teams** (las
-videollamadas funcionan acá). Solo Linux. Flatpak baja el binario ya armado de
-Flathub y crea el `.desktop` solo (sin compilar). Webs simples (Gmail, Outlook) se
-usan directamente desde el navegador, no se empaquetan.
-
-- **Receta versionada:** `apps/flatpak-apps.txt` (`id|Nombre|app-id-de-flathub`).
-  Agregar app = una línea ahí.
-- **`apps/build-flatpak-app.sh <id>`** instala desde Flathub. También vía la
-  función `flatpak-app`. Agrega el remote **flathub completo a nivel usuario**
-  (el de Fedora viene `filtered` y no lista todas las apps).
-- Las apps Flatpak **no son symlinks**: `uninstall.sh` las quita con
-  `flatpak uninstall` recorriendo la receta, no en `DOTFILES_TARGETS`.
-
 ## Emojis a color en Chrome (`fontconfig/`)
 
 `fontconfig/fonts.conf` → **symlink** a `~/.config/fontconfig/fonts.conf`. Fuerza
@@ -164,7 +149,5 @@ Conviven **dos** recortadores, a propósito (paridad parcial con Windows):
 
 ## Verificación
 
-- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`,
-  `bash -n apps/build-flatpak-app.sh`.
-- `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad, incl.
-  `flatpak-app`).
+- Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.
+- `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad).

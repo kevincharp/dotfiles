@@ -953,21 +953,6 @@ battery-limit() {
     esac
 }
 
-# --- flatpak-app: instalar una app de Flathub desde apps/flatpak-apps.txt -----
-# Espejo del de bashrc (paridad). Baja el binario de Flathub y crea el .desktop.
-# Sin args lista las apps (~/.dotfiles/apps/flatpak-apps.txt).
-flatpak-app() {
-    local script="$HOME/.dotfiles/apps/build-flatpak-app.sh"
-    local recipe="$HOME/.dotfiles/apps/flatpak-apps.txt"
-    if [[ -z "$1" ]]; then
-        echo "Uso: flatpak-app <id>   (instala la app de Flathub e integra al menu)"
-        echo "Apps en la receta:"
-        grep -vE '^[[:space:]]*#' "$recipe" 2>/dev/null | awk -F'|' 'NF{printf "  %-10s %s\n", $1, $2}'
-        return 1
-    fi
-    bash "$script" "$1"
-}
-
 # --- update-all: actualizar todo lo que dnf NO cubre, en un solo comando -------
 # Espejo del de bashrc (paridad). dnf solo actualiza sus propios paquetes; esta
 # funcion recorre los demas gestores presentes (Flatpak, npm) ademas de dnf. Lo
@@ -978,7 +963,7 @@ update-all() {
         sudo dnf upgrade -y
     fi
     if command -v flatpak &>/dev/null; then
-        echo "==> flatpak (apps, p.ej. Teams)"
+        echo "==> flatpak (apps de Flathub)"
         flatpak update -y
     fi
     if command -v npm &>/dev/null; then

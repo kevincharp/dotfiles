@@ -171,6 +171,9 @@ if (Get-Module PSReadLine -ErrorAction SilentlyContinue) {
     }
     Set-PSReadLineOption -EditMode Windows -ErrorAction SilentlyContinue
     Set-PSReadLineOption -MaximumHistoryCount 10000 -ErrorAction SilentlyContinue
+    # No guardar duplicados en el historial (paridad con bash erasedups /
+    # zsh HIST_IGNORE_ALL_DUPS): al repetir un comando borra la copia vieja.
+    Set-PSReadLineOption -HistoryNoDuplicates -ErrorAction SilentlyContinue
     Set-PSReadLineOption -BellStyle None -ErrorAction SilentlyContinue
     Set-PSReadLineOption -Colors @{
         Command              = '#C79BFF'

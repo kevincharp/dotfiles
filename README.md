@@ -107,9 +107,6 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 ├── terminal/
 │   ├── settings.json         # Windows Terminal (symlink)
 │   └── ptyxis.dconf          # Ptyxis / Fedora (dump dconf)
-├── apps/                     # Apps de escritorio (Flatpak) — solo Linux
-│   ├── flatpak-apps.txt      # Receta Flatpak: apps de Flathub (id|nombre|app-id)
-│   └── build-flatpak-app.sh  # Instala una app de Flathub (p.ej. Teams)
 ├── gnome/                    # Config del escritorio GNOME (dumps dconf)
 │   ├── media-keys.dconf      # Atajos custom (Super+E/W/B/Q/C, Ctrl+Alt+T, Ctrl+Space)
 │   ├── wm-keybindings.dconf   # Atajos de ventanas (Super+D)
@@ -134,36 +131,6 @@ Ver detalles y flags en **Setup en maquina nueva → Windows** más abajo.
 > NO estan aca: viven en el repo privado **dotfiles-vault**.
 
 > Nota: Neovim se instala como binario (`dnf`/`winget`) pero **no** se incluye configuracion en el repo. Cada vez se arranca pelado para configurarlo desde cero segun la maquina.
-
----
-
-## Apps de escritorio (Flatpak) — solo Linux
-
-Para tener una app de escritorio nativa —el caso tipico es **Teams**, donde las
-videollamadas requieren WebRTC + codecs que solo trae Chromium— se instala por
-[Flatpak](https://flatpak.org) desde Flathub: baja el binario ya armado, aislado
-en su sandbox, y crea el `.desktop` (sin compilar). Webs simples (Gmail, Outlook)
-se usan directamente desde el navegador, no se empaquetan.
-
-**Google Chrome** (id `chrome` del catalogo) se instala aparte via el `.rpm`
-oficial de Google, que ademas deja el repo configurado para que las updates lleguen
-por `dnf update`. Solo Fedora/dnf.
-
-**Recetas versionadas.** Las apps se declaran en `apps/flatpak-apps.txt`
-(`id|Nombre|app-id-de-flathub`). Elegir la app en el selector del bootstrap la
-instala desde Flathub — mismo set en todas tus PCs.
-
-- **Instalar via bootstrap:** en el selector, categoria **`apps`** (Teams).
-- **Instalar a mano:** `flatpak-app <id>` (funcion de shell). Sin args lista las
-  apps de la receta.
-- **Agregar una app nueva:** suma una linea a `apps/flatpak-apps.txt` con su
-  app-id de Flathub, y corre `flatpak-app <id>`.
-
-> **Flathub completo a nivel usuario:** Fedora trae Flathub `filtered` (censurado)
-> y no lista todas las apps (p.ej. teams-for-linux). El bootstrap/`flatpak-app`
-> agregan el remote oficial completo con `--user` (sin sudo, sin tocar el sistema).
-> Las apps Flatpak no son symlinks: `uninstall.sh` las quita con `flatpak uninstall`
-> recorriendo la receta.
 
 ---
 

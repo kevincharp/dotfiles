@@ -1138,6 +1138,32 @@ if has_cmd openlogi; then
     copy_dotfile "openlogi/config.toml" "$HOME/.config/openlogi/config.toml" "link"
 fi
 
+# Google Chrome — deduplicar la entrada "Web" de Ajustes > Aplicaciones
+# predeterminadas. El .rpm de Google instala DOS .desktop: google-chrome.desktop
+# (historico) y com.google.Chrome.desktop (nuevo, formato reverse-DNS), y ambos
+# declaran x-scheme-handler/http(s). El panel de GNOME NO respeta Hidden/NoDisplay
+# (de hecho el .rpm ya marca el segundo con NoDisplay y aun asi aparece): lista
+# cualquier .desktop que registre el esquema, asi que Chrome sale DOS veces. Se
+# neutraliza con un override local de com.google.Chrome.desktop SIN los
+# scheme-handlers (conserva PDF/imagenes), copiado a ~/.local/share/applications
+# (tiene prioridad sobre /usr/share y sobrevive a los updates de Chrome). Si algun
+# dia Google unifica los .desktop, basta con borrar el override.
+_chrome_sys_desktop="/usr/share/applications/com.google.Chrome.desktop"
+_chrome_override="$HOME/.local/share/applications/com.google.Chrome.desktop"
+if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys_desktop" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+        log "[DryRun] Override Chrome (dedup entrada Web de GNOME)" "SKIP"
+    else
+        mkdir -p "$(dirname "$_chrome_override")"
+        sed -E 's#x-scheme-handler/(http|https|google-chrome);##g' \
+            "$_chrome_sys_desktop" > "$_chrome_override"
+        has_cmd update-desktop-database \
+            && update-desktop-database "$(dirname "$_chrome_override")" &>/dev/null || true
+        log "Override Chrome aplicado (una sola entrada Web en GNOME)" "OK"
+    fi
+fi
+unset _chrome_sys_desktop _chrome_override
+
 # Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un
 # archivo), asi que no se puede symlinkear: se restaura con 'dconf load'.
 # El dump versionado se actualiza con el helper 'ptyxis-save' (ver bashrc).

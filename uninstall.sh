@@ -342,6 +342,10 @@ else
                         sudo rm -f /etc/yum.repos.d/google-chrome.repo \
                             && log "Removido: repo de Google" "OK"
                     fi
+                    # Override local que deduplica la entrada "Web" de GNOME
+                    # (lo genera el bootstrap, no es symlink del repo).
+                    rm -f "$HOME/.local/share/applications/com.google.Chrome.desktop" \
+                        && log "Removido: override .desktop de Chrome" "OK"
                     ;;
                 *)
                     if has_cmd "$(pkg_cmd "$pkg")"; then

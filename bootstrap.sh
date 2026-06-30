@@ -165,7 +165,6 @@ TOOLS_CATALOG=(
     "firacode|fonts|FiraCode Nerd Font"
     "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
     "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
-    "teams|apps|Teams for Linux (Flatpak — llamadas funcionan)"
     "chrome|apps|Google Chrome (RPM oficial + repo para updates)"
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
     "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
@@ -206,12 +205,6 @@ tool_installed() {
         ulauncher)       has_cmd ulauncher ;;
         samba)           # listo si el paquete esta y el servicio quedo habilitado
                          rpm -q samba &>/dev/null && systemctl is-enabled smb &>/dev/null ;;
-        teams)           # app Flatpak: instalada si flatpak la lista (app-id en la receta)
-                         local _fpid
-                         _fpid="$(grep -vE '^[[:space:]]*#' "$REPO_ROOT/apps/flatpak-apps.txt" 2>/dev/null \
-                                  | awk -F'|' -v id="$1" '$1==id {print $3; exit}')"
-                         [[ -n "$_fpid" ]] && has_cmd flatpak \
-                            && flatpak info "$_fpid" &>/dev/null ;;
         chrome)          rpm -q google-chrome-stable &>/dev/null ;;
         openlogi)        rpm -q openlogi &>/dev/null ;;
         flameshot)       has_cmd flameshot ;;
@@ -467,19 +460,6 @@ install_tool() {
                 fi
                 log "  Falta tu contrasena SMB: corre 'sudo smbpasswd -a $USER'" "INFO"
                 WARNINGS+=("Samba: define tu contrasena con 'sudo smbpasswd -a $USER' (no se versiona)")
-            fi
-            ;;
-        teams)
-            # App de escritorio via Flatpak (Flathub): baja el binario y crea el
-            # .desktop solo (sin compilar). Sirve para Teams porque corre sobre
-            # Electron/Chromium y las videollamadas funcionan. La receta esta en
-            # apps/flatpak-apps.txt.
-            if has_cmd flatpak; then
-                run_step "Instalar app '$1' (Flatpak)" \
-                    bash "$REPO_ROOT/apps/build-flatpak-app.sh" "$1"
-            else
-                log "flatpak no disponible — '$1' no se instalo" "WARN"
-                WARNINGS+=("App '$1' no instalada — falta flatpak")
             fi
             ;;
         chrome)

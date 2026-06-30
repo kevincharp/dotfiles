@@ -1,6 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
   "version": 2,
+  "upgrade": {
+    "notice": true,
+    "auto": true,
+    "interval": "168h",
+    "source": "cdn"
+  },
   "final_space": true,
   "blocks": [
     {

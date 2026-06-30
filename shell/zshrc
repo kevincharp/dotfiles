@@ -455,6 +455,14 @@ clear-history() {
     fi
 }
 
+# edit-history: abre el archivo de historial en el editor (reusa 'edit').
+# Espejo del bashrc/profile.ps1; cada shell guarda el historial en su propio
+# archivo (zsh: $HISTFILE). Ojo: la sesion actual reescribe el archivo al salir,
+# asi que editarlo en vivo puede pisarse con lo que tipees despues.
+edit-history() {
+    edit "$HISTFILE"
+}
+
 # ==============================================================================
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================

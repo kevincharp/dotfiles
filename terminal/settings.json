@@ -119,10 +119,6 @@
             "id": "User.globalSummon.51A3D78C"
         },
         {
-            "command": "restoreLastClosed",
-            "id": "User.restoreLastClosed"
-        },
-        {
             "command": "openTabColorPicker",
             "id": "User.openTabColorPicker"
         }
@@ -245,10 +241,6 @@
             "keys": "ctrl+shift+2"
         },
         {
-            "id": "User.restoreLastClosed",
-            "keys": "ctrl+shift+t"
-        },
-        {
             "id": null,
             "keys": "ctrl+shift+4"
         },
@@ -289,8 +281,8 @@
             "keys": "ctrl+alt+q"
         },
         {
-            "id": "Terminal.OpenNewTab",
-            "keys": "ctrl+t"
+            "id": null,
+            "keys": "ctrl+shift+1"
         }
     ],
     "newTabMenu": 

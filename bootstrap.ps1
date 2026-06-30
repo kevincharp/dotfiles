@@ -908,6 +908,23 @@ if ($SkipDotfiles) {
                 }
             }
         }
+
+        # Desactivar el auto-upgrade en Windows: el tema (claude-code.omp.json) lo
+        # trae con auto:true para Linux, pero en Windows oh-my-posh se instala como
+        # paquete MSIX/Appx (winget) y no puede autoactualizarse → tira el error
+        # "upgrade is not supported when installed as a MSIX package" en cada
+        # arranque del shell. El toggle se guarda en la cache local de oh-my-posh
+        # (NO en el .omp.json), asi que es per-maquina y no rompe el symlink del
+        # tema compartido con Linux. La actualizacion en Windows la hace winget.
+        if (Test-CommandAvailable 'oh-my-posh') {
+            if ($DryRun) {
+                Write-Log "[DryRun] oh-my-posh disable upgrade (MSIX no soporta auto-upgrade)" 'SKIP'
+            } else {
+                Invoke-Step "Desactivar auto-upgrade de oh-my-posh (MSIX/winget)" {
+                    oh-my-posh disable upgrade | Out-Null
+                }
+            }
+        }
     }
 
     # --- SSH keys (encriptadas con age, en el vault privado) ---

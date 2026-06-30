@@ -102,6 +102,28 @@ los emoji salen en blanco y negro. El `fonts.conf` las desprioriza con `rejectfo
 - Arregla solo el **renderizado**. La **entrada** de emoji (Ctrl+. de GTK) no
   funciona dentro de Chrome en Wayland (los campos de Chrome no son widgets GTK).
 
+## Chrome duplicado en "Aplicaciones predeterminadas → Web"
+
+El `.rpm` oficial de Google instala **dos** `.desktop` en `/usr/share/applications/`
+durante su migración de nombres: `google-chrome.desktop` (histórico) y
+`com.google.Chrome.desktop` (nuevo, formato reverse-DNS). Ambos declaran
+`x-scheme-handler/http(s)`, así que Chrome aparece **dos veces** en el selector Web.
+
+- **Detalle no obvio:** el panel de GNOME **NO respeta `Hidden`/`NoDisplay`** — el
+  `.rpm` ya marca `com.google.Chrome.desktop` con `NoDisplay=true` y aun así sale en
+  la lista. El selector muestra **cualquier** `.desktop` que registre el esquema
+  `https`; la única palanca real es el `MimeType`.
+- **Fix (en `bootstrap.sh`, paso 5):** genera un override local de
+  `com.google.Chrome.desktop` en `~/.local/share/applications/` quitándole los
+  `x-scheme-handler/http|https|google-chrome` del `MimeType` (conserva PDF/imágenes).
+  Tiene prioridad sobre `/usr/share` y **sobrevive a los `dnf update`** de Chrome.
+- Se **regenera** desde el `.desktop` del sistema en cada bootstrap (no se versiona
+  una copia estática: si Google cambia los MimeTypes, el override no queda viejo).
+- **Si algún día Google unifica los `.desktop`** (deja uno solo), el override puede
+  estorbar: borralo con `rm ~/.local/share/applications/com.google.Chrome.desktop`.
+  `uninstall.sh` ya lo limpia al desinstalar `google-chrome-stable`.
+- Tras reaplicar, **reabrir Ajustes**: el panel cachea la lista hasta reabrirse.
+
 ## Historial estilo PSReadLine (flecha ↑ → lista fzf)
 
 Réplica del **ListView de PSReadLine**: al apretar **↑** se abre `fzf` con el

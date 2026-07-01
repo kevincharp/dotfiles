@@ -628,26 +628,29 @@ _select_from_csv() {
     fi
 }
 
-# Menu interactivo sobre /dev/tty (funciona con 'curl | bash')
-# Navegacion estilo TUI: flechas/jk para moverse, espacio para marcar, Enter
-# para confirmar. Si la terminal no soporta modo raw, cae al modo por texto.
+# Orden de grupos en el selector. OJO: NO usar 'GROUPS' como nombre — es una
+# variable especial de bash (los grupos del usuario) y se ignora silenciosamente.
+_GRP_ORDER=(core shell dev cloud fonts apps)
+
+# _grp_of <idx-catalogo> — grupo de una entrada
+_grp_of() { local x="${TOOLS_CATALOG[$1]#*|}"; echo "${x%%|*}"; }
+# _id_of / _desc_of <idx-catalogo>
+_id_of()   { echo "${TOOLS_CATALOG[$1]%%|*}"; }
+_desc_of() { echo "${TOOLS_CATALOG[$1]##*|}"; }
+
+# Menu interactivo por GRUPOS (colapsable) sobre /dev/tty (funciona con 'curl|bash').
+# Los grupos arrancan colapsados y sin nada marcado (opt-in). Navegacion:
+#   ↑/↓ mover · →/l expandir · ←/h colapsar · espacio marcar (grupo o item) · Enter confirmar
+# Checkbox de grupo tri-estado: ▰ todos · ▨ parcial · ▱ ninguno.
+# Si la terminal no soporta modo raw, cae al modo por texto.
 _select_interactive() {
-    # Estado de marcado: indice del catalogo -> 1 (marcado) / 0
-    local -a marked order
     local i n="${#TOOLS_CATALOG[@]}"
-    for ((i = 0; i < n; i++)); do marked[i]=0; done   # nada pre-marcado (opt-in)
+    local -a MARK
+    for ((i = 0; i < n; i++)); do MARK[i]=0; done   # opt-in: nada marcado
 
-    local groups=(core shell dev cloud fonts apps)
-    local g entry id grp desc
-
-    # Orden de display: indices del catalogo agrupados (solo filas navegables)
-    order=()
-    for g in "${groups[@]}"; do
-        for ((i = 0; i < n; i++)); do
-            if [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$g" ]]; then order+=("$i"); fi
-        done
-    done
-    local m="${#order[@]}" cur=0
+    # Estado expandido por grupo
+    local -A EXP; local g
+    for g in "${_GRP_ORDER[@]}"; do EXP[$g]=0; done
 
     # Modo raw sobre /dev/tty; si falla, fallback por texto
     local saved_stty
@@ -657,74 +660,99 @@ _select_interactive() {
         return
     fi
     stty -echo -icanon min 1 time 0 < /dev/tty
-    printf '\033[?25l' > /dev/tty   # ocultar cursor
+    printf '\033[?25l' > /dev/tty
 
-    local out nlines=0 di box pointer prev_g line
-    while true; do
-        # --- Construir frame completo ---
-        out=$'\n  \033[36m== Selector de herramientas ==\033[0m\n'
-        out+=$'  \033[90m↑/↓ o j/k mover · espacio marcar · a todo · n nada · g grupo · Enter instalar\033[0m\n\n'
-        prev_g=""
-        for ((di = 0; di < m; di++)); do
-            i="${order[di]}"
-            entry="${TOOLS_CATALOG[i]}"
-            id="${entry%%|*}"
-            grp="$(echo "$entry" | cut -d'|' -f2)"
-            desc="${entry##*|}"
-            if [[ "$grp" != "$prev_g" ]]; then
-                out+=$'  \033[1m['"$grp"$']\033[0m\n'
-                prev_g="$grp"
-            fi
-            if [[ "${marked[i]}" == "1" ]]; then box=$'\033[32m[x]\033[0m'; else box='[ ]'; fi
-            if (( di == cur )); then pointer=$'\033[36m❯\033[0m'; else pointer=' '; fi
-            printf -v line '  %b %b %-16s %s' "$pointer" "$box" "$id" "$desc"
-            out+="$line"$'\n'
+    # Estado de un grupo: 0=ninguno 1=todos 2=parcial ; y su conteo "on/tot"
+    _grp_state() {
+        local grp="$1" j tot=0 on=0
+        for ((j = 0; j < n; j++)); do
+            [[ "$(_grp_of "$j")" == "$grp" ]] || continue
+            ((tot++)); [[ "${MARK[j]}" == 1 ]] && ((on++))
         done
+        (( on == 0 )) && { echo "0 $on $tot"; return; }
+        (( on == tot )) && echo "1 $on $tot" || echo "2 $on $tot"
+    }
 
-        # --- Redibujar en el lugar ---
-        if (( nlines > 0 )); then printf '\033[%dA\033[J' "$nlines" > /dev/tty; fi
-        printf '%b' "$out" > /dev/tty
-        local nl="${out//[^$'\n']/}"; nlines=${#nl}
+    # Reconstruye ROWS (filas visibles): "G:grupo" o "I:idx"
+    local -a ROWS
+    _build_rows() {
+        ROWS=(); local grp j
+        for grp in "${_GRP_ORDER[@]}"; do
+            ROWS+=("G:$grp")
+            if [[ "${EXP[$grp]}" == 1 ]]; then
+                for ((j = 0; j < n; j++)); do [[ "$(_grp_of "$j")" == "$grp" ]] && ROWS+=("I:$j"); done
+            fi
+        done
+    }
 
-        # --- Leer tecla (maneja secuencias de flechas) ---
-        local key="" rest=""
-        IFS= read -rsn1 key < /dev/tty || break
-        if [[ "$key" == $'\033' ]]; then
-            read -rsn2 -t 0.01 rest < /dev/tty || true
-            key+="$rest"
+    local cur=0 prev_n=0 first=1 FRAME FRAME_N
+    # Arma el frame completo en un string (anti-flicker: un solo write, \033[K por linea)
+    _build_frame() {
+        _build_rows
+        local nrows=${#ROWS[@]} r kind val total=0 j box ptr arrow st on tot out="" K=$'\033[K'
+        for ((j = 0; j < n; j++)); do [[ "${MARK[j]}" == 1 ]] && ((total++)); done
+        out+="  \033[1;36m▶ Elegí qué instalar\033[0m${K}"$'\n'
+        out+="  \033[90m↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar\033[0m${K}"$'\n'
+        out+="${K}"$'\n'
+        for ((r = 0; r < nrows; r++)); do
+            kind="${ROWS[r]%%:*}"; val="${ROWS[r]#*:}"
+            if (( r == cur )); then ptr=$'\033[36m❯\033[0m'; else ptr=' '; fi
+            if [[ "$kind" == G ]]; then
+                read -r st on tot <<< "$(_grp_state "$val")"
+                case "$st" in 1) box=$'\033[32m▰\033[0m';; 2) box=$'\033[33m▨\033[0m';; *) box=$'\033[90m▱\033[0m';; esac
+                [[ "${EXP[$val]}" == 1 ]] && arrow='▾' || arrow='▸'
+                out+="$(printf '  %b %s %b \033[1m%-8s\033[0m \033[90m(%s/%s)\033[0m' "$ptr" "$arrow" "$box" "$val" "$on" "$tot")${K}"$'\n'
+            else
+                if [[ "${MARK[val]}" == 1 ]]; then box=$'\033[32m▰\033[0m'; else box=$'\033[90m▱\033[0m'; fi
+                out+="$(printf '      %b %b %-16s \033[90m%s\033[0m' "$ptr" "$box" "$(_id_of "$val")" "$(_desc_of "$val")")${K}"$'\n'
+            fi
+        done
+        out+="${K}"$'\n'
+        out+="  \033[36m${total}\033[0m\033[90m de ${n} seleccionadas\033[0m${K}"$'\n'
+        FRAME_N=$(( nrows + 5 ))
+        FRAME="$out"
+    }
+
+    local key rest kind val target j
+    while true; do
+        _build_frame
+        if (( first == 0 )); then
+            printf '\033[%dA\033[J%b' "$prev_n" "$FRAME" > /dev/tty
+        else
+            printf '%b' "$FRAME" > /dev/tty
         fi
+        first=0; prev_n="$FRAME_N"
+
+        IFS= read -rsn1 key < /dev/tty || break
+        if [[ "$key" == $'\033' ]]; then read -rsn2 -t 0.01 rest < /dev/tty || true; key+="$rest"; fi
+        _build_rows
+        kind="${ROWS[cur]%%:*}"; val="${ROWS[cur]#*:}"
         case "$key" in
-            $'\033[A'|k|K)  cur=$(( (cur - 1 + m) % m )) ;;
-            $'\033[B'|j|J)  cur=$(( (cur + 1) % m )) ;;
-            ' ')            i="${order[cur]}"; marked[i]=$((1 - marked[i])) ;;
-            a|A)            for ((i = 0; i < n; i++)); do marked[i]=1; done ;;
-            n|N)            for ((i = 0; i < n; i++)); do marked[i]=0; done ;;
-            g|G)
-                # Toggle del grupo de la fila actual
-                local cg all_on=1
-                cg="$(echo "${TOOLS_CATALOG[${order[cur]}]}" | cut -d'|' -f2)"
-                for ((i = 0; i < n; i++)); do
-                    [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$cg" ]] || continue
-                    [[ "${marked[i]}" == "1" ]] || all_on=0
-                done
-                local target=$((all_on == 1 ? 0 : 1))
-                for ((i = 0; i < n; i++)); do
-                    [[ "$(echo "${TOOLS_CATALOG[i]}" | cut -d'|' -f2)" == "$cg" ]] || continue
-                    marked[i]=$target
-                done
-                ;;
-            ''|$'\n')       break ;;   # Enter -> confirmar
+            $'\033[A'|k|K)  cur=$(( (cur - 1 + ${#ROWS[@]}) % ${#ROWS[@]} )) ;;
+            $'\033[B'|j|J)  cur=$(( (cur + 1) % ${#ROWS[@]} )) ;;
+            $'\033[C'|l|L)  [[ "$kind" == G ]] && EXP[$val]=1 ;;
+            $'\033[D'|h|H)  [[ "$kind" == G ]] && EXP[$val]=0 ;;
+            ' ')
+                if [[ "$kind" == G ]]; then
+                    read -r st _ _ <<< "$(_grp_state "$val")"
+                    [[ "$st" == 1 ]] && target=0 || target=1
+                    for ((j = 0; j < n; j++)); do [[ "$(_grp_of "$j")" == "$val" ]] && MARK[j]=$target; done
+                else
+                    MARK[val]=$(( 1 - MARK[val] ))
+                fi ;;
+            a|A)            for ((j = 0; j < n; j++)); do MARK[j]=1; done ;;
+            n|N)            for ((j = 0; j < n; j++)); do MARK[j]=0; done ;;
+            ''|$'\n')       break ;;
             q|Q)            break ;;
         esac
     done
 
-    # Restaurar terminal (modo normal + cursor visible)
     stty "$saved_stty" < /dev/tty 2>/dev/null || true
-    printf '\033[?25h' > /dev/tty
+    printf '\033[?25h\n' > /dev/tty
 
     SELECTED_TOOLS=()
     for ((i = 0; i < n; i++)); do
-        if [[ "${marked[i]}" == "1" ]]; then SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}"); fi
+        if [[ "${MARK[i]}" == "1" ]]; then SELECTED_TOOLS+=("${TOOLS_CATALOG[i]%%|*}"); fi
     done
     return 0
 }

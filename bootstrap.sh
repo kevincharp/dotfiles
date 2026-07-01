@@ -590,11 +590,13 @@ install_tool() {
 #   1. --tools=id1,id2  -> exactamente esos (valida contra el catalogo)
 #   2. --all-tools / --dry-run -> todo el catalogo, sin preguntar
 #   3. terminal interactiva (hay /dev/tty) -> menu agrupado, pregunta siempre
-#   4. sin terminal (curl | bash sin tty) -> todo, como red de seguridad
+#   4. sin terminal (CI/pipe sin tty) -> no instala nada; pide usar --tools/--all-tools
 #
 # El menu arranca SIN nada pre-marcado (opt-in): el usuario elige que instalar.
-# Enter sin marcar nada = no instala nada. Se alterna por numero, por grupo
-# (core/shell/dev/cloud/fonts) o con todo/nada.
+# Enter sin marcar nada = no instala nada. Coherente con opt-in: el modo no
+# interactivo (sin /dev/tty) tampoco instala por sorpresa — hay que ser explicito.
+# NOTA: este dotfiles es para maquinas de escritorio/laptop (uso interactivo real),
+# no para servers headless; el caso sin-tty es un borde (CI/pipe), no el uso normal.
 # ==============================================================================
 
 SELECTED_TOOLS=()
@@ -848,8 +850,10 @@ select_tools() {
         _select_interactive
         log "Seleccionadas ${#SELECTED_TOOLS[@]}: ${SELECTED_TOOLS[*]:-(ninguna)}" "INFO"
     else
-        SELECTED_TOOLS=(); for entry in "${TOOLS_CATALOG[@]}"; do SELECTED_TOOLS+=("${entry%%|*}"); done
-        log "Sin terminal interactiva — instalando catalogo completo (red de seguridad)" "INFO"
+        SELECTED_TOOLS=()
+        log "Sin terminal interactiva y sin --tools/--all-tools — no instalo nada" "WARN"
+        log "  Volve a correr con --tools=id1,id2 (lista) o --all-tools (todo)" "INFO"
+        WARNINGS+=("Sin tty: no se instalaron herramientas. Usa --tools=... o --all-tools")
     fi
 }
 

@@ -291,9 +291,11 @@ function Install-WingetPackage {
 #   1. -Tools "a,b,c"  -> exactamente esas (valida contra el catalogo)
 #   2. -AllTools / -DryRun -> todo, sin preguntar
 #   3. consola interactiva -> menu agrupado, pregunta siempre
-#   4. sin consola (irm | iex no interactivo) -> todo, como red de seguridad
+#   4. sin consola (irm | iex no interactivo) -> no instala nada; pide -Tools/-AllTools
 # El menu arranca SIN nada pre-marcado (opt-in): el usuario elige que instalar.
-# Enter sin marcar nada = no instala nada.
+# Enter sin marcar nada = no instala nada. Coherente con opt-in: el modo no
+# interactivo tampoco instala por sorpresa. Este dotfiles es para escritorio/laptop
+# (uso interactivo real), no servers headless; el caso sin-consola es un borde.
 # ==============================================================================
 
 $script:SELECTED_KEYS = @()
@@ -315,81 +317,106 @@ function Test-Interactive {
 function Select-ToolsInteractive {
     $keys   = $TOOLS_CATALOG | ForEach-Object { $_.Key }
     $groups = @('core', 'shell', 'dev', 'cloud', 'fonts', 'extras')
-    # Estado de marcado por Key (nada pre-marcado: el usuario elige que instalar).
+    # Estado de marcado por Key (opt-in: nada pre-marcado).
     $marked = @{}
     foreach ($k in $keys) { $marked[$k] = $false }
-
-    # Filas navegables en orden de display (solo herramientas, no headers)
-    $rows = @()
-    foreach ($g in $groups) {
-        foreach ($t in ($TOOLS_CATALOG | Where-Object { $_.Group -eq $g })) {
-            $rows += [pscustomobject]@{ Key = $t.Key; Name = $t.Name; Group = $g }
-        }
-    }
-    $m = $rows.Count
+    # Solo grupos con al menos una herramienta en el catalogo.
+    $groups = @($groups | Where-Object { @($TOOLS_CATALOG | Where-Object Group -eq $_).Count -gt 0 })
+    # Estado expandido por grupo (arrancan colapsados).
+    $expanded = @{}
+    foreach ($g in $groups) { $expanded[$g] = $false }
 
     # Si la consola no soporta ReadKey crudo (host no interactivo), cae a texto.
     $rawOk = $true
     try { $null = $Host.UI.RawUI.KeyAvailable } catch { $rawOk = $false }
     if (-not $rawOk) { return Select-ToolsInteractiveText }
 
-    # El titulo se pinta una sola vez (queda fijo arriba del menu).
+    # Estado de un grupo: 'all' | 'partial' | 'none' + conteo on/tot
+    function Get-GroupState($g) {
+        $gk = @($TOOLS_CATALOG | Where-Object Group -eq $g).Key
+        $on = @($gk | Where-Object { $marked[$_] }).Count
+        $tot = $gk.Count
+        $st = if ($on -eq 0) { 'none' } elseif ($on -eq $tot) { 'all' } else { 'partial' }
+        return @{ State = $st; On = $on; Tot = $tot }
+    }
+    # Reconstruye filas visibles: header de grupo + items si esta expandido
+    function Get-Rows {
+        $r = @()
+        foreach ($g in $groups) {
+            $r += [pscustomobject]@{ Kind = 'G'; Group = $g; Key = $null; Name = $null }
+            if ($expanded[$g]) {
+                foreach ($t in ($TOOLS_CATALOG | Where-Object Group -eq $g)) {
+                    $r += [pscustomobject]@{ Kind = 'I'; Group = $g; Key = $t.Key; Name = $t.Name }
+                }
+            }
+        }
+        return ,$r
+    }
+
     Write-Host ''
-    Write-Host '  == Selector de herramientas ==' -ForegroundColor Cyan
-    Write-Host '  ↑/↓ mover · espacio marcar · a todo · n nada · g grupo · Enter instalar' -ForegroundColor DarkGray
+    Write-Host '  ▶ Elegí qué instalar' -ForegroundColor Cyan
+    Write-Host '  ↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar' -ForegroundColor DarkGray
     Write-Host ''
 
     $cur = 0
     $firstDraw = $true
     $drawn = 0
     while ($true) {
-        # --- Reposicionar cursor para redibujar en el lugar ---
-        # Movimiento RELATIVO (subir $drawn lineas con ANSI), NO absoluto: el menu
-        # es mas alto que la ventana y la consola scrollea, asi que una coordenada
-        # absoluta (SetCursorPosition) quedaria desalineada y apilaria copias del
-        # menu en cada tecla. Subir N lineas respeta el scroll y sobreescribe.
-        if (-not $firstDraw) {
-            Write-Host ("`e[$($drawn)A") -NoNewline
-        }
+        $rows = Get-Rows
+        $m = $rows.Count
+        if ($cur -ge $m) { $cur = $m - 1 }
+
+        if (-not $firstDraw) { Write-Host ("`e[$($drawn)A") -NoNewline }
         $firstDraw = $false
 
-        # --- Pintar filas agrupadas (contando lineas para el proximo redibujo) ---
         $drawn = 0
-        $prevG = ''
         for ($di = 0; $di -lt $m; $di++) {
             $row = $rows[$di]
-            if ($row.Group -ne $prevG) {
-                Write-Host ("  [{0}]" -f $row.Group).PadRight(60) -ForegroundColor White
-                $prevG = $row.Group
-                $drawn++
+            $ptr = if ($di -eq $cur) { '❯' } else { ' ' }
+            if ($row.Kind -eq 'G') {
+                $gs = Get-GroupState $row.Group
+                $box = switch ($gs.State) { 'all' { '▰' } 'partial' { '▨' } default { '▱' } }
+                $arrow = if ($expanded[$row.Group]) { '▾' } else { '▸' }
+                $line = ("  {0} {1} {2} {3,-8} ({4}/{5})" -f $ptr, $arrow, $box, $row.Group, $gs.On, $gs.Tot)
+                $color = if ($di -eq $cur) { 'Cyan' } elseif ($gs.State -eq 'all') { 'Green' } elseif ($gs.State -eq 'partial') { 'DarkYellow' } else { 'Gray' }
+                Write-Host $line.PadRight(70) -ForegroundColor $color
+            } else {
+                $box = if ($marked[$row.Key]) { '▰' } else { '▱' }
+                $line = ("      {0} {1} {2,-16} {3}" -f $ptr, $box, $row.Key, $row.Name)
+                $color = if ($di -eq $cur) { 'Cyan' } elseif ($marked[$row.Key]) { 'Green' } else { 'Gray' }
+                Write-Host $line.PadRight(70) -ForegroundColor $color
             }
-            $box = if ($marked[$row.Key]) { '[x]' } else { '[ ]' }
-            $ptr = if ($di -eq $cur) { '>' } else { ' ' }
-            $color = if ($di -eq $cur) { 'Cyan' } elseif ($marked[$row.Key]) { 'Green' } else { 'Gray' }
-            Write-Host ("  {0} {1} {2,-18} {3}" -f $ptr, $box, $row.Key, $row.Name).PadRight(60) -ForegroundColor $color
             $drawn++
         }
+        $total = @($keys | Where-Object { $marked[$_] }).Count
+        Write-Host ("  {0} de {1} seleccionadas" -f $total, $keys.Count).PadRight(70) -ForegroundColor Cyan
+        $drawn++
 
-        # --- Leer tecla ---
         $k = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+        $row = $rows[$cur]
         switch ($k.VirtualKeyCode) {
             38 { $cur = ($cur - 1 + $m) % $m }                       # Up
             40 { $cur = ($cur + 1) % $m }                            # Down
-            32 { $key = $rows[$cur].Key; $marked[$key] = (-not $marked[$key]) }  # Space
+            39 { if ($row.Kind -eq 'G') { $expanded[$row.Group] = $true } }   # Right -> expandir
+            37 { if ($row.Kind -eq 'G') { $expanded[$row.Group] = $false } }  # Left  -> colapsar
+            32 {                                                     # Space
+                if ($row.Kind -eq 'G') {
+                    $gk = @($TOOLS_CATALOG | Where-Object Group -eq $row.Group).Key
+                    $target = -not ((Get-GroupState $row.Group).State -eq 'all')
+                    foreach ($key in $gk) { $marked[$key] = $target }
+                } else {
+                    $marked[$row.Key] = (-not $marked[$row.Key])
+                }
+            }
             13 { return @($keys | Where-Object { $marked[$_] }) }    # Enter
             default {
                 switch ([char]$k.Character) {
                     'k' { $cur = ($cur - 1 + $m) % $m }
                     'j' { $cur = ($cur + 1) % $m }
+                    'l' { if ($row.Kind -eq 'G') { $expanded[$row.Group] = $true } }
+                    'h' { if ($row.Kind -eq 'G') { $expanded[$row.Group] = $false } }
                     'a' { foreach ($key in $keys) { $marked[$key] = $true } }
                     'n' { foreach ($key in $keys) { $marked[$key] = $false } }
-                    'g' {
-                        $cg = $rows[$cur].Group
-                        $grpKeys = ($rows | Where-Object { $_.Group -eq $cg }).Key
-                        $allOn = $true
-                        foreach ($key in $grpKeys) { if (-not $marked[$key]) { $allOn = $false } }
-                        foreach ($key in $grpKeys) { $marked[$key] = (-not $allOn) }
-                    }
                     'q' { return @($keys | Where-Object { $marked[$_] }) }
                 }
             }
@@ -479,8 +506,10 @@ function Resolve-SelectedTools {
         $script:SELECTED_KEYS = @(Select-ToolsInteractive)
         Write-Log "Seleccionadas $($script:SELECTED_KEYS.Count): $($script:SELECTED_KEYS -join ', ')" 'INFO'
     } else {
-        $script:SELECTED_KEYS = @($allKeys)
-        Write-Log 'Sin consola interactiva - instalando catalogo completo (red de seguridad)' 'INFO'
+        $script:SELECTED_KEYS = @()
+        Write-Log 'Sin consola interactiva y sin -Tools/-AllTools - no instalo nada' 'WARN'
+        Write-Log '  Volve a correr con -Tools "a,b,c" (lista) o -AllTools (todo)' 'INFO'
+        $WARNINGS.Add('Sin consola: no se instalaron herramientas. Usa -Tools o -AllTools')
     }
 }
 
@@ -491,12 +520,60 @@ function Test-ToolSelected {
 }
 
 # ==============================================================================
+# PANTALLA DE BIENVENIDA (espejo de welcome_screen en bootstrap.sh)
+# ------------------------------------------------------------------------------
+# Explica que hace el instalador y muestra el catalogo por grupo. Solo en modo
+# interactivo (no con -Tools/-AllTools/-DryRun ni sin consola).
+# ==============================================================================
+function Show-Welcome {
+    $groups = @('core', 'shell', 'dev', 'cloud', 'fonts', 'extras')
+    $total  = $TOOLS_CATALOG.Count
+    $vault  = if (Test-Path $VAULT_DIR) { '✓ vault presente' } else { '✗ sin vault' }
+
+    Write-Host ''
+    Write-Host '  ╭────────────────────────────────────────────────────────────╮' -ForegroundColor Cyan
+    Write-Host '  │                                                              │' -ForegroundColor Cyan
+    Write-Host '  │   ●  dotfiles · Setup de entorno                             │' -ForegroundColor Cyan
+    Write-Host '  │      Windows · reproducible en cualquier máquina             │' -ForegroundColor Cyan
+    Write-Host '  │                                                              │' -ForegroundColor Cyan
+    Write-Host '  ╰────────────────────────────────────────────────────────────╯' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host '  Qué hace' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host '    1  Instala las herramientas que elijas   ' -NoNewline; Write-Host '(shell, editor, git, nube…)' -ForegroundColor DarkGray
+    Write-Host '    2  Crea los symlinks de tus configs      ' -NoNewline; Write-Host '(pwsh, git, nvim…)' -ForegroundColor DarkGray
+    Write-Host '    3  Aplica lo sensible desde el vault     ' -NoNewline; Write-Host '(claves SSH, identidades)' -ForegroundColor DarkGray
+    Write-Host ''
+    Write-Host "  Catálogo  ($total herramientas · elegís qué instalar)" -ForegroundColor Cyan
+    Write-Host ''
+    foreach ($g in $groups) {
+        $items = @($TOOLS_CATALOG | Where-Object Group -eq $g)
+        if ($items.Count -eq 0) { continue }
+        $line = ($items | Select-Object -First 5 | ForEach-Object { $_.Key }) -join ' · '
+        Write-Host ("    {0,-6} {1,2}  " -f $g, $items.Count) -ForegroundColor Green -NoNewline
+        Write-Host "$line…" -ForegroundColor DarkGray
+    }
+    Write-Host ''
+    Write-Host '  Entorno   ' -ForegroundColor Cyan -NoNewline
+    Write-Host "✓ Windows   ✓ winget   $vault" -ForegroundColor Green
+    Write-Host ''
+    Write-Host '  ────────────────────────────────────────────────────────────' -ForegroundColor DarkGray
+    Write-Host '  Enter' -ForegroundColor Cyan -NoNewline; Write-Host ' elegir herramientas  ·  ' -NoNewline; Write-Host 'Ctrl+C' -ForegroundColor Cyan -NoNewline; Write-Host ' cancelar'
+    [void](Read-Console)
+}
+
+# ==============================================================================
 # INICIO
 # ==============================================================================
 
 # Asegurar que existe el directorio de logs antes de escribir
 New-Item -ItemType Directory -Path (Split-Path $LOG_FILE) -Force -ErrorAction SilentlyContinue | Out-Null
 New-Item -ItemType Directory -Path $BACKUP_DIR -Force -ErrorAction SilentlyContinue | Out-Null
+
+# Bienvenida solo en modo interactivo real (no en -DryRun/-Tools/-AllTools/sin consola)
+if (-not $Tools -and -not $AllTools -and -not $DryRun -and (Test-Interactive)) {
+    Show-Welcome
+}
 
 Write-Log "bootstrap.ps1 — Setup de entorno" 'SECTION'
 Write-Log "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')$(if ($DryRun) { '  ·  modo DryRun' })" 'INFO'
@@ -1173,24 +1250,30 @@ if (Test-Path $testScript) {
 # RESUMEN FINAL
 # ==============================================================================
 
-Write-Log "Resumen final" 'SECTION'
+Write-Log "--- Resumen final ---" 'SECTION'
 
-if ($ERRORS.Count -eq 0 -and $WARNINGS.Count -eq 0) {
-    Write-Log "Bootstrap completado sin errores." 'OK'
+# Titular segun resultado (espejo del resumen de bootstrap.sh)
+if ($ERRORS.Count -eq 0) {
+    Write-Host '  ✓ Bootstrap completado' -ForegroundColor Green
 } else {
-    if ($WARNINGS.Count -gt 0) {
-        Write-Log "Advertencias ($($WARNINGS.Count)):" 'WARN'
-        foreach ($w in $WARNINGS) { Write-Log $w 'WARN' }
-    }
-    if ($ERRORS.Count -gt 0) {
-        Write-Log "Errores ($($ERRORS.Count)):" 'ERROR'
-        foreach ($e in $ERRORS) { Write-Log $e 'ERROR' }
-    }
+    Write-Host "  ✗ Bootstrap terminó con $($ERRORS.Count) error(es)" -ForegroundColor Red
 }
 
-Write-Log "" 'INFO'
-Write-Log "Backups en: $BACKUP_DIR" 'INFO'
-Write-Log "Log en:     $LOG_FILE" 'INFO'
+# Warnings/errores destacados (siempre visibles)
+if ($WARNINGS.Count -gt 0) {
+    Write-Host ''
+    Write-Host "  ⚠ Advertencias ($($WARNINGS.Count)):" -ForegroundColor DarkYellow
+    foreach ($w in $WARNINGS) { Write-Host "    · $w" -ForegroundColor DarkYellow }
+}
+if ($ERRORS.Count -gt 0) {
+    Write-Host ''
+    Write-Host "  ✗ Errores ($($ERRORS.Count)):" -ForegroundColor Red
+    foreach ($e in $ERRORS) { Write-Host "    · $e" -ForegroundColor Red }
+}
+
+Write-Host ''
+Write-Host "    Log:     $LOG_FILE" -ForegroundColor DarkGray
+Write-Host "    Backups: $BACKUP_DIR" -ForegroundColor DarkGray
 
 Write-Log "Proximos pasos manuales" 'SECTION'
 $stepNum = 1

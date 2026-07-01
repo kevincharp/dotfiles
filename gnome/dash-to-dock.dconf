@@ -15,6 +15,7 @@ extend-height=false
 height-fraction=0.90000000000000002
 hide-tooltip=false
 icon-size-fixed=true
+intellihide=false
 intellihide-mode='FOCUS_APPLICATION_WINDOWS'
 isolate-locations=false
 isolate-monitors=false

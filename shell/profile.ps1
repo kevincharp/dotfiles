@@ -91,14 +91,37 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
         "$_repoRoot\shell\themes\claude-code.omp.json"
     } else { $null }
     if ($_ompTheme) {
+        # El tema (symlink compartido con Linux) trae upgrade.auto/notice=true, util
+        # solo en Linux. En Windows oh-my-posh se instala como paquete MSIX/Appx y NO
+        # puede autoactualizarse: cada arranque tira "upgrade is not supported when
+        # installed as a MSIX package". El toggle 'oh-my-posh disable upgrade' no gana
+        # contra el auto:true explicito del JSON, asi que derivamos una copia LOCAL del
+        # tema con upgrade apagado y arrancamos contra ella. El symlink no se toca (Linux
+        # sigue autoactualizando). La copia se regenera si el tema original cambia.
+        $_ompLocal = Join-Path ($env:LOCALAPPDATA ?? $env:TEMP) 'pwsh-init-cache\claude-code.omp.json'
+        try {
+            $_srcTime = (Get-Item $_ompTheme).LastWriteTimeUtc
+            if (-not (Test-Path $_ompLocal) -or (Get-Item $_ompLocal).LastWriteTimeUtc -lt $_srcTime) {
+                $_ompDir = Split-Path $_ompLocal -Parent
+                if (-not (Test-Path $_ompDir)) { New-Item -ItemType Directory -Path $_ompDir -Force | Out-Null }
+                $_ompJson = Get-Content -Raw -LiteralPath $_ompTheme | ConvertFrom-Json
+                if ($_ompJson.PSObject.Properties.Name -contains 'upgrade') {
+                    $_ompJson.upgrade.auto = $false
+                    $_ompJson.upgrade.notice = $false
+                }
+                $_ompJson | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $_ompLocal -Encoding UTF8
+            }
+        } catch {
+            $_ompLocal = $_ompTheme  # si algo falla, caer al tema original
+        }
         $_ompBin = (Get-Command oh-my-posh).Source
-        _Invoke-CachedInit -Key 'oh-my-posh' -Sources @($_ompBin, $_ompTheme) -Generate {
-            oh-my-posh init pwsh --config $_ompTheme
+        _Invoke-CachedInit -Key 'oh-my-posh' -Sources @($_ompBin, $_ompLocal) -Generate {
+            oh-my-posh init pwsh --config $_ompLocal
         }.GetNewClosure()
     } else {
         Write-Host "oh-my-posh tema no encontrado — ejecutar bootstrap.ps1" -ForegroundColor DarkYellow
     }
-    Remove-Variable _ompTheme, _profileItem, _repoRoot, _ompBin -ErrorAction SilentlyContinue
+    Remove-Variable _ompTheme, _ompLocal, _ompJson, _ompDir, _srcTime, _profileItem, _repoRoot, _ompBin -ErrorAction SilentlyContinue
 
     # Le indica a PSReadLine cual es el ultimo glifo del prompt para que no
     # lo re-pinte con su color default (verde) al editar la linea.

@@ -148,6 +148,7 @@ TOOLS_CATALOG=(
     "zoxide|shell|cd inteligente con memoria"
     "eza|shell|Reemplazo moderno de ls"
     "lazygit|shell|UI de git en terminal"
+    "yazi|shell|File manager TUI (preview de imagenes/PDF/video)"
     "blesh|shell|Syntax highlighting en bash (estilo PSReadLine)"
     "zsh|shell|Shell zsh (alternativa a bash)"
     "zsh-autosuggestions|shell|Sugerencias inline en zsh (estilo PSReadLine)"
@@ -187,6 +188,7 @@ tool_installed() {
         zoxide)          has_cmd zoxide ;;
         eza)             has_cmd eza ;;
         lazygit)         has_cmd lazygit ;;
+        yazi)            has_cmd yazi ;;
         lazyssh)         has_cmd lazyssh ;;
         blesh)           [[ -f "$HOME/.local/share/blesh/ble.sh" ]] ;;
         zsh)                     has_cmd zsh ;;
@@ -303,6 +305,30 @@ install_tool() {
             else
                 log "eza: instalar manualmente — https://github.com/eza-community/eza#installation" "WARN"
                 WARNINGS+=("eza no instalado")
+            fi
+            ;;
+        yazi)
+            # yazi + bundle de deps de preview (mismo criterio que en Windows):
+            #   poppler-utils / poppler -> preview de PDF (pdftoppm)
+            #   ffmpeg                  -> thumbnails de video/audio
+            #   ImageMagick             -> mas formatos de imagen
+            #   p7zip / 7zip            -> navegar dentro de comprimidos
+            #   file                    -> deteccion de MIME (suele venir de base)
+            if [[ "$PKG_MANAGER" == "dnf" ]]; then
+                # yazi primero (critico); las deps van aparte para que el fallo de
+                # una (p.ej. ffmpeg completo requiere RPM Fusion, en repos base solo
+                # esta ffmpeg-free) no impida instalar el resto.
+                run_step "Instalar yazi" sudo dnf install -y yazi
+                run_step "Instalar deps de preview de yazi" bash -c '
+                    sudo dnf install -y poppler-utils ImageMagick p7zip file || true
+                    sudo dnf install -y ffmpeg || sudo dnf install -y ffmpeg-free || true
+                '
+            elif [[ "$PKG_MANAGER" == "pacman" ]]; then
+                run_step "Instalar yazi + deps" sudo pacman -S --noconfirm \
+                    yazi poppler ffmpeg imagemagick p7zip file
+            else
+                log "yazi: instalar manualmente — https://yazi-rs.github.io/docs/installation" "WARN"
+                WARNINGS+=("yazi no instalado — sin paquete para este gestor")
             fi
             ;;
         node)
@@ -1088,6 +1114,13 @@ fi
 
 # Editorconfig
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
+
+# yazi (file manager TUI): config en ~/.config/yazi (en Windows va a %APPDATA%,
+# ver bootstrap.ps1). Symlink: editar en el repo se versiona al instante. Solo
+# si yazi esta instalado (evita crear un symlink huerfano en maquinas sin yazi).
+if has_cmd yazi; then
+    copy_dotfile "yazi/yazi.toml"   "$HOME/.config/yazi/yazi.toml"  "link"
+fi
 
 # Fontconfig: fuerza los emoji a color en Chrome/Chromium. Chrome en Linux NO usa
 # el alias generico "emoji" de fontconfig; hace un match por cobertura de glifo,

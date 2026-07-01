@@ -46,6 +46,7 @@ $DIRS = @(
     "$HOME\.config\powershell"
     "$HOME\.config\git"
     "$HOME\.config\lazygit"
+    "$env:APPDATA\yazi\config"
     "$HOME\.local\bin"
     "$HOME\.local\logs"
     "$HOME\.cache"
@@ -72,6 +73,7 @@ $WINGET_PACKAGES = @(
     @{ Id='JanDeDobbeleer.OhMyPosh';        Name='Oh My Posh';              Optional=$false; Key='oh-my-posh';       Group='shell'  }
     @{ Id='ajeetdsouza.zoxide';             Name='zoxide';                  Optional=$false; Key='zoxide';           Group='shell'  }
     @{ Id='JesseDuffield.lazygit';          Name='LazyGit';                 Optional=$false; Key='lazygit';          Group='shell'  }
+    @{ Id='sxyazi.yazi';                    Name='yazi (file manager TUI)'; Optional=$true ; Key='yazi';             Group='shell'  }
     @{ Id='OpenJS.NodeJS.LTS';              Name='Node.js LTS';             Optional=$false; Key='node';             Group='dev'    }
     @{ Id='SST.opencode';                   Name='opencode';                Optional=$true ; Key='opencode';         Group='dev'    }
     @{ Id='Amazon.AWSCLI';                  Name='AWS CLI';                 Optional=$true ; Key='aws';              Group='cloud'  }
@@ -157,6 +159,9 @@ $DOTFILES = @(
     @{ Src='terminal\settings.json';  Dst="$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"; Mode='link' }
     # Editorconfig (symlink)
     @{ Src='.editorconfig';           Dst="$HOME\.editorconfig"                  ; Mode='link' }
+    # yazi (file manager TUI): en Windows la config vive en %APPDATA%\yazi\config
+    # (NO en ~/.config como Linux). Symlink: editar en el repo se ve al instante.
+    @{ Src='yazi\yazi.toml';          Dst="$env:APPDATA\yazi\config\yazi.toml"   ; Mode='link' }
     # Claude Code (settings.json por symlink: se versiona al editar en el repo.
     # Modelo por defecto sonnet; los cambios de modelo se hacen en sesion.
     # settings.local.json queda copia: es per-maquina.)
@@ -572,6 +577,26 @@ if ($SkipWinget) {
                 continue
             }
             Install-WingetPackage -Id $pkg.Id -Name $pkg.Name -Optional $pkg.Optional
+
+            # yazi arrastra sus dependencias de preview (bundle): sin estas, yazi
+            # funciona pero no previsualiza PDF/video/imagenes ni entra a comprimidos.
+            #   poppler     -> preview de PDF (pdftoppm)
+            #   ffmpeg      -> thumbnails de video/audio
+            #   imagemagick -> mas formatos de imagen y mejor calidad (via Sixel)
+            #   7zip        -> preview/navegacion dentro de .zip/.7z/.tar
+            # OJO: algunas descargas vienen de GitHub releases y el proxy corporativo
+            # puede bloquearlas; si pasa, quedan como WARN y se instalan a mano.
+            if ($pkg.Key -eq 'yazi') {
+                $yaziDeps = @(
+                    @{ Id='oschwartz10612.Poppler';    Name='poppler (yazi: PDF)'         }
+                    @{ Id='Gyan.FFmpeg';               Name='ffmpeg (yazi: video)'        }
+                    @{ Id='ImageMagick.ImageMagick';   Name='ImageMagick (yazi: imagenes)' }
+                    @{ Id='7zip.7zip';                 Name='7-Zip (yazi: comprimidos)'   }
+                )
+                foreach ($dep in $yaziDeps) {
+                    Install-WingetPackage -Id $dep.Id -Name $dep.Name -Optional $true
+                }
+            }
         }
     }
 }

@@ -147,6 +147,34 @@ Conviven **dos** recortadores, a propósito (paridad parcial con Windows):
 - El teclado del Lenovo además dispara Flameshot con **`Fn+F10`** por un keysym de
   hardware (no es un atajo de dconf, no se versiona).
 
+## File manager TUI (`yazi/`)
+
+File manager de terminal con preview de imágenes/PDF/video, en **ambos SO**
+(opcional, grupo `shell` del selector). Detalles no obvios:
+
+- **Config con path distinto por SO** (misma `yazi/yazi.toml` versionada):
+  Linux → symlink a `~/.config/yazi/yazi.toml`; Windows → symlink a
+  **`%APPDATA%\yazi\config\yazi.toml`** (NO `~/.config`). El `yazi.toml` solo
+  redefine el **opener** para que "abrir/editar" texto use **nvim** (el built-in
+  de yazi en Windows abre con `code`). Keymap/theme quedan en los defaults.
+- **`YAZI_FILE_ONE` (solo Windows):** yazi no encuentra el binario `file` solo y
+  falla la detección de MIME (*"Cannot find file's MIME type"*). Se apunta a
+  `file.exe` de Git Bash. Lo setean `bashrc` y `profile.ps1` (paridad); en Linux
+  `file` está en PATH y no hace falta.
+- **Deps de preview = bundle con yazi** (no items sueltos del menú): al instalar
+  yazi el bootstrap suma **poppler** (PDF), **ffmpeg** (video), **ImageMagick**
+  (imágenes) y **7zip** (comprimidos). En Windows algunas bajan de GitHub
+  releases y **el proxy corporativo puede bloquearlas** (quedan como WARN, se
+  instalan a mano). En Fedora `ffmpeg` completo requiere **RPM Fusion** (repos
+  base solo traen `ffmpeg-free`); por eso las deps se instalan aparte de yazi con
+  fallback, para que el fallo de una no tumbe al resto.
+- **Preview de imágenes** depende del protocolo de la terminal: **Windows
+  Terminal** soporta **Sixel** (funciona). Requiere ancho suficiente: con la
+  ventana angosta yazi oculta la columna de preview.
+- **Función `y` (cd-on-exit):** wrapper con paridad en los 3 shells (`bashrc`,
+  `zshrc`, `profile.ps1`). Lanza yazi con `--cwd-file` y al salir deja el shell
+  en el último directorio navegado. Solo se define si `yazi` está instalado.
+
 ## Verificación
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.

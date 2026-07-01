@@ -161,16 +161,31 @@ File manager de terminal con preview de imágenes/PDF/video, en **ambos SO**
   falla la detección de MIME (*"Cannot find file's MIME type"*). Se apunta a
   `file.exe` de Git Bash. Lo setean `bashrc` y `profile.ps1` (paridad); en Linux
   `file` está en PATH y no hace falta.
+- **Instalación en Fedora vía COPR:** yazi **no está en los repos base** de
+  Fedora; el bootstrap habilita el COPR oficial **`lihaohong/yazi`** antes del
+  `dnf install` (mismo patrón que lazygit con `atim/lazygit`). Arch lo tiene en
+  repos; Windows es winget `sxyazi.yazi`.
 - **Deps de preview = bundle con yazi** (no items sueltos del menú): al instalar
   yazi el bootstrap suma **poppler** (PDF), **ffmpeg** (video), **ImageMagick**
-  (imágenes) y **7zip** (comprimidos). En Windows algunas bajan de GitHub
-  releases y **el proxy corporativo puede bloquearlas** (quedan como WARN, se
-  instalan a mano). En Fedora `ffmpeg` completo requiere **RPM Fusion** (repos
-  base solo traen `ffmpeg-free`); por eso las deps se instalan aparte de yazi con
-  fallback, para que el fallo de una no tumbe al resto.
-- **Preview de imágenes** depende del protocolo de la terminal: **Windows
-  Terminal** soporta **Sixel** (funciona). Requiere ancho suficiente: con la
-  ventana angosta yazi oculta la columna de preview.
+  (imágenes), **7zip** (comprimidos) y —solo en Linux— **chafa** (ver abajo). En
+  Windows algunas bajan de GitHub releases y **el proxy corporativo puede
+  bloquearlas** (quedan como WARN, se instalan a mano). En Fedora `ffmpeg`
+  completo requiere **RPM Fusion** (repos base solo traen `ffmpeg-free`); por eso
+  las deps se instalan aparte de yazi con fallback, para que el fallo de una no
+  tumbe al resto.
+- **Preview de imágenes: depende del protocolo gráfico de la terminal.** yazi
+  elige adapter en orden **kitty-protocol > sixel > chafa** según lo que soporte
+  el terminal. **Windows Terminal** soporta **Sixel** (imagen real). **Ptyxis
+  (nuestro default en Fedora) NO soporta sixel ni kitty-protocol** — es una
+  limitación del propio Ptyxis (deshabilitado adrede), no del VTE (que sí trae
+  sixel compilado). Por eso en Linux yazi cae **siempre a chafa** (preview por
+  bloques de color, no nítido) y **sin chafa no se ve NADA de imagen** → el
+  bootstrap instala chafa en Linux. chafa es fallback universal inofensivo: si
+  algún día se usa un terminal con sixel/kitty (Kitty, Ghostty, WezTerm…), yazi
+  usa ese y chafa queda sin usar, sin estorbar. En Windows chafa no se instala
+  (Windows Terminal ya da Sixel, y chafa no tiene paquete confiable en winget).
+  Requiere ancho suficiente: con la ventana angosta yazi oculta la columna de
+  preview.
 - **Función `y` (cd-on-exit):** wrapper con paridad en los 3 shells (`bashrc`,
   `zshrc`, `profile.ps1`). Lanza yazi con `--cwd-file` y al salir deja el shell
   en el último directorio navegado. Solo se define si `yazi` está instalado.

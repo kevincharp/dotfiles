@@ -48,7 +48,7 @@ bash ~/.dotfiles/install.sh --update-only
 
 ### Windows
 
-**Instalacion inicial** (requiere Git for Windows ya instalado — ver Paso 1):
+**Instalacion inicial** (git se auto-instala por winget si falta):
 
 ```powershell
 irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
@@ -171,7 +171,6 @@ Estos programas se instalan manualmente adrede:
 |---|---|---|
 | **VSCode** System Installer x64 | [Descargar](https://code.visualstudio.com/docs/?dv=win64user) | El System Installer agrega `code` al PATH global. El de winget usa el User Installer y puede no quedar en el PATH. |
 | **Python** instalador oficial amd64 | [Descargar](https://www.python.org/downloads/windows/) | El instalador oficial tiene "Add Python to PATH". El de winget instala `py.exe` en su lugar. **Marcar "Add Python to PATH" durante la instalacion.** |
-| **Git for Windows** | [Descargar](https://gitforwindows.org/) | El instalador permite configurar line endings, editor y SSH. Opciones recomendadas: editor Neovim, line endings "as-is", SSH incluido en Git. |
 
 #### 2. Instalar
 
@@ -550,7 +549,6 @@ Flags disponibles:
 |---|---|
 | VSCode | Editor principal |
 | Python | Scripts, herramientas |
-| Git for Windows | Control de versiones + Git Bash |
 
 ---
 

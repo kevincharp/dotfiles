@@ -1276,42 +1276,52 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
             log "[DryRun] Desencriptar $(basename "$age_file" .age) → ~/.ssh/" "SKIP"
         done
     elif has_cmd age; then
-        log "Desencriptando claves SSH (se pide passphrase una sola vez)..." "INFO"
-        read -s -p "Passphrase para claves SSH: " AGE_PASSPHRASE
-        echo ""
-
+        # Optimizacion + anti-choclo: si TODAS las claves privadas ya existen, ni
+        # pedimos la passphrase. Si falta alguna, se pide una vez. Los "ya existe"
+        # van al log; en pantalla solo un resumen (y los errores/desencriptados).
+        _keys_missing=0 _keys_new=0
         for age_file in "$SSH_KEYS_DIR"/*.age; do
-            key_name="$(basename "$age_file" .age)"
-            dst_key="$HOME/.ssh/$key_name"
+            [[ -f "$HOME/.ssh/$(basename "$age_file" .age)" ]] || _keys_missing=$((_keys_missing + 1))
+        done
 
-            if [[ -f "$dst_key" ]]; then
-                log "~/.ssh/$key_name ya existe, saltando" "SKIP"
+        if [[ "$_keys_missing" -eq 0 ]]; then
+            for age_file in "$SSH_KEYS_DIR"/*.age; do
+                echo "[$(date +%H:%M:%S)][SKIP] ~/.ssh/$(basename "$age_file" .age) ya existe" >> "$LOG_FILE" 2>/dev/null || true
                 SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
-            else
-                if printf '%s' "$AGE_PASSPHRASE" | age -d -o "$dst_key" "$age_file" 2>/dev/null; then
+            done
+        else
+            log "Desencriptando claves SSH (se pide passphrase una sola vez)..." "INFO"
+            read -s -p "Passphrase para claves SSH: " AGE_PASSPHRASE
+            echo ""
+            for age_file in "$SSH_KEYS_DIR"/*.age; do
+                key_name="$(basename "$age_file" .age)"
+                dst_key="$HOME/.ssh/$key_name"
+                if [[ -f "$dst_key" ]]; then
+                    echo "[$(date +%H:%M:%S)][SKIP] ~/.ssh/$key_name ya existe" >> "$LOG_FILE" 2>/dev/null || true
+                    SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
+                elif printf '%s' "$AGE_PASSPHRASE" | age -d -o "$dst_key" "$age_file" 2>/dev/null; then
                     chmod 600 "$dst_key"
                     log "Desencriptado $key_name → ~/.ssh/$key_name" "OK"
-                    SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
+                    SSH_KEYS_OK=$((SSH_KEYS_OK + 1)); _keys_new=$((_keys_new + 1))
                 else
                     log "Error desencriptando $key_name (passphrase incorrecta?)" "ERROR"
                     ERRORS+=("Desencriptar SSH key $key_name")
                 fi
-            fi
-        done
-        unset AGE_PASSPHRASE
+            done
+            unset AGE_PASSPHRASE
+        fi
 
-        # Copiar claves publicas
+        # Copiar claves publicas (silencioso: al log, solo cuenta)
         for pub_file in "$SSH_KEYS_DIR"/*.pub; do
             [[ -f "$pub_file" ]] || continue
-            pub_name="$(basename "$pub_file")"
-            dst_pub="$HOME/.ssh/$pub_name"
+            dst_pub="$HOME/.ssh/$(basename "$pub_file")"
             if [[ -f "$dst_pub" ]]; then
-                log "~/.ssh/$pub_name ya existe, saltando" "SKIP"
+                echo "[$(date +%H:%M:%S)][SKIP] $dst_pub ya existe" >> "$LOG_FILE" 2>/dev/null || true
             else
-                run_step "Copiar $pub_name → ~/.ssh/" cp "$pub_file" "$dst_pub"
-                chmod 644 "$dst_pub"
+                cp "$pub_file" "$dst_pub" && chmod 644 "$dst_pub"
             fi
         done
+        log "${SSH_KEYS_OK} claves SSH en ~/.ssh   (detalle en el log)" "OK"
     else
         log "age no instalado — no se pueden desencriptar las claves SSH" "WARN"
         WARNINGS+=("Instalar age para desencriptar claves SSH: curl -sSf https://dl.filippo.io/age/latest?for=linux/amd64 | tar xz")
@@ -1464,11 +1474,11 @@ _choose_default_shell() {
         printf '\033[?25l' > /dev/tty
         local nlines=0 i key="" rest=""
         while true; do
-            local out=$'\n  \033[36m== Shell por defecto ==\033[0m\n'
-            out+=$'  \033[90m↑/↓ mover · Enter confirmar\033[0m\n\n'
+            local out=$'\n  \033[1;36m▶ Shell por defecto\033[0m\n'
+            out+=$'  \033[90m↑/↓ mover · Enter confirmar  (● = actual)\033[0m\n\n'
             for ((i = 0; i < 2; i++)); do
-                local ptr box='   '
-                [[ "${sh_paths[i]}" == "$current" ]] && box='[*]'
+                local ptr box=$'\033[90m▱\033[0m'
+                [[ "${sh_paths[i]}" == "$current" ]] && box=$'\033[32m●\033[0m'
                 if (( i == cur )); then ptr=$'\033[36m❯\033[0m'; else ptr=' '; fi
                 out+="  $ptr $box ${sh_names[i]}"$'\n'
             done
@@ -1621,14 +1631,23 @@ if [[ -f "$TEST_SCRIPT" ]]; then
     if [[ "$DRY_RUN" == true ]]; then
         log "[DryRun] bash $TEST_SCRIPT" "SKIP"
     else
-        bash "$TEST_SCRIPT"
+        # Anti-choclo: la salida completa (~90 [OK]) va al log. En pantalla solo
+        # el resumen (PASS/FAIL/WARN) y, si hay fallos, las lineas [FAIL].
+        _test_out="$(bash "$TEST_SCRIPT" 2>&1)"
         TEST_EXIT=$?
-        if [[ $TEST_EXIT -ne 0 ]]; then
-            log "Validaciones post-bootstrap: hay fallos (exit $TEST_EXIT)" "WARN"
-            WARNINGS+=("Validaciones post-bootstrap con fallos — revisar output arriba")
+        printf '%s\n' "$_test_out" >> "$LOG_FILE" 2>/dev/null || true
+        _p="$(printf '%s\n' "$_test_out" | grep -oE 'PASS: *[0-9]+' | grep -oE '[0-9]+' | head -1)"
+        _f="$(printf '%s\n' "$_test_out" | grep -oE 'FAIL: *[0-9]+' | grep -oE '[0-9]+' | head -1)"
+        if [[ "${_f:-0}" -ne 0 ]]; then
+            log "Validaciones: ${_p:-?} OK · ${_f} con fallo — detalle abajo" "WARN"
+            printf '%s\n' "$_test_out" | grep -iE 'FAIL|✗|\[X\]' | while IFS= read -r _l; do
+                log "$_l" "ERROR"
+            done
+            WARNINGS+=("Validaciones post-bootstrap: ${_f} fallo(s) — ver log")
         else
-            log "Validaciones post-bootstrap: todo OK" "OK"
+            log "Validaciones: ${_p:-todas} OK   (detalle en el log)" "OK"
         fi
+        unset _test_out _p _f
     fi
 else
     log "test-bootstrap.sh no encontrado en $REPO_ROOT" "WARN"

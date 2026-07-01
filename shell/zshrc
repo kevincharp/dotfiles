@@ -150,6 +150,23 @@ edit() {
     fi
 }
 
+# --- y: yazi con cd-on-exit ---
+# Wrapper oficial de yazi (paridad con profile.ps1 y bashrc). Lanza yazi y, al
+# salir con 'q', deja el shell parado en el ultimo directorio navegado (yazi
+# escribe el cwd en un archivo temporal via --cwd-file). Solo se define si yazi
+# esta instalado.
+if command -v yazi &>/dev/null; then
+    y() {
+        local tmp cwd
+        tmp="$(mktemp -t yazi-cwd.XXXXXX)"
+        yazi "$@" --cwd-file="$tmp"
+        if cwd="$(command cat -- "$tmp")" && [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+            builtin cd -- "$cwd" || return
+        fi
+        rm -f -- "$tmp"
+    }
+fi
+
 # --- which: tipo completo ---
 alias which='type -a'
 

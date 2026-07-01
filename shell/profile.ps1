@@ -272,6 +272,19 @@ Set-Alias vi   nvim
 Set-Alias vim  nvim
 Set-Alias nano nvim
 
+# yazi (file manager TUI): en Windows no encuentra el binario 'file' solo, hay
+# que apuntarlo con YAZI_FILE_ONE o falla la deteccion de MIME ("Cannot find
+# file's MIME type"). Se usa el 'file.exe' de Git Bash (paridad con bashrc).
+if ($IsWindows -and -not $env:YAZI_FILE_ONE) {
+    $_fileOne = Get-Command file.exe -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty Source
+    if (-not $_fileOne) {
+        $_gitFile = Join-Path $env:ProgramFiles 'Git\usr\bin\file.exe'
+        if (Test-Path $_gitFile) { $_fileOne = $_gitFile }
+    }
+    if ($_fileOne) { $env:YAZI_FILE_ONE = $_fileOne }
+}
+
 # ==============================================================================
 # RUTAS BASE
 # ==============================================================================
@@ -298,6 +311,24 @@ function open-here {
         Start-Process xdg-open -ArgumentList (Get-Location)
     } else {
         Start-Process open -ArgumentList (Get-Location)
+    }
+}
+
+<#
+.SYNOPSIS yazi con cd-on-exit (paridad con la funcion 'y' de bashrc/zshrc)
+.DESCRIPTION Lanza yazi y, al salir con 'q', deja el shell parado en el ultimo
+directorio navegado (yazi escribe el cwd en un temporal via --cwd-file).
+.EXAMPLE y
+#>
+if (Get-Command yazi -ErrorAction SilentlyContinue) {
+    function y {
+        $tmp = [System.IO.Path]::GetTempFileName()
+        yazi $args --cwd-file="$tmp"
+        $cwd = Get-Content -LiteralPath $tmp -ErrorAction SilentlyContinue
+        if (-not [string]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path) {
+            Set-Location -LiteralPath $cwd
+        }
+        Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
     }
 }
 

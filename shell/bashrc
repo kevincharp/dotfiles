@@ -144,6 +144,13 @@ alias vi='nvim'
 alias vim='nvim'
 alias nano='nvim'
 
+# yazi (file manager TUI): en Windows no encuentra el binario 'file' solo, hay
+# que apuntarlo con YAZI_FILE_ONE o falla la deteccion de MIME ("Cannot find
+# file's MIME type"). Derivamos la ruta del 'file' de Git Bash ya en el PATH.
+if [[ "$IS_WINDOWS" == true ]] && command -v file &>/dev/null; then
+    export YAZI_FILE_ONE="$(cygpath -w "$(command -v file)" 2>/dev/null)"
+fi
+
 # ==============================================================================
 # RUTAS BASE
 # ==============================================================================
@@ -181,6 +188,23 @@ edit() {
         "${VISUAL:-${EDITOR:-nvim}}" "$target"
     fi
 }
+
+# --- y: yazi con cd-on-exit ---
+# Wrapper oficial de yazi (paridad con profile.ps1 y zshrc). Lanza yazi y, al
+# salir con 'q', deja el shell parado en el ultimo directorio navegado (yazi
+# escribe el cwd en un archivo temporal via --cwd-file). Solo se define si yazi
+# esta instalado.
+if command -v yazi &>/dev/null; then
+    y() {
+        local tmp cwd
+        tmp="$(mktemp -t yazi-cwd.XXXXXX)"
+        yazi "$@" --cwd-file="$tmp"
+        if cwd="$(command cat -- "$tmp")" && [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+            builtin cd -- "$cwd" || return
+        fi
+        rm -f -- "$tmp"
+    }
+fi
 
 # --- which: tipo completo ---
 alias which='type -a'

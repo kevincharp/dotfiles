@@ -65,6 +65,7 @@ $DIRS = @(
 $WINGET_PACKAGES = @(
     @{ Id='Microsoft.WindowsTerminal';      Name='Windows Terminal';        Optional=$false; Key='windows-terminal'; Group='core'   }
     @{ Id='Microsoft.PowerShell';           Name='PowerShell 7';            Optional=$false; Key='pwsh';             Group='core'   }
+    @{ Id='Git.Git';                        Name='Git for Windows';         Optional=$false; Key='git';              Group='core'   }
     @{ Id='Neovim.Neovim';                  Name='Neovim';                  Optional=$false; Key='neovim';           Group='core'   }
     @{ Id='BurntSushi.ripgrep.MSVC';        Name='ripgrep';                 Optional=$false; Key='ripgrep';          Group='core'   }
     @{ Id='junegunn.fzf';                   Name='fzf';                     Optional=$false; Key='fzf';              Group='core'   }
@@ -102,7 +103,7 @@ $TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 # ==============================================================================
 # INSTALACIONES MANUALES REQUERIDAS
 # ------------------------------------------------------------------------------
-# Estos tres programas NO se instalan por winget adrede. Hay razones concretas:
+# Estos dos programas NO se instalan por winget adrede. Hay razones concretas:
 #
 #  1. VSCode — System Installer (x64)
 #     Descargá: https://code.visualstudio.com/docs/?dv=win64user
@@ -120,17 +121,12 @@ $TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 #     (python3_host_prog necesita el path exacto del ejecutable).
 #     IMPORTANTE: durante la instalación marcá "Add Python to PATH".
 #
-#  3. Git — Git for Windows
-#     Descargá: https://gitforwindows.org/
-#     ¿Por qué manual? El instalador oficial te permite configurar opciones
-#     críticas: editor por defecto, manejo de line endings (CRLF/LF),
-#     integración con el shell de Windows, y si agregar Git Bash al PATH.
-#     Por winget esas opciones vienen con defaults que pueden no ser los correctos
-#     para tu flujo de trabajo.
-#     Opciones recomendadas durante la instalación:
-#       - Editor: Neovim (o VSCode si preferís)
-#       - Line endings: "Checkout as-is, commit as-is" (manejamos con .gitconfig)
-#       - SSH: usar el SSH incluido en Git
+# NOTA: Git for Windows SI se instala por winget (Id 'Git.Git', grupo core).
+# Antes era manual para elegir en el wizard el editor, los line endings y el SSH,
+# pero esas opciones hoy las fija el .gitconfig versionado del vault
+# (core.editor=nvim, core.autocrlf=input), que tiene prioridad sobre los defaults
+# del instalador. El SSH del server se resuelve con el OpenSSH nativo de Windows,
+# no con el de Git. Ver [[git-for-windows-winget]] en las notas del repo.
 # ==============================================================================
 
 # Modulos de PowerShell
@@ -507,9 +503,6 @@ Write-Log "   Razon: el System Installer agrega 'code' al PATH global." 'INFO'
 Write-Log "2. Python (instalador oficial amd64)" 'INFO'
 Write-Log "   https://www.python.org/downloads/windows/" 'INFO'
 Write-Log "   Razon: marca 'Add Python to PATH' - necesario para Neovim." 'INFO'
-Write-Log "3. Git for Windows" 'INFO'
-Write-Log "   https://gitforwindows.org/" 'INFO'
-Write-Log "   Razon: el instalador permite configurar line endings y SSH." 'INFO'
 Write-Log "" 'INFO'
 Write-Log "Ya los instalaste? Si no, presiona Ctrl+C y hacelo primero." 'WARN'
 

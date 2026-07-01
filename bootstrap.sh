@@ -314,6 +314,14 @@ install_tool() {
             #   ImageMagick             -> mas formatos de imagen
             #   p7zip / 7zip            -> navegar dentro de comprimidos
             #   file                    -> deteccion de MIME (suele venir de base)
+            #   chafa                   -> preview de imagenes por bloques (fallback).
+            # Sobre chafa: yazi elige adapter en orden kitty-protocol > sixel > chafa
+            # segun lo que soporte el terminal. Ptyxis (nuestro default en Fedora) NO
+            # soporta sixel ni kitty-protocol (limitacion del propio Ptyxis, no del
+            # VTE), asi que cae SIEMPRE a chafa -> sin chafa no hay preview de imagen.
+            # Es fallback universal inofensivo: si algun dia se usa un terminal con
+            # sixel/kitty (Kitty, Ghostty, WezTerm...), yazi usa ese y chafa queda
+            # sin usar, sin estorbar. Por eso se instala siempre.
             if [[ "$PKG_MANAGER" == "dnf" ]]; then
                 # yazi NO esta en los repos base de Fedora: se habilita el COPR
                 # oficial (lihaohong/yazi), mismo patron que lazygit (atim/lazygit).
@@ -326,12 +334,12 @@ install_tool() {
                     sudo dnf install -y yazi
                 '
                 run_step "Instalar deps de preview de yazi" bash -c '
-                    sudo dnf install -y poppler-utils ImageMagick p7zip file || true
+                    sudo dnf install -y poppler-utils ImageMagick p7zip file chafa || true
                     sudo dnf install -y ffmpeg || sudo dnf install -y ffmpeg-free || true
                 '
             elif [[ "$PKG_MANAGER" == "pacman" ]]; then
                 run_step "Instalar yazi + deps" sudo pacman -S --noconfirm \
-                    yazi poppler ffmpeg imagemagick p7zip file
+                    yazi poppler ffmpeg imagemagick p7zip file chafa
             else
                 log "yazi: instalar manualmente — https://yazi-rs.github.io/docs/installation" "WARN"
                 WARNINGS+=("yazi no instalado — sin paquete para este gestor")

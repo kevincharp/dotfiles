@@ -168,6 +168,7 @@ TOOLS_CATALOG=(
     "chrome|apps|Google Chrome (RPM oficial + repo para updates)"
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
     "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
+    "remmina|apps|Cliente RDP/VNC (conexiones a servers Windows)"
 )
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
@@ -208,6 +209,7 @@ tool_installed() {
         chrome)          rpm -q google-chrome-stable &>/dev/null ;;
         openlogi)        rpm -q openlogi &>/dev/null ;;
         flameshot)       has_cmd flameshot ;;
+        remmina)         has_cmd remmina ;;
         *)               return 1 ;;
     esac
 }
@@ -497,6 +499,26 @@ install_tool() {
                 run_step "Habilitar openlogi-agent (servicio de usuario)" \
                     systemctl --user enable --now openlogi-agent.service
             fi
+            ;;
+        remmina)
+            # Cliente RDP/VNC para conectarse a servers Windows. El core no trae
+            # los protocolos: van en paquetes de plugins aparte. Los nombres
+            # difieren por distro (Fedora usa 'plugins' plural; Debian 'plugin'
+            # singular; Arch los reparte entre remmina y freerdp).
+            #   - rdp:    protocolo RDP (el que se usa contra Windows).
+            #   - secret: guarda las credenciales en el keyring de GNOME.
+            # Los perfiles de conexion (host/usuario/pass) NO se versionan aca:
+            # son sensibles y van al vault, igual que las claves SSH.
+            case "$PKG_MANAGER" in
+                dnf)    run_step "Instalar Remmina + plugins RDP" \
+                            $PKG_INSTALL remmina remmina-plugins-rdp remmina-plugins-secret ;;
+                apt)    run_step "Instalar Remmina + plugins RDP" \
+                            $PKG_INSTALL remmina remmina-plugin-rdp remmina-plugin-secret ;;
+                pacman) run_step "Instalar Remmina + plugins RDP" \
+                            $PKG_INSTALL remmina freerdp ;;
+                *)      log "remmina: gestor no soportado — instalar manual en esta distro" "WARN"
+                        WARNINGS+=("remmina no instalado — distro no soportada por el bootstrap") ;;
+            esac
             ;;
         *)
             log "Herramienta desconocida: $1" "WARN"

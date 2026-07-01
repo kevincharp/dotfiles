@@ -1,0 +1,28 @@
+# yazi.toml — config del file manager TUI (multiplataforma).
+#   Linux:   symlink a ~/.config/yazi/yazi.toml
+#   Windows: symlink a %APPDATA%\yazi\config\yazi.toml (path distinto, ver bootstrap)
+#
+# Objetivo principal: que "abrir/editar" un archivo de texto use neovim en vez
+# del default de yazi (en Windows el built-in abre con VS Code). El preview de
+# imagen/PDF/video lo dan herramientas externas (poppler/ffmpeg/imagemagick),
+# instaladas junto a yazi por el bootstrap.
+
+[opener]
+edit = [
+	# Linux/macOS: respeta $EDITOR (nvim en nuestros shells), bloqueante.
+	{ run = '${EDITOR:-nvim} "$@"', desc = "$EDITOR", block = true, for = "unix" },
+	# Windows: nvim explicito (el built-in de yazi usaria 'code').
+	{ run = 'nvim %*',              desc = "nvim",    block = true, for = "windows" },
+	{ run = 'code %*',              desc = "code",    orphan = true, for = "windows" },
+]
+
+[open]
+rules = [
+	# Texto/código/config -> se editan con la regla 'edit' (nvim).
+	{ mime = "text/*",                 use = [ "edit" ] },
+	{ mime = "application/json",       use = [ "edit" ] },
+	{ mime = "application/javascript", use = [ "edit" ] },
+	{ mime = "application/x-yaml",     use = [ "edit" ] },
+	# Todo lo demás -> app por defecto del sistema (regla built-in 'open').
+	{ mime = "*/*",                    use = [ "open" ] },
+]

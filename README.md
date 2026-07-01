@@ -251,28 +251,34 @@ bash bootstrap.sh --dry-run
 | `--all-tools` | Instalar todo el catalogo sin preguntar |
 | `--tools=id1,id2` | Instalar solo esas herramientas (ver selector) |
 
-### Selector de herramientas (ambos OS)
+### Selector de herramientas
 
-Al instalar, el bootstrap **pregunta que herramientas instalar** (util, por
-ejemplo, para un Linux en pendrive donde solo queres `neovim` y poco mas). El
-menu arranca con todo pre-marcado:
+Al instalar, el bootstrap **pregunta que herramientas instalar**. En Linux el
+selector es **por grupos, colapsable** y arranca **sin nada marcado** (opt-in:
+elegis vos que instalar). Precede una pantalla de bienvenida que explica que hace
+el instalador y muestra el catalogo:
 
 ```
-  == Selector de herramientas ==
-  [core]
-    [x]  1) neovim       Editor de terminal
-    [x]  2) ripgrep      Busqueda rapida (Telescope)
+  ▶ Elegí qué instalar
+  ↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar
+
+  ❯ ▸ ▱ core     (0/4)
+    ▸ ▱ shell    (0/10)
+    ▸ ▨ dev      (2/4)
     ...
-  [shell]
-    [x]  8) oh-my-posh   Prompt con tema
-    ...
-  Comandos: numeros (ej "1 3 5") | grupo (core/shell/dev/cloud/fonts) | todo | nada | ok
+  2 de 30 seleccionadas
 ```
 
-- **Numeros** (`1 3 5`): alterna esas filas
-- **Grupo** (`core`, `shell`, `dev`, `cloud`, `fonts`; en Windows tambien `extras`): alterna el grupo entero
-- **`todo`** / **`nada`**: marca / desmarca todo
-- **Enter** vacio u **`ok`**: confirma e instala lo marcado
+- **↑/↓**: mover entre filas
+- **→ / ←**: expandir / colapsar un grupo (ver sus herramientas)
+- **espacio**: marcar/desmarcar — sobre un **grupo** afecta todo el grupo; sobre un **item**, solo ese
+- Checkbox de grupo: `▱` ninguno · `▨` parcial · `▰` todos
+- **a** / **n**: marcar todo / nada
+- **Enter**: confirma e instala lo marcado
+
+> `curl`/`wget`/`unzip` **no aparecen** en el selector: son dependencias base que
+> se instalan solas cuando alguna herramienta las necesita (ej. `unzip` para
+> `firacode`). En Windows el selector sigue siendo el clasico (lista con `[x]`).
 
 **Como evitar la pregunta** (no interactivo):
 
@@ -283,8 +289,8 @@ menu arranca con todo pre-marcado:
 | Nada de paquetes | `--skip-packages` | `-SkipPackages` / `-SkipWinget` |
 
 > Prioridad: `--tools` → `--all-tools`/`--dry-run` → menu interactivo → si no hay
-> terminal (ej. `curl | bash` no interactivo) **instala todo** como red de
-> seguridad, para no dejar un setup a medias.
+> terminal (ej. `curl | bash` no interactivo) **no instala nada** y pide usar
+> `--tools`/`--all-tools` (coherente con opt-in: nunca instala por sorpresa).
 
 ### Pasos finales (ambos OS)
 

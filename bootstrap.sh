@@ -1262,9 +1262,9 @@ if [[ -f "$VAULT_DIR/rclone/rclone.conf" ]]; then
     run_step "Permisos ~/.config/rclone/rclone.conf" chmod 600 "$HOME/.config/rclone/rclone.conf"
 fi
 
-# Fin de los symlinks/copias silenciosos: resumen y volver a modo normal.
+# Pausa del modo silencioso para las claves SSH (piden passphrase, deben verse).
+# Se reactiva después para la segunda tanda; el resumen total va al cierre del paso.
 _QUIET_STEPS=0
-log "${_QUIET_OK} archivos aplicados (symlinks/configs)   (detalle en el log)" "OK"
 
 # SSH keys (encriptadas con age, en el vault privado)
 SSH_KEYS_DIR="$VAULT_DIR/ssh/keys"
@@ -1319,6 +1319,11 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
 else
     log "No hay claves .age en ssh/keys/, saltando" "SKIP"
 fi
+
+# Segunda tanda de symlinks/configs simples: también al log (modo silencioso).
+# Se reactiva aca (se habia apagado para las claves SSH) y se cierra al final del
+# paso, sumando al mismo contador _QUIET_OK para el resumen.
+_QUIET_STEPS=1
 
 # Editorconfig
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
@@ -1406,6 +1411,11 @@ if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys
     fi
 fi
 unset _chrome_sys_desktop _chrome_override
+
+# Cierre del modo silencioso del paso [5/8]: resumen total de symlinks/configs.
+# Lo que sigue (Ptyxis/GNOME dconf) SÍ se muestra: es restauración de sistema.
+_QUIET_STEPS=0
+log "${_QUIET_OK} archivos aplicados (symlinks/configs)   (detalle en el log)" "OK"
 
 # Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un
 # archivo), asi que no se puede symlinkear: se restaura con 'dconf load'.

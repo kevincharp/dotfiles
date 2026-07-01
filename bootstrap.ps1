@@ -313,9 +313,9 @@ function Test-Interactive {
 function Select-ToolsInteractive {
     $keys   = $TOOLS_CATALOG | ForEach-Object { $_.Key }
     $groups = @('core', 'shell', 'dev', 'cloud', 'fonts', 'extras')
-    # Estado de marcado por Key (todo pre-marcado)
+    # Estado de marcado por Key (nada pre-marcado: el usuario elige que instalar).
     $marked = @{}
-    foreach ($k in $keys) { $marked[$k] = $true }
+    foreach ($k in $keys) { $marked[$k] = $false }
 
     # Filas navegables en orden de display (solo herramientas, no headers)
     $rows = @()
@@ -400,7 +400,7 @@ function Select-ToolsInteractiveText {
     $keys   = $TOOLS_CATALOG | ForEach-Object { $_.Key }
     $groups = @('core', 'shell', 'dev', 'cloud', 'fonts', 'extras')
     $marked = @{}
-    foreach ($k in $keys) { $marked[$k] = $true }
+    foreach ($k in $keys) { $marked[$k] = $false }   # nada pre-marcado (opt-in)
 
     while ($true) {
         Write-Host ''

@@ -121,6 +121,28 @@ has_cmd() {
     command -v "$1" &>/dev/null
 }
 
+# ensure_base_deps — instala las dependencias base (curl/wget/unzip) que necesitan
+# varias herramientas para descargarse/descomprimirse. NO estan en el catalogo (no
+# son herramientas que el usuario elija): se resuelven solas y solo si faltan. En
+# Fedora curl/wget suelen venir de fabrica; unzip a veces no. Silencioso si ya estan.
+ensure_base_deps() {
+    local dep missing=()
+    for dep in curl wget unzip; do
+        has_cmd "$dep" || missing+=("$dep")
+    done
+    [[ ${#missing[@]} -eq 0 ]] && return 0
+    if [[ "$DRY_RUN" == true ]]; then
+        log "[DryRun] Instalar dependencias base: ${missing[*]}" "SKIP"
+        return 0
+    fi
+    if [[ "$PKG_MANAGER" == "none" ]]; then
+        log "Faltan dependencias base (${missing[*]}) y no hay package manager" "WARN"
+        WARNINGS+=("Instalar manualmente: ${missing[*]}")
+        return 0
+    fi
+    run_step "Dependencias base (${missing[*]})" $PKG_INSTALL "${missing[@]}"
+}
+
 # ==============================================================================
 # CATALOGO DE HERRAMIENTAS
 # ------------------------------------------------------------------------------
@@ -140,9 +162,6 @@ TOOLS_CATALOG=(
     "neovim|core|Editor de terminal"
     "ripgrep|core|Busqueda rapida (Telescope)"
     "fzf|core|Fuzzy finder (Ctrl+R)"
-    "curl|core|Cliente HTTP"
-    "wget|core|Descargas"
-    "unzip|core|Descompresion"
     "bash-completion|core|Autocompletado de bash"
     "oh-my-posh|shell|Prompt con tema"
     "zoxide|shell|cd inteligente con memoria"
@@ -178,9 +197,6 @@ tool_installed() {
         neovim)          has_cmd nvim ;;
         ripgrep)         has_cmd rg ;;
         fzf)             has_cmd fzf ;;
-        curl)            has_cmd curl ;;
-        wget)            has_cmd wget ;;
-        unzip)           has_cmd unzip ;;
         bash-completion) [[ -f /usr/share/bash-completion/bash_completion ]] \
                             || rpm -q bash-completion &>/dev/null \
                             || dpkg -l bash-completion &>/dev/null ;;
@@ -219,7 +235,7 @@ tool_installed() {
 # install_tool <id> — instala la herramienta (logica por distro preservada)
 install_tool() {
     case "$1" in
-        neovim|ripgrep|fzf|curl|wget|unzip|bash-completion|zsh|flameshot)
+        neovim|ripgrep|fzf|bash-completion|zsh|flameshot)
             run_step "Instalar $1" $PKG_INSTALL "$1"
             ;;
         zsh-autosuggestions)
@@ -871,6 +887,10 @@ else
             log "Actualizando fuentes..." "INFO"
             $PKG_UPDATE 2>&1 | tail -1
         fi
+
+        # Dependencias base (curl/wget/unzip): varias herramientas las necesitan
+        # para descargarse. Se instalan primero y solo si faltan (no estan en el menu).
+        ensure_base_deps
 
         # Recorre solo lo seleccionado: instala lo que falte, saltea lo ya presente.
         for _tool_id in "${SELECTED_TOOLS[@]}"; do

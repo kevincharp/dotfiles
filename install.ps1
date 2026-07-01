@@ -6,7 +6,7 @@
 #     - dotfiles        (PUBLICO)  -> scripts + configs no sensibles  [este repo]
 #     - dotfiles-vault  (PRIVADO)  -> ssh keys, identidades git, bookmarks
 #
-#   Instalacion inicial (requiere Git for Windows ya instalado):
+#   Instalacion inicial (git se auto-instala por winget si falta):
 #     irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
 #
 #   Actualizacion (con el repo ya clonado):
@@ -88,20 +88,33 @@ function Test-CommandAvailable {
 }
 
 # ==============================================================================
-# 1. VERIFICAR GIT
+# 1. VERIFICAR GIT (bootstrap del bootstrap)
 # ------------------------------------------------------------------------------
-# En Windows Git se instala manualmente (Git for Windows) adrede: su instalador
-# configura line endings, editor y SSH. No lo auto-instalamos via winget.
+# Git hace falta ANTES que nada: este script clona el repo con 'git clone'. Como
+# ya no lo instalamos manual (las opciones del wizard las cubre el .gitconfig del
+# vault: core.editor=nvim, core.autocrlf=input), lo auto-instalamos por winget si
+# falta. winget viene con Windows moderno, asi no queda ningun prerequisito manual.
 # ==============================================================================
 
 Write-Log 'Verificando requisitos...' 'SECTION'
 
 if (-not (Test-CommandAvailable 'git')) {
-    Write-Log 'Git no esta instalado.' 'ERROR'
-    Write-Log 'En Windows, instala Git for Windows manualmente primero:' 'WARN'
-    Write-Log '  https://gitforwindows.org/' 'WARN'
-    Write-Log '  (configura line endings, editor y SSH durante la instalacion)' 'WARN'
-    exit 1
+    Write-Log 'Git no esta instalado - instalando via winget...' 'WARN'
+    if (-not (Test-CommandAvailable 'winget')) {
+        Write-Log 'winget tampoco esta disponible. Instala "App Installer" desde' 'ERROR'
+        Write-Log 'la Microsoft Store (o Git manual: https://gitforwindows.org/) y reintenta.' 'ERROR'
+        exit 1
+    }
+    winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements
+    # Refrescar el PATH del proceso actual: winget deja git en Program Files pero
+    # esta sesion no lo ve hasta recargar el PATH de Machine + User.
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+                [Environment]::GetEnvironmentVariable('Path', 'User')
+    if (-not (Test-CommandAvailable 'git')) {
+        Write-Log 'Git se instalo pero no quedo en el PATH de esta sesion.' 'ERROR'
+        Write-Log 'Cerra y reabri la terminal, y volve a correr install.ps1.' 'WARN'
+        exit 1
+    }
 }
 $gitVersion = (git --version) -replace 'git version ', ''
 Write-Log "git $gitVersion OK" 'OK'

@@ -578,7 +578,7 @@ _select_interactive() {
     # Estado de marcado: indice del catalogo -> 1 (marcado) / 0
     local -a marked order
     local i n="${#TOOLS_CATALOG[@]}"
-    for ((i = 0; i < n; i++)); do marked[i]=1; done   # todo pre-marcado
+    for ((i = 0; i < n; i++)); do marked[i]=0; done   # nada pre-marcado (opt-in)
 
     local groups=(core shell dev cloud fonts apps)
     local g entry id grp desc
@@ -676,7 +676,7 @@ _select_interactive() {
 _select_interactive_text() {
     local -a marked
     local i n="${#TOOLS_CATALOG[@]}"
-    for ((i = 0; i < n; i++)); do marked[i]=1; done   # todo pre-marcado
+    for ((i = 0; i < n; i++)); do marked[i]=0; done   # nada pre-marcado (opt-in)
 
     local groups=(core shell dev cloud fonts apps)
     local g entry id grp desc

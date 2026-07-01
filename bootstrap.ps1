@@ -292,7 +292,8 @@ function Install-WingetPackage {
 #   2. -AllTools / -DryRun -> todo, sin preguntar
 #   3. consola interactiva -> menu agrupado, pregunta siempre
 #   4. sin consola (irm | iex no interactivo) -> todo, como red de seguridad
-# El menu arranca con TODO pre-marcado: Enter = instalar todo.
+# El menu arranca SIN nada pre-marcado (opt-in): el usuario elige que instalar.
+# Enter sin marcar nada = no instala nada.
 # ==============================================================================
 
 $script:SELECTED_KEYS = @()

@@ -576,8 +576,9 @@ install_tool() {
 #   3. terminal interactiva (hay /dev/tty) -> menu agrupado, pregunta siempre
 #   4. sin terminal (curl | bash sin tty) -> todo, como red de seguridad
 #
-# El menu arranca con TODO pre-marcado: Enter directo = instalar todo. Se
-# alterna por numero, por grupo (core/shell/dev/cloud/fonts) o con todo/nada.
+# El menu arranca SIN nada pre-marcado (opt-in): el usuario elige que instalar.
+# Enter sin marcar nada = no instala nada. Se alterna por numero, por grupo
+# (core/shell/dev/cloud/fonts) o con todo/nada.
 # ==============================================================================
 
 SELECTED_TOOLS=()

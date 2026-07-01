@@ -858,11 +858,69 @@ select_tools() {
 }
 
 # ==============================================================================
+# PANTALLA DE BIENVENIDA
+# ------------------------------------------------------------------------------
+# Explica que hace el instalador y muestra el catalogo por grupo antes de arrancar.
+# Solo en modo interactivo (con /dev/tty): con --tools/--all-tools/--dry-run o sin
+# tty se saltea para no estorbar en flujos automatizados.
+# ==============================================================================
+
+welcome_screen() {
+    # Detectar SO/pkg de forma ligera (el paso [1/8] hace la deteccion oficial)
+    local distro="Linux" pkg="?"
+    [[ -r /etc/os-release ]] && distro="$(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
+    if   has_cmd dnf;    then pkg="dnf"
+    elif has_cmd apt;    then pkg="apt"
+    elif has_cmd pacman; then pkg="pacman"; fi
+    local vault_ok="✗ sin vault"; [[ -d "$VAULT_DIR" ]] && vault_ok="✓ vault presente"
+
+    # Conteo por grupo (dinamico desde el catalogo)
+    local g j c line
+    printf '%b' "$C_SECTION" > /dev/tty
+    cat > /dev/tty <<'EOF'
+  ╭────────────────────────────────────────────────────────────╮
+  │                                                              │
+  │   ●  dotfiles · Setup de entorno                             │
+  │      Linux · reproducible en cualquier máquina               │
+  │                                                              │
+  ╰────────────────────────────────────────────────────────────╯
+EOF
+    printf '%b\n' "$C_RESET" > /dev/tty
+    printf '  %b%bQué hace%b\n\n' "$C_SECTION" "$'\033[1m'" "$C_RESET" > /dev/tty
+    printf '    %b1%b  Instala las herramientas que elijas   %b(shell, editor, git, nube…)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
+    printf '    %b2%b  Crea los symlinks de tus configs      %b(bashrc, zshrc, git, nvim…)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
+    printf '    %b3%b  Aplica lo sensible desde el vault     %b(claves SSH, identidades)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
+    printf '    %b4%b  Restaura ajustes del sistema          %b(GNOME/Ptyxis vía dconf)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
+
+    printf '\n  %b%bCatálogo%b  %b(%s herramientas · elegís qué instalar)%b\n\n' \
+        "$C_SECTION" "$'\033[1m'" "$C_RESET" "$C_DIM" "${#TOOLS_CATALOG[@]}" "$C_RESET" > /dev/tty
+    for g in "${_GRP_ORDER[@]}"; do
+        c=0; line=""
+        for ((j = 0; j < ${#TOOLS_CATALOG[@]}; j++)); do
+            [[ "$(_grp_of "$j")" == "$g" ]] || continue
+            ((c++)); [[ ${#line} -lt 42 ]] && line+="${line:+ · }$(_id_of "$j")"
+        done
+        printf '    %b%-6s%b %b%2d%b  %b%s…%b\n' "$C_OK" "$g" "$C_RESET" "$'\033[1m'" "$c" "$C_RESET" "$C_DIM" "$line" "$C_RESET" > /dev/tty
+    done
+
+    printf '\n  %b%bEntorno%b   %b✓ %s   ✓ %s   %s%b\n' "$C_SECTION" "$'\033[1m'" "$C_RESET" "$C_OK" "$distro" "$pkg" "$vault_ok" "$C_RESET" > /dev/tty
+    printf '\n  %b────────────────────────────────────────────────────────────%b\n' "$C_DIM" "$C_RESET" > /dev/tty
+    printf '  %bEnter%b elegir herramientas  ·  %bCtrl+C%b cancelar\n' "$C_SECTION" "$C_RESET" "$C_SECTION" "$C_RESET" > /dev/tty
+    read -r _ < /dev/tty 2>/dev/null || true
+}
+
+# ==============================================================================
 # INICIO
 # ==============================================================================
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$BACKUP_DIR"
+
+# Bienvenida solo en modo interactivo real (no en --dry-run/--tools/--all-tools/sin-tty)
+if [[ -z "$TOOLS_ARG" && "$ALL_TOOLS" == false && "$DRY_RUN" == false ]] \
+   && [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
+    welcome_screen
+fi
 
 banner "bootstrap.sh — Setup de entorno" "$(date '+%Y-%m-%d %H:%M:%S')$([[ "$DRY_RUN" == true ]] && echo '  ·  modo DryRun')"
 

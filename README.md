@@ -534,12 +534,15 @@ Flags disponibles:
 | GPaste | Gestor de portapapeles GNOME | - | dnf | - |
 | Samba | Compartir el home por SMB (app Archivos de iPhone, etc.) *(opcional)* | - | dnf + servicio/firewall/SELinux | - |
 | OpenLogi | Config de mouse Logitech MX por HID++ (alternativa a Options+) *(opcional)* | - | .rpm del release + servicio de usuario | - |
+| Remmina | Cliente RDP/VNC para servers Windows *(opcional)* | - (RDP nativo: `mstsc`) | dnf (+ plugins rdp/secret) | apt (+ plugins rdp/secret) |
 
 > En Fedora todo lo que tiene paquete nativo se instala via `dnf` (para que se actualice con `dnf upgrade`). El método por binario/curl queda como fallback solo para distros sin el paquete en repos.
 
 > Las extensiones de GNOME (dash-to-dock, GPaste) solo se instalan en Fedora con GNOME, y su configuracion se aplica desde `gnome/*.dconf` (ver seccion "Ptyxis y GNOME").
 
 > Samba comparte el home (share `[homes]` del `smb.conf` por defecto de Fedora) y deja listo el servicio, el firewall y el booleano SELinux `samba_enable_home_dirs`. La contrasena SMB **no se versiona** (es secreto): definila a mano con `sudo smbpasswd -a <usuario>`. Desde el iPhone: app Archivos → "Conectar a un servidor" → `smb://<ip-de-la-pc>`.
+
+> Remmina es **solo Linux** (en Windows el RDP es nativo con `mstsc`, igual que el launcher: Ulauncher ↔ Flow Launcher). El core no trae los protocolos: se instalan los plugins `rdp` (contra Windows) y `secret` (guarda credenciales en el keyring de GNOME). Los **perfiles de conexion** (`.remmina`, con host/usuario) son sensibles y **no se versionan** en este repo: van al vault o se crean a mano.
 
 ### Manuales (solo Windows, ver Paso 1)
 

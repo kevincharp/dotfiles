@@ -253,8 +253,8 @@ bash bootstrap.sh --dry-run
 
 ### Selector de herramientas
 
-Al instalar, el bootstrap **pregunta que herramientas instalar**. En Linux el
-selector es **por grupos, colapsable** y arranca **sin nada marcado** (opt-in:
+Al instalar, el bootstrap **pregunta que herramientas instalar**. El selector es
+**por grupos, colapsable** (ambos SO) y arranca **sin nada marcado** (opt-in:
 elegis vos que instalar). Precede una pantalla de bienvenida que explica que hace
 el instalador y muestra el catalogo:
 
@@ -278,7 +278,9 @@ el instalador y muestra el catalogo:
 
 > `curl`/`wget`/`unzip` **no aparecen** en el selector: son dependencias base que
 > se instalan solas cuando alguna herramienta las necesita (ej. `unzip` para
-> `firacode`). En Windows el selector sigue siendo el clasico (lista con `[x]`).
+> `firacode`). En Windows no aplica (PowerShell descarga con `Invoke-WebRequest`).
+> Windows tiene el mismo selector por grupos; su loop de instalación aún no usa
+> la barra de progreso (pendiente).
 
 **Como evitar la pregunta** (no interactivo):
 

@@ -331,32 +331,41 @@ function Select-ToolsInteractive {
     try { $null = $Host.UI.RawUI.KeyAvailable } catch { $rawOk = $false }
     if (-not $rawOk) { return Select-ToolsInteractiveText }
 
+    # El titulo se pinta una sola vez (queda fijo arriba del menu).
+    Write-Host ''
+    Write-Host '  == Selector de herramientas ==' -ForegroundColor Cyan
+    Write-Host '  ↑/↓ mover · espacio marcar · a todo · n nada · g grupo · Enter instalar' -ForegroundColor DarkGray
+    Write-Host ''
+
     $cur = 0
-    $startTop = $null
+    $firstDraw = $true
+    $drawn = 0
     while ($true) {
         # --- Reposicionar cursor para redibujar en el lugar ---
-        if ($null -eq $startTop) {
-            Write-Host ''
-            Write-Host '  == Selector de herramientas ==' -ForegroundColor Cyan
-            Write-Host '  ↑/↓ mover · espacio marcar · a todo · n nada · g grupo · Enter instalar' -ForegroundColor DarkGray
-            Write-Host ''
-            try { $startTop = [Console]::CursorTop } catch { $startTop = -1 }
-        } else {
-            try { [Console]::SetCursorPosition(0, $startTop) } catch { }
+        # Movimiento RELATIVO (subir $drawn lineas con ANSI), NO absoluto: el menu
+        # es mas alto que la ventana y la consola scrollea, asi que una coordenada
+        # absoluta (SetCursorPosition) quedaria desalineada y apilaria copias del
+        # menu en cada tecla. Subir N lineas respeta el scroll y sobreescribe.
+        if (-not $firstDraw) {
+            Write-Host ("`e[$($drawn)A") -NoNewline
         }
+        $firstDraw = $false
 
-        # --- Pintar filas agrupadas ---
+        # --- Pintar filas agrupadas (contando lineas para el proximo redibujo) ---
+        $drawn = 0
         $prevG = ''
         for ($di = 0; $di -lt $m; $di++) {
             $row = $rows[$di]
             if ($row.Group -ne $prevG) {
-                Write-Host ("  [{0}]                                        " -f $row.Group) -ForegroundColor White
+                Write-Host ("  [{0}]" -f $row.Group).PadRight(60) -ForegroundColor White
                 $prevG = $row.Group
+                $drawn++
             }
             $box = if ($marked[$row.Key]) { '[x]' } else { '[ ]' }
             $ptr = if ($di -eq $cur) { '>' } else { ' ' }
             $color = if ($di -eq $cur) { 'Cyan' } elseif ($marked[$row.Key]) { 'Green' } else { 'Gray' }
             Write-Host ("  {0} {1} {2,-18} {3}" -f $ptr, $box, $row.Key, $row.Name).PadRight(60) -ForegroundColor $color
+            $drawn++
         }
 
         # --- Leer tecla ---

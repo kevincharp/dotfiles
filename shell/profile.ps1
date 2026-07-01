@@ -194,8 +194,11 @@ if (Get-Module PSReadLine -ErrorAction SilentlyContinue) {
     }
     Set-PSReadLineOption -EditMode Windows -ErrorAction SilentlyContinue
     Set-PSReadLineOption -MaximumHistoryCount 10000 -ErrorAction SilentlyContinue
-    # No guardar duplicados en el historial (paridad con bash erasedups /
-    # zsh HIST_IGNORE_ALL_DUPS): al repetir un comando borra la copia vieja.
+    # OJO: -HistoryNoDuplicates NO deduplica el archivo en disco, solo la
+    # NAVEGACION (salta duplicados al recorrer con ↑ / buscar). El archivo
+    # (ConsoleHost_history.txt) igual acumula cada repeticion. La dedup real del
+    # archivo (paridad con erasedups de bash / HIST_IGNORE_ALL_DUPS de zsh) se
+    # hace mas abajo, al arrancar (ver bloque "DEDUP DEL HISTORIAL").
     Set-PSReadLineOption -HistoryNoDuplicates -ErrorAction SilentlyContinue
     Set-PSReadLineOption -BellStyle None -ErrorAction SilentlyContinue
     Set-PSReadLineOption -Colors @{
@@ -218,6 +221,36 @@ if (Get-Module PSReadLine -ErrorAction SilentlyContinue) {
     } -ErrorAction SilentlyContinue
     Set-PSReadLineKeyHandler -Chord "Ctrl+RightArrow" -Function AcceptNextSuggestionWord -ErrorAction SilentlyContinue
     Set-PSReadLineKeyHandler -Chord "Ctrl+Spacebar"   -Function MenuComplete -ErrorAction SilentlyContinue
+
+    # --- DEDUP DEL HISTORIAL (paridad real con erasedups / HIST_IGNORE_ALL_DUPS) ---
+    # PSReadLine NO deduplica el archivo (ConsoleHost_history.txt): -HistoryNoDuplicates
+    # solo afecta la navegacion. Asi que al arrancar limpiamos el archivo dejando la
+    # ocurrencia MAS RECIENTE de cada comando (igual que erasedups en bash). Recorremos
+    # de abajo hacia arriba (lo mas nuevo primero) quedandonos con la primera vista de
+    # cada linea, y luego reinvertimos para conservar el orden cronologico.
+    try {
+        $histPath = (Get-PSReadLineOption).HistorySavePath
+        if ($histPath -and (Test-Path -LiteralPath $histPath)) {
+            $lines = @(Get-Content -LiteralPath $histPath -ErrorAction Stop)
+            $seen = [System.Collections.Generic.HashSet[string]]::new()
+            $keptRev = [System.Collections.Generic.List[string]]::new()
+            for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+                $ln = $lines[$i]
+                # No deduplicar lineas vacias ni continuaciones (backtick al final):
+                # colapsarlas romperia comandos multilinea.
+                if ([string]::IsNullOrWhiteSpace($ln) -or $ln.EndsWith('`')) {
+                    $keptRev.Add($ln); continue
+                }
+                if ($seen.Add($ln)) { $keptRev.Add($ln) }
+            }
+            if ($keptRev.Count -lt $lines.Count) {
+                $keptRev.Reverse()
+                Set-Content -LiteralPath $histPath -Value $keptRev -Encoding UTF8 -ErrorAction Stop
+            }
+        }
+    } catch {
+        # En contextos raros (archivo bloqueado, sin permisos) no vale la pena romper el prompt.
+    }
 }
 
 # FZF — colores Claude Code

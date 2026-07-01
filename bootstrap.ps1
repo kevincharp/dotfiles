@@ -586,6 +586,10 @@ if ($SkipWinget) {
             #   7zip        -> preview/navegacion dentro de .zip/.7z/.tar
             # OJO: algunas descargas vienen de GitHub releases y el proxy corporativo
             # puede bloquearlas; si pasa, quedan como WARN y se instalan a mano.
+            # NOTA (paridad con Linux): en Linux se suma 'chafa' como fallback de
+            # preview de imagen porque Ptyxis no soporta Sixel. Aca NO hace falta:
+            # Windows Terminal soporta Sixel (>=1.22), asi que yazi usa Sixel directo
+            # y chafa (que ademas no tiene paquete confiable en winget) no aplica.
             if ($pkg.Key -eq 'yazi') {
                 $yaziDeps = @(
                     @{ Id='oschwartz10612.Poppler';    Name='poppler (yazi: PDF)'         }

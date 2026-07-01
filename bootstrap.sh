@@ -121,6 +121,32 @@ has_cmd() {
     command -v "$1" &>/dev/null
 }
 
+# progress_bar <actual> <total> <etiqueta> — barra ▰▱ que se reescribe in-place.
+# Solo dibuja si la salida es una terminal (si es pipe/log, no ensucia). El caller
+# debe imprimir un '\n' al terminar. Ancho fijo 24.
+_PROGRESS_ACTIVE=0
+progress_bar() {
+    [[ -t 1 ]] || return 0            # sin TTY -> no dibujar (modo silencioso)
+    local cur="$1" total="$2" label="$3" width=24 i
+    (( total <= 0 )) && total=1
+    local filled=$(( cur * width / total )) empty
+    (( filled > width )) && filled=$width
+    empty=$(( width - filled ))
+    local b=""
+    for ((i = 0; i < filled; i++)); do b+="▰"; done
+    for ((i = 0; i < empty;  i++)); do b+="▱"; done
+    printf '\r  %b%s%b %b%2d/%d%b  %b· %s%b\033[K' \
+        "$C_SECTION" "$b" "$C_RESET" "$'\033[1m'" "$cur" "$total" "$C_RESET" "$C_DIM" "$label" "$C_RESET"
+    _PROGRESS_ACTIVE=1
+}
+
+# progress_clear — borra la linea de la barra (para imprimir un hito limpio encima)
+progress_clear() {
+    [[ -t 1 && "$_PROGRESS_ACTIVE" == 1 ]] || return 0
+    printf '\r\033[K'
+    _PROGRESS_ACTIVE=0
+}
+
 # ensure_base_deps — instala las dependencias base (curl/wget/unzip) que necesitan
 # varias herramientas para descargarse/descomprimirse. NO estan en el catalogo (no
 # son herramientas que el usuario elija): se resuelven solas y solo si faltan. En
@@ -669,7 +695,7 @@ _select_interactive() {
         local grp="$1" j tot=0 on=0
         for ((j = 0; j < n; j++)); do
             [[ "$(_grp_of "$j")" == "$grp" ]] || continue
-            ((tot++)); [[ "${MARK[j]}" == 1 ]] && ((on++))
+            tot=$((tot + 1)); [[ "${MARK[j]}" == 1 ]] && on=$((on + 1))
         done
         (( on == 0 )) && { echo "0 $on $tot"; return; }
         (( on == tot )) && echo "1 $on $tot" || echo "2 $on $tot"
@@ -692,7 +718,7 @@ _select_interactive() {
     _build_frame() {
         _build_rows
         local nrows=${#ROWS[@]} r kind val total=0 j box ptr arrow st on tot out="" K=$'\033[K'
-        for ((j = 0; j < n; j++)); do [[ "${MARK[j]}" == 1 ]] && ((total++)); done
+        for ((j = 0; j < n; j++)); do [[ "${MARK[j]}" == 1 ]] && total=$((total + 1)); done
         out+="  \033[1;36m▶ Elegí qué instalar\033[0m${K}"$'\n'
         out+="  \033[90m↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar\033[0m${K}"$'\n'
         out+="${K}"$'\n'
@@ -898,7 +924,7 @@ EOF
         c=0; line=""
         for ((j = 0; j < ${#TOOLS_CATALOG[@]}; j++)); do
             [[ "$(_grp_of "$j")" == "$g" ]] || continue
-            ((c++)); [[ ${#line} -lt 42 ]] && line+="${line:+ · }$(_id_of "$j")"
+            c=$((c + 1)); [[ ${#line} -lt 42 ]] && line+="${line:+ · }$(_id_of "$j")"
         done
         printf '    %b%-6s%b %b%2d%b  %b%s…%b\n' "$C_OK" "$g" "$C_RESET" "$'\033[1m'" "$c" "$C_RESET" "$C_DIM" "$line" "$C_RESET" > /dev/tty
     done
@@ -982,14 +1008,31 @@ else
         # para descargarse. Se instalan primero y solo si faltan (no estan en el menu).
         ensure_base_deps
 
-        # Recorre solo lo seleccionado: instala lo que falte, saltea lo ya presente.
+        # Recorre lo seleccionado con barra de progreso in-place. Anti-choclo:
+        # lo "ya instalado" NO se imprime (solo va al log); solo se muestran los
+        # hitos (lo que se instala nuevo) y el resumen final. El ruido de dnf/git
+        # de install_tool sigue saliendo, pero los ya-presentes (la mayoria) no
+        # ensucian. Contadores para el resumen.
+        local_total=${#SELECTED_TOOLS[@]}
+        _done=0 _already=0 _new=0
         for _tool_id in "${SELECTED_TOOLS[@]}"; do
+            # OJO: _done=$((...)) y no ((_done++)) — con 'set -e', ((x++)) devuelve
+            # exit 1 cuando x vale 0 y abortaria el script.
+            _done=$((_done + 1))
+            progress_bar "$_done" "$local_total" "$_tool_id"
             if tool_installed "$_tool_id"; then
-                log "$_tool_id ya instalado" "SKIP"
+                # Ya presente: al log, no a pantalla.
+                echo "[$(date +%H:%M:%S)][SKIP] $_tool_id ya instalado" >> "$LOG_FILE" 2>/dev/null || true
+                _already=$((_already + 1))
             else
+                progress_clear
                 install_tool "$_tool_id"
+                _new=$((_new + 1))
             fi
         done
+        progress_bar "$local_total" "$local_total" "listo"
+        [[ -t 1 ]] && printf '\n'
+        log "${_already} ya instaladas · ${_new} nuevas   (detalle en el log)" "INFO"
         unset _tool_id
     fi
 fi

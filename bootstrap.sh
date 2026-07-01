@@ -102,17 +102,32 @@ banner() {
     return 0
 }
 
+# Modo silencioso: cuando _QUIET_STEPS=1, los run_step exitosos NO se imprimen
+# (solo al log) y se cuentan en _QUIET_OK. Los fallos SIEMPRE se muestran. Sirve
+# para colapsar pasos verbosos (symlinks, carpetas) a una linea de resumen.
+_QUIET_STEPS=0
+_QUIET_OK=0
 run_step() {
     local name="$1"
     shift
     if [[ "$DRY_RUN" == true ]]; then
-        log "[DryRun] $name" "SKIP"
+        if [[ "$_QUIET_STEPS" == 1 ]]; then
+            echo "[$(date +%H:%M:%S)][SKIP] [DryRun] $name" >> "$LOG_FILE" 2>/dev/null || true
+            _QUIET_OK=$((_QUIET_OK + 1))
+        else
+            log "[DryRun] $name" "SKIP"
+        fi
         return
     fi
     if "$@"; then
-        log "$name" "OK"
+        if [[ "$_QUIET_STEPS" == 1 ]]; then
+            echo "[$(date +%H:%M:%S)][OK] $name" >> "$LOG_FILE" 2>/dev/null || true
+            _QUIET_OK=$((_QUIET_OK + 1))
+        else
+            log "$name" "OK"
+        fi
     else
-        log "$name → fallo" "ERROR"
+        log "$name → fallo" "ERROR"   # los fallos siempre se muestran
         ERRORS+=("$name")
     fi
 }
@@ -1055,13 +1070,18 @@ DIRS=(
     "$HOME/repositorios/cei_walle"
 )
 
+# Colapsado a resumen: lo "ya existe" va al log; solo se cuentan. Fallos se muestran.
+_dirs_new=0 _dirs_had=0
 for dir in "${DIRS[@]}"; do
     if [[ -d "$dir" ]]; then
-        log "$dir ya existe" "SKIP"
+        echo "[$(date +%H:%M:%S)][SKIP] $dir ya existe" >> "$LOG_FILE" 2>/dev/null || true
+        _dirs_had=$((_dirs_had + 1))
     else
-        run_step "Crear $dir" mkdir -p "$dir"
+        _QUIET_STEPS=1; run_step "Crear $dir" mkdir -p "$dir"; _QUIET_STEPS=0
+        _dirs_new=$((_dirs_new + 1))
     fi
 done
+log "${_dirs_new} carpetas creadas · ${_dirs_had} ya existían" "OK"
 
 # Permisos seguros para .ssh
 run_step "Permisos ~/.ssh" chmod 700 "$HOME/.ssh"
@@ -1178,7 +1198,13 @@ copy_dotfile() {
         # OJO: el rm debe respetar --dry-run. Si se borra aca pero el ln se
         # saltea por DryRun, el symlink desaparece sin recrearse (rompe ~/.bashrc).
         if [[ "$DRY_RUN" == true ]]; then
-            log "[DryRun] Symlink $1 → $dst" "SKIP"
+            # Respeta el modo silencioso (paso [5/8] colapsado): al log, no a pantalla.
+            if [[ "$_QUIET_STEPS" == 1 ]]; then
+                echo "[$(date +%H:%M:%S)][SKIP] [DryRun] Symlink $1 → $dst" >> "$LOG_FILE" 2>/dev/null || true
+                _QUIET_OK=$((_QUIET_OK + 1))
+            else
+                log "[DryRun] Symlink $1 → $dst" "SKIP"
+            fi
         else
             [[ -e "$dst" || -L "$dst" ]] && rm -f "$dst"
             run_step "Symlink $1 → $dst" ln -s "$src" "$dst"
@@ -1187,6 +1213,10 @@ copy_dotfile() {
         run_step "Copiar $1 → $dst" cp "$src" "$dst"
     fi
 }
+
+# Colapsar el ruido: los symlinks/copias van al log; solo se muestra un resumen
+# (y cualquier fallo). Se desactiva antes de las claves SSH (que piden passphrase).
+_QUIET_STEPS=1; _QUIET_OK=0
 
 # Shell (symlinks: editar en el repo se ve al instante)
 copy_dotfile "shell/bashrc"         "$HOME/.bashrc"        "link"
@@ -1231,6 +1261,10 @@ if [[ -f "$VAULT_DIR/rclone/rclone.conf" ]]; then
     copy_dotfile "$VAULT_DIR/rclone/rclone.conf"  "$HOME/.config/rclone/rclone.conf"
     run_step "Permisos ~/.config/rclone/rclone.conf" chmod 600 "$HOME/.config/rclone/rclone.conf"
 fi
+
+# Fin de los symlinks/copias silenciosos: resumen y volver a modo normal.
+_QUIET_STEPS=0
+log "${_QUIET_OK} archivos aplicados (symlinks/configs)   (detalle en el log)" "OK"
 
 # SSH keys (encriptadas con age, en el vault privado)
 SSH_KEYS_DIR="$VAULT_DIR/ssh/keys"

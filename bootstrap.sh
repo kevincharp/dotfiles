@@ -63,7 +63,7 @@ fi
 
 # Colores ANSI
 C_RESET=$'\033[0m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERROR=$'\033[31m'
-C_SKIP=$'\033[90m'; C_SECTION=$'\033[1;36m'; C_DIM=$'\033[90m'
+C_SKIP=$'\033[90m'; C_SECTION=$'\033[1;36m'; C_DIM=$'\033[90m'; C_BOLD=$'\033[1m'
 
 # ==============================================================================
 # HELPERS
@@ -151,7 +151,7 @@ progress_bar() {
     for ((i = 0; i < filled; i++)); do b+="▰"; done
     for ((i = 0; i < empty;  i++)); do b+="▱"; done
     printf '\r  %b%s%b %b%2d/%d%b  %b· %s%b\033[K' \
-        "$C_SECTION" "$b" "$C_RESET" "$'\033[1m'" "$cur" "$total" "$C_RESET" "$C_DIM" "$label" "$C_RESET"
+        "$C_SECTION" "$b" "$C_RESET" "$C_BOLD" "$cur" "$total" "$C_RESET" "$C_DIM" "$label" "$C_RESET"
     _PROGRESS_ACTIVE=1
 }
 
@@ -927,24 +927,24 @@ welcome_screen() {
   ╰────────────────────────────────────────────────────────────╯
 EOF
     printf '%b\n' "$C_RESET" > /dev/tty
-    printf '  %b%bQué hace%b\n\n' "$C_SECTION" "$'\033[1m'" "$C_RESET" > /dev/tty
+    printf '  %b%bQué hace%b\n\n' "$C_SECTION" "$C_BOLD" "$C_RESET" > /dev/tty
     printf '    %b1%b  Instala las herramientas que elijas   %b(shell, editor, git, nube…)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
     printf '    %b2%b  Crea los symlinks de tus configs      %b(bashrc, zshrc, git, nvim…)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
     printf '    %b3%b  Aplica lo sensible desde el vault     %b(claves SSH, identidades)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
     printf '    %b4%b  Restaura ajustes del sistema          %b(GNOME/Ptyxis vía dconf)%b\n' "$C_SECTION" "$C_RESET" "$C_DIM" "$C_RESET" > /dev/tty
 
     printf '\n  %b%bCatálogo%b  %b(%s herramientas · elegís qué instalar)%b\n\n' \
-        "$C_SECTION" "$'\033[1m'" "$C_RESET" "$C_DIM" "${#TOOLS_CATALOG[@]}" "$C_RESET" > /dev/tty
+        "$C_SECTION" "$C_BOLD" "$C_RESET" "$C_DIM" "${#TOOLS_CATALOG[@]}" "$C_RESET" > /dev/tty
     for g in "${_GRP_ORDER[@]}"; do
         c=0; line=""
         for ((j = 0; j < ${#TOOLS_CATALOG[@]}; j++)); do
             [[ "$(_grp_of "$j")" == "$g" ]] || continue
             c=$((c + 1)); [[ ${#line} -lt 42 ]] && line+="${line:+ · }$(_id_of "$j")"
         done
-        printf '    %b%-6s%b %b%2d%b  %b%s…%b\n' "$C_OK" "$g" "$C_RESET" "$'\033[1m'" "$c" "$C_RESET" "$C_DIM" "$line" "$C_RESET" > /dev/tty
+        printf '    %b%-6s%b %b%2d%b  %b%s…%b\n' "$C_OK" "$g" "$C_RESET" "$C_BOLD" "$c" "$C_RESET" "$C_DIM" "$line" "$C_RESET" > /dev/tty
     done
 
-    printf '\n  %b%bEntorno%b   %b✓ %s   ✓ %s   %s%b\n' "$C_SECTION" "$'\033[1m'" "$C_RESET" "$C_OK" "$distro" "$pkg" "$vault_ok" "$C_RESET" > /dev/tty
+    printf '\n  %b%bEntorno%b   %b✓ %s   ✓ %s   %s%b\n' "$C_SECTION" "$C_BOLD" "$C_RESET" "$C_OK" "$distro" "$pkg" "$vault_ok" "$C_RESET" > /dev/tty
     printf '\n  %b────────────────────────────────────────────────────────────%b\n' "$C_DIM" "$C_RESET" > /dev/tty
     printf '  %bEnter%b elegir herramientas  ·  %bCtrl+C%b cancelar\n' "$C_SECTION" "$C_RESET" "$C_SECTION" "$C_RESET" > /dev/tty
     read -r _ < /dev/tty 2>/dev/null || true
@@ -1268,8 +1268,14 @@ log "${_QUIET_OK} archivos aplicados (symlinks/configs)   (detalle en el log)" "
 
 # SSH keys (encriptadas con age, en el vault privado)
 SSH_KEYS_DIR="$VAULT_DIR/ssh/keys"
+SSH_KEYS_OK=0
 if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
-    if has_cmd age; then
+    if [[ "$DRY_RUN" == true ]]; then
+        # En dry-run NO pedir passphrase (era un efecto secundario real): solo simular.
+        for age_file in "$SSH_KEYS_DIR"/*.age; do
+            log "[DryRun] Desencriptar $(basename "$age_file" .age) → ~/.ssh/" "SKIP"
+        done
+    elif has_cmd age; then
         log "Desencriptando claves SSH (se pide passphrase una sola vez)..." "INFO"
         read -s -p "Passphrase para claves SSH: " AGE_PASSPHRASE
         echo ""
@@ -1280,12 +1286,12 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
 
             if [[ -f "$dst_key" ]]; then
                 log "~/.ssh/$key_name ya existe, saltando" "SKIP"
-            elif [[ "$DRY_RUN" == true ]]; then
-                log "[DryRun] Desencriptar $key_name → ~/.ssh/$key_name" "SKIP"
+                SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
             else
                 if printf '%s' "$AGE_PASSPHRASE" | age -d -o "$dst_key" "$age_file" 2>/dev/null; then
                     chmod 600 "$dst_key"
                     log "Desencriptado $key_name → ~/.ssh/$key_name" "OK"
+                    SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
                 else
                     log "Error desencriptando $key_name (passphrase incorrecta?)" "ERROR"
                     ERRORS+=("Desencriptar SSH key $key_name")
@@ -1622,28 +1628,33 @@ fi
 # 8. RESUMEN FINAL
 # ==============================================================================
 
-banner "[8/8] Resumen final"
+log "--- [8/8] Resumen final ---" "SECTION"
 
-if [[ ${#ERRORS[@]} -eq 0 && ${#WARNINGS[@]} -eq 0 ]]; then
-    log "Bootstrap completado sin errores." "OK"
+# Titular segun resultado
+if [[ ${#ERRORS[@]} -eq 0 ]]; then
+    printf '  %b%s✓ Bootstrap completado%b\n' "$C_BOLD" "$C_OK" "$C_RESET"
 else
-    if [[ ${#WARNINGS[@]} -gt 0 ]]; then
-        log "Advertencias (${#WARNINGS[@]}):" "WARN"
-        for w in "${WARNINGS[@]}"; do
-            log "$w" "WARN"
-        done
-    fi
-    if [[ ${#ERRORS[@]} -gt 0 ]]; then
-        log "Errores (${#ERRORS[@]}):" "ERROR"
-        for e in "${ERRORS[@]}"; do
-            log "$e" "ERROR"
-        done
-    fi
+    printf '  %b%s✗ Bootstrap terminó con %d error(es)%b\n' "$C_BOLD" "$C_ERROR" "${#ERRORS[@]}" "$C_RESET"
 fi
 
-log "" "INFO"
-log "Backups en: $BACKUP_DIR" "INFO"
-log "Log en:     $LOG_FILE" "INFO"
+# Linea de hitos (lo que efectivamente se hizo)
+printf '\n    %b✓%b %s nuevas   %b✓%b %s configs   %b✓%b %s claves SSH\n' \
+    "$C_OK" "$C_RESET" "${_new:-0}" \
+    "$C_OK" "$C_RESET" "${_QUIET_OK:-0}" \
+    "$C_OK" "$C_RESET" "${SSH_KEYS_OK:-0}"
+
+# Warnings/errores destacados (siempre visibles)
+if [[ ${#WARNINGS[@]} -gt 0 ]]; then
+    printf '\n  %b⚠ Advertencias (%d):%b\n' "$C_WARN" "${#WARNINGS[@]}" "$C_RESET"
+    for w in "${WARNINGS[@]}"; do printf '    %b·%b %s\n' "$C_WARN" "$C_RESET" "$w"; done
+fi
+if [[ ${#ERRORS[@]} -gt 0 ]]; then
+    printf '\n  %b✗ Errores (%d):%b\n' "$C_ERROR" "${#ERRORS[@]}" "$C_RESET"
+    for e in "${ERRORS[@]}"; do printf '    %b·%b %s\n' "$C_ERROR" "$C_RESET" "$e"; done
+fi
+
+printf '\n    %bLog:%b     %s\n' "$C_DIM" "$C_RESET" "$LOG_FILE"
+printf '    %bBackups:%b %s\n' "$C_DIM" "$C_RESET" "$BACKUP_DIR"
 
 banner "Proximos pasos"
 log "1. Abri una terminal nueva para recargar el profile" "INFO"

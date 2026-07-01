@@ -315,10 +315,16 @@ install_tool() {
             #   p7zip / 7zip            -> navegar dentro de comprimidos
             #   file                    -> deteccion de MIME (suele venir de base)
             if [[ "$PKG_MANAGER" == "dnf" ]]; then
+                # yazi NO esta en los repos base de Fedora: se habilita el COPR
+                # oficial (lihaohong/yazi), mismo patron que lazygit (atim/lazygit).
                 # yazi primero (critico); las deps van aparte para que el fallo de
                 # una (p.ej. ffmpeg completo requiere RPM Fusion, en repos base solo
                 # esta ffmpeg-free) no impida instalar el resto.
-                run_step "Instalar yazi" sudo dnf install -y yazi
+                run_step "Instalar yazi (COPR)" bash -c '
+                    sudo dnf install -y dnf-plugins-core
+                    sudo dnf copr enable -y lihaohong/yazi
+                    sudo dnf install -y yazi
+                '
                 run_step "Instalar deps de preview de yazi" bash -c '
                     sudo dnf install -y poppler-utils ImageMagick p7zip file || true
                     sudo dnf install -y ffmpeg || sudo dnf install -y ffmpeg-free || true

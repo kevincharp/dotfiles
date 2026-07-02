@@ -162,6 +162,41 @@ progress_clear() {
     _PROGRESS_ACTIVE=0
 }
 
+# progress_live <actual> <total> <accion> — barra VIVA de dos lineas (estilo pnpm/
+# cargo): barra ▰▱ con % arriba y la accion en curso debajo (› ...). Ambas se
+# reescriben en el lugar sin scrollear. El truco: imprime las dos lineas y sube el
+# cursor 1 (\033[1A) para que la proxima llamada arranque de nuevo en la barra.
+# Trunca la accion al ancho de la terminal para no romper el wrap. Sin TTY no
+# dibuja (el detalle igual va al log). Cerrar SIEMPRE con progress_live_end.
+_PROGRESS2_ACTIVE=0
+progress_live() {
+    [[ -t 1 ]] || return 0
+    local cur="$1" total="$2" action="$3" width=40 i
+    (( total <= 0 )) && total=1
+    (( cur > total )) && cur=$total
+    local filled=$(( cur * width / total )) empty pct cols maxw
+    (( filled > width )) && filled=$width
+    empty=$(( width - filled )); pct=$(( cur * 100 / total ))
+    cols="$(tput cols 2>/dev/null || echo 80)"; maxw=$(( cols - 6 ))
+    (( maxw < 10 )) && maxw=10
+    (( ${#action} > maxw )) && action="${action:0:maxw-1}…"
+    local b=""
+    for ((i = 0; i < filled; i++)); do b+="▰"; done
+    for ((i = 0; i < empty;  i++)); do b+="▱"; done
+    printf '\r  %b%s%b %b%3d%%%b\033[K\n  %b› %s%b\033[K\033[1A\r' \
+        "$C_SECTION" "$b" "$C_RESET" "$C_BOLD" "$pct" "$C_RESET" \
+        "$C_DIM" "$action" "$C_RESET"
+    _PROGRESS2_ACTIVE=1
+}
+
+# progress_live_end — borra las dos lineas de progress_live para dejar la linea de
+# resumen limpia encima. Deja el cursor en col0 de la (ex) linea de la barra.
+progress_live_end() {
+    [[ -t 1 && "$_PROGRESS2_ACTIVE" == 1 ]] || { _PROGRESS2_ACTIVE=0; return 0; }
+    printf '\r\033[K\n\r\033[K\033[1A\r'
+    _PROGRESS2_ACTIVE=0
+}
+
 # ensure_base_deps — instala las dependencias base (curl/wget/unzip) que necesitan
 # varias herramientas para descargarse/descomprimirse. NO estan en el catalogo (no
 # son herramientas que el usuario elija): se resuelven solas y solo si faltan. En
@@ -1070,17 +1105,25 @@ DIRS=(
     "$HOME/repositorios/cei_walle"
 )
 
-# Colapsado a resumen: lo "ya existe" va al log; solo se cuentan. Fallos se muestran.
+# Barra viva + accion debajo: la barra avanza por carpeta y debajo se ve que hace
+# (crear / validar). El "ya existe" va al log; solo se cuentan. Fallos se muestran.
 _dirs_new=0 _dirs_had=0
+_dirs_total=${#DIRS[@]}; _dirs_i=0
 for dir in "${DIRS[@]}"; do
+    _dirs_i=$((_dirs_i + 1))
     if [[ -d "$dir" ]]; then
+        progress_live "$_dirs_i" "$_dirs_total" "validando ${dir/#$HOME/\~}"
         echo "[$(date +%H:%M:%S)][SKIP] $dir ya existe" >> "$LOG_FILE" 2>/dev/null || true
         _dirs_had=$((_dirs_had + 1))
     else
+        progress_live "$_dirs_i" "$_dirs_total" "creando ${dir/#$HOME/\~}"
         _QUIET_STEPS=1; run_step "Crear $dir" mkdir -p "$dir"; _QUIET_STEPS=0
         _dirs_new=$((_dirs_new + 1))
     fi
 done
+progress_live "$_dirs_total" "$_dirs_total" "listo"
+progress_live_end
+unset _dirs_total _dirs_i
 # Permisos seguros (.ssh 700, .env 600): exito garantizado -> al log. El fallo,
 # como siempre en run_step, se muestra en pantalla igual.
 _QUIET_STEPS=1
@@ -1562,12 +1605,12 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         _file="$REPO_ROOT/gnome/${_entry##*:}"
         _gnome_i=$((_gnome_i + 1))
         [[ -f "$_file" ]] || continue
-        progress_bar "$_gnome_i" "$_gnome_total" "${_entry##*:}"
+        progress_live "$_gnome_i" "$_gnome_total" "aplicando ${_entry##*:}"
         run_step "Restaurar GNOME: ${_entry##*:}" \
             bash -c "dconf load '$_path' < '$_file'"
     done
-    progress_bar "$_gnome_total" "$_gnome_total" "listo"
-    progress_clear
+    progress_live "$_gnome_total" "$_gnome_total" "listo"
+    progress_live_end
     _QUIET_STEPS=0
     # Resumen en una linea: N ajustes dconf + (si hubo) extensiones nuevas.
     if (( _gnome_ext_new > 0 )); then

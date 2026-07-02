@@ -4,6 +4,7 @@
 #   Autor: Kevin Charpentier
 #   Uso:   bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages]
 #                             [--all-tools] [--tools=id1,id2,...]
+#                             [--pace=SEG | --fast]
 # ==============================================================================
 
 set -euo pipefail

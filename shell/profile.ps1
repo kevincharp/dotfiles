@@ -268,6 +268,9 @@ if (Get-Command fzf -ErrorAction SilentlyContinue) {
 # EDITOR DE TERMINAL
 # ==============================================================================
 
+$env:EDITOR = 'nvim'
+$env:VISUAL = 'nvim'
+
 Set-Alias vi   nvim
 Set-Alias vim  nvim
 Set-Alias nano nvim

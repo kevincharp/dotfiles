@@ -64,6 +64,13 @@ fi
 # Colores ANSI
 C_RESET=$'\033[0m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERROR=$'\033[31m'
 C_SKIP=$'\033[90m'; C_SECTION=$'\033[1;36m'; C_DIM=$'\033[90m'; C_BOLD=$'\033[1m'
+# Naranja de la barra de progreso: el MISMO #D4874E del prompt (oh-my-posh). Si la
+# terminal no soporta truecolor, degrada a naranja de 256-colores (208).
+if [[ "${COLORTERM:-}" == *truecolor* || "${COLORTERM:-}" == *24bit* ]]; then
+    C_BAR=$'\033[38;2;212;135;78m'
+else
+    C_BAR=$'\033[38;5;208m'
+fi
 
 # ==============================================================================
 # HELPERS
@@ -75,6 +82,18 @@ log() {
 
     # Al archivo siempre con timestamp y nivel (traza completa)
     echo "[$ts][$level] $msg" >> "$LOG_FILE" 2>/dev/null || true
+
+    # Con la barra global ACTIVA, la pantalla la maneja la barra: el ruido de
+    # exito (OK/INFO/SKIP) ya quedo en el log, no se imprime. Solo lo notable
+    # (WARN/ERROR) scrollea ARRIBA de la barra vía gb_note. SECTION se ignora
+    # (los headers los pone gb_step). Sin barra, comportamiento normal de abajo.
+    if [[ "${_GB_ACTIVE:-0}" == 1 ]]; then
+        case "$level" in
+            WARN)  gb_note "$C_WARN"  "$I_WARN"  "$msg" ;;
+            ERROR) gb_note "$C_ERROR" "$I_ERROR" "$msg" ;;
+        esac
+        return 0
+    fi
 
     # A pantalla: iconos + jerarquia (seccion a col 0, items indentados)
     case "$level" in
@@ -136,65 +155,80 @@ has_cmd() {
     command -v "$1" &>/dev/null
 }
 
-# progress_bar <actual> <total> <etiqueta> — barra ▰▱ que se reescribe in-place.
-# Solo dibuja si la salida es una terminal (si es pipe/log, no ensucia). El caller
-# debe imprimir un '\n' al terminar. Ancho fijo 24.
-_PROGRESS_ACTIVE=0
-progress_bar() {
-    [[ -t 1 ]] || return 0            # sin TTY -> no dibujar (modo silencioso)
-    local cur="$1" total="$2" label="$3" width=24 i
-    (( total <= 0 )) && total=1
-    local filled=$(( cur * width / total )) empty
-    (( filled > width )) && filled=$width
+# ── BARRA DE PROGRESO GLOBAL ─────────────────────────────────────────────────
+# UNA sola barra que cruza los 8 pasos (0→100%), con dos lineas fijas abajo:
+#   ▰▰▰▱▱  42%
+#   [3/8] Creando carpetas · ~/.local/bin
+# El % es global y ponderado: cada paso vale un tramo (_GB_WEIGHTS) del total, y
+# dentro del paso avanza con un "sub" 0..100. La accion de abajo cambia en vivo.
+# En interacciones (selector, sudo, passphrase, selector de shell) se PAUSA con
+# gb_pause (borra la barra) y se retoma sola en la proxima gb_step/gb_sub.
+# Sin TTY (curl|bash, CI) NO dibuja: cae a headers de texto '[N/8] ...' vía log().
+#
+# Pesos por paso (suman 100). Instalar paquetes es lo mas largo -> pesa mas.
+_GB_WEIGHTS=(0 6 40 8 6 24 4 6 6)   # indice 1..8 (el 0 no se usa)
+_GB_BASE=(0 0 6 46 54 60 84 88 94)  # % acumulado ANTES de cada paso (calculado a mano de _GB_WEIGHTS)
+_GB_STEP=0 _GB_LABEL="" _GB_ACTION="" _GB_SUB=0 _GB_ACTIVE=0
+_GB_ENABLED=0; [[ -t 1 ]] && _GB_ENABLED=1     # solo con TTY
+
+# _gb_render — dibuja las 2 lineas y deja el cursor de vuelta en la barra.
+_gb_render() {
+    (( _GB_ENABLED )) || return 0
+    local width=40 i pct base weight filled empty b="" cols maxw line2
+    base=${_GB_BASE[$_GB_STEP]:-0}; weight=${_GB_WEIGHTS[$_GB_STEP]:-0}
+    pct=$(( base + weight * _GB_SUB / 100 ))
+    (( pct > 100 )) && pct=100; (( pct < 0 )) && pct=0
+    filled=$(( pct * width / 100 )); (( filled > width )) && filled=$width
     empty=$(( width - filled ))
-    local b=""
-    for ((i = 0; i < filled; i++)); do b+="▰"; done
-    for ((i = 0; i < empty;  i++)); do b+="▱"; done
-    printf '\r  %b%s%b %b%2d/%d%b  %b· %s%b\033[K' \
-        "$C_SECTION" "$b" "$C_RESET" "$C_BOLD" "$cur" "$total" "$C_RESET" "$C_DIM" "$label" "$C_RESET"
-    _PROGRESS_ACTIVE=1
-}
-
-# progress_clear — borra la linea de la barra (para imprimir un hito limpio encima)
-progress_clear() {
-    [[ -t 1 && "$_PROGRESS_ACTIVE" == 1 ]] || return 0
-    printf '\r\033[K'
-    _PROGRESS_ACTIVE=0
-}
-
-# progress_live <actual> <total> <accion> — barra VIVA de dos lineas (estilo pnpm/
-# cargo): barra ▰▱ con % arriba y la accion en curso debajo (› ...). Ambas se
-# reescriben en el lugar sin scrollear. El truco: imprime las dos lineas y sube el
-# cursor 1 (\033[1A) para que la proxima llamada arranque de nuevo en la barra.
-# Trunca la accion al ancho de la terminal para no romper el wrap. Sin TTY no
-# dibuja (el detalle igual va al log). Cerrar SIEMPRE con progress_live_end.
-_PROGRESS2_ACTIVE=0
-progress_live() {
-    [[ -t 1 ]] || return 0
-    local cur="$1" total="$2" action="$3" width=40 i
-    (( total <= 0 )) && total=1
-    (( cur > total )) && cur=$total
-    local filled=$(( cur * width / total )) empty pct cols maxw
-    (( filled > width )) && filled=$width
-    empty=$(( width - filled )); pct=$(( cur * 100 / total ))
+    for ((i=0;i<filled;i++)); do b+="▰"; done
+    for ((i=0;i<empty;i++));  do b+="▱"; done
     cols="$(tput cols 2>/dev/null || echo 80)"; maxw=$(( cols - 6 ))
-    (( maxw < 10 )) && maxw=10
-    (( ${#action} > maxw )) && action="${action:0:maxw-1}…"
-    local b=""
-    for ((i = 0; i < filled; i++)); do b+="▰"; done
-    for ((i = 0; i < empty;  i++)); do b+="▱"; done
-    printf '\r  %b%s%b %b%3d%%%b\033[K\n  %b› %s%b\033[K\033[1A\r' \
-        "$C_SECTION" "$b" "$C_RESET" "$C_BOLD" "$pct" "$C_RESET" \
-        "$C_DIM" "$action" "$C_RESET"
-    _PROGRESS2_ACTIVE=1
+    (( maxw < 20 )) && maxw=20
+    line2="[${_GB_STEP}/8] ${_GB_LABEL}"
+    [[ -n "$_GB_ACTION" ]] && line2+=" · ${_GB_ACTION}"
+    (( ${#line2} > maxw )) && line2="${line2:0:maxw-1}…"
+    printf '\r  %b%s%b %b%3d%%%b\033[K\n  %b%s%b\033[K\033[1A\r' \
+        "$C_BAR" "$b" "$C_RESET" "$C_BOLD" "$pct" "$C_RESET" \
+        "$C_DIM" "$line2" "$C_RESET"
+    _GB_ACTIVE=1
 }
 
-# progress_live_end — borra las dos lineas de progress_live para dejar la linea de
-# resumen limpia encima. Deja el cursor en col0 de la (ex) linea de la barra.
-progress_live_end() {
-    [[ -t 1 && "$_PROGRESS2_ACTIVE" == 1 ]] || { _PROGRESS2_ACTIVE=0; return 0; }
-    printf '\r\033[K\n\r\033[K\033[1A\r'
-    _PROGRESS2_ACTIVE=0
+# gb_step <n> <label> — entra al paso n (resetea sub a 0 y redibuja).
+gb_step() {
+    _GB_STEP="$1"; _GB_LABEL="$2"; _GB_SUB=0; _GB_ACTION=""
+    echo "[$(date +%H:%M:%S)] === [$1/8] $2 ===" >> "$LOG_FILE" 2>/dev/null || true
+    if (( _GB_ENABLED )); then _gb_render
+    else printf '\n%s%s [%s/8] %s%s\n' "$C_SECTION" "$I_SECTION" "$1" "$2" "$C_RESET"; fi
+}
+
+# gb_sub <sub0..100> [accion] — actualiza el avance dentro del paso y la accion.
+gb_sub() {
+    _GB_SUB="$1"; [[ $# -ge 2 ]] && _GB_ACTION="$2"
+    (( _GB_ENABLED )) && _gb_render
+}
+
+# gb_note <color> <icono> <msg> — evento notable (nuevo/warn/error): queda escrito
+# ARRIBA de la barra y la barra se redibuja debajo. Sin TTY, sale como linea normal.
+gb_note() {
+    if (( _GB_ENABLED )) && (( _GB_ACTIVE )); then printf '\r\033[K\n\r\033[K\033[1A\r'; fi
+    printf '  %b%s%b %s\n' "$1" "$2" "$C_RESET" "$3"
+    (( _GB_ENABLED )) && _gb_render
+}
+
+# gb_pause — borra la barra para dar lugar a una interaccion (selector/sudo/shell).
+# La barra reaparece sola en la proxima gb_step/gb_sub.
+gb_pause() {
+    (( _GB_ENABLED )) && (( _GB_ACTIVE )) && printf '\r\033[K\n\r\033[K\033[1A\r'
+    _GB_ACTIVE=0
+}
+
+# gb_end — completa la barra al 100%, la limpia y deja el cursor listo para el resumen.
+gb_end() {
+    if (( _GB_ENABLED )); then
+        _GB_STEP=8; _GB_SUB=100; _GB_ACTION=""; _gb_render
+        printf '\r\033[K\n\r\033[K\033[1A\r'
+    fi
+    _GB_ACTIVE=0
 }
 
 # ensure_base_deps — instala las dependencias base (curl/wget/unzip) que necesitan
@@ -918,13 +952,14 @@ _select_interactive_text() {
 select_tools() {
     if [[ -n "$TOOLS_ARG" ]]; then
         _select_from_csv "$TOOLS_ARG"
-        log "Herramientas via --tools: ${SELECTED_TOOLS[*]:-(ninguna)}" "INFO"
+        # Al log (no a pantalla): la barra global ya nombra cada herramienta.
+        echo "[$(date +%H:%M:%S)][INFO] Herramientas via --tools: ${SELECTED_TOOLS[*]:-(ninguna)}" >> "$LOG_FILE" 2>/dev/null || true
     elif [[ "$ALL_TOOLS" == true || "$DRY_RUN" == true ]]; then
         SELECTED_TOOLS=(); for entry in "${TOOLS_CATALOG[@]}"; do SELECTED_TOOLS+=("${entry%%|*}"); done
-        log "Instalando catalogo completo (${#SELECTED_TOOLS[@]} herramientas)" "INFO"
+        echo "[$(date +%H:%M:%S)][INFO] Instalando catalogo completo (${#SELECTED_TOOLS[@]} herramientas)" >> "$LOG_FILE" 2>/dev/null || true
     elif [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
         _select_interactive
-        log "Seleccionadas ${#SELECTED_TOOLS[@]}: ${SELECTED_TOOLS[*]:-(ninguna)}" "INFO"
+        echo "[$(date +%H:%M:%S)][INFO] Seleccionadas ${#SELECTED_TOOLS[@]}: ${SELECTED_TOOLS[*]:-(ninguna)}" >> "$LOG_FILE" 2>/dev/null || true
     else
         SELECTED_TOOLS=()
         log "Sin terminal interactiva y sin --tools/--all-tools — no instalo nada" "WARN"
@@ -1004,12 +1039,13 @@ banner "bootstrap.sh — Setup de entorno" "$(date '+%Y-%m-%d %H:%M:%S')$([[ "$D
 # 1. VERIFICAR REQUISITOS
 # ==============================================================================
 
-log "--- [1/8] Verificando requisitos ---" "SECTION"
+gb_step 1 "Verificando requisitos"
 
 if ! has_cmd git; then
     log "Git no esta instalado" "ERROR"
     exit 1
 fi
+gb_sub 40 "git $(git --version | cut -d' ' -f3)"
 log "git $(git --version | cut -d' ' -f3) OK" "OK"
 
 # Detectar distro
@@ -1029,13 +1065,14 @@ else
     log "Package manager no detectado (apt/dnf/pacman)" "WARN"
     PKG_MANAGER="none"
 fi
+gb_sub 100 "package manager: $PKG_MANAGER"
 log "Package manager: $PKG_MANAGER" "OK"
 
 # ==============================================================================
 # 2. INSTALAR PAQUETES
 # ==============================================================================
 
-log "--- [2/8] Instalando paquetes ---" "SECTION"
+gb_step 2 "Instalando paquetes"
 
 if [[ "$SKIP_PACKAGES" == true ]]; then
     log "skip-packages activado, saltando" "SKIP"
@@ -1043,14 +1080,18 @@ elif [[ "$PKG_MANAGER" == "none" ]]; then
     log "Sin package manager, saltando paquetes" "WARN"
     WARNINGS+=("Instalar paquetes manualmente: neovim, ripgrep, fzf, zoxide, lazygit")
 else
+    # El selector y (en dnf) el sudo del update piden pantalla: pausamos la barra.
+    gb_pause
     # Resuelve que herramientas instalar (--tools / --all-tools / menu / red de seguridad)
     select_tools
 
     if [[ ${#SELECTED_TOOLS[@]} -eq 0 ]]; then
+        gb_step 2 "Instalando paquetes"
         log "No se selecciono ninguna herramienta, saltando instalacion" "SKIP"
     else
         if [[ "$DRY_RUN" == false ]]; then
-            log "Actualizando fuentes..." "INFO"
+            # sudo/update: puede pedir contrasena y escupe su salida -> fuera de la barra.
+            printf '  %sActualizando fuentes (puede pedir contraseña sudo)...%s\n' "$C_DIM" "$C_RESET"
             $PKG_UPDATE 2>&1 | tail -1
         fi
 
@@ -1058,30 +1099,32 @@ else
         # para descargarse. Se instalan primero y solo si faltan (no estan en el menu).
         ensure_base_deps
 
-        # Recorre lo seleccionado con barra de progreso in-place. Anti-choclo:
-        # lo "ya instalado" NO se imprime (solo va al log); solo se muestran los
-        # hitos (lo que se instala nuevo) y el resumen final. El ruido de dnf/git
-        # de install_tool sigue saliendo, pero los ya-presentes (la mayoria) no
-        # ensucian. Contadores para el resumen.
+        # Retomamos la barra global ya con el sudo resuelto. Recorre lo seleccionado
+        # actualizando el sub-avance del paso [2/8]. Anti-choclo: lo "ya instalado"
+        # va al log; lo NUEVO scrollea arriba como hito (gb_note). El ruido de dnf/git
+        # de install_tool sale entre medio pero la barra se redibuja despues.
+        gb_step 2 "Instalando paquetes"
         local_total=${#SELECTED_TOOLS[@]}
         _done=0 _already=0 _new=0
         for _tool_id in "${SELECTED_TOOLS[@]}"; do
             # OJO: _done=$((...)) y no ((_done++)) — con 'set -e', ((x++)) devuelve
             # exit 1 cuando x vale 0 y abortaria el script.
             _done=$((_done + 1))
-            progress_bar "$_done" "$local_total" "$_tool_id"
+            gb_sub $(( _done * 100 / local_total )) "$_tool_id"
             if tool_installed "$_tool_id"; then
                 # Ya presente: al log, no a pantalla.
                 echo "[$(date +%H:%M:%S)][SKIP] $_tool_id ya instalado" >> "$LOG_FILE" 2>/dev/null || true
                 _already=$((_already + 1))
             else
-                progress_clear
+                # install_tool puede escupir salida propia (dnf/curl): pausamos la
+                # barra para no descuadrarla, instalamos, y la barra vuelve sola.
+                gb_pause
                 install_tool "$_tool_id"
                 _new=$((_new + 1))
+                gb_sub $(( _done * 100 / local_total )) "$_tool_id"
+                gb_note "$C_OK" "$I_OK" "$_tool_id instalado"
             fi
         done
-        progress_bar "$local_total" "$local_total" "listo"
-        [[ -t 1 ]] && printf '\n'
         log "${_already} ya instaladas · ${_new} nuevas   (detalle en el log)" "INFO"
         unset _tool_id
     fi
@@ -1091,7 +1134,7 @@ fi
 # 3. CREAR ESTRUCTURA DE CARPETAS
 # ==============================================================================
 
-log "--- [3/8] Creando estructura de carpetas ---" "SECTION"
+gb_step 3 "Creando carpetas"
 
 DIRS=(
     "$HOME/.config/git"
@@ -1105,24 +1148,22 @@ DIRS=(
     "$HOME/repositorios/cei_walle"
 )
 
-# Barra viva + accion debajo: la barra avanza por carpeta y debajo se ve que hace
-# (crear / validar). El "ya existe" va al log; solo se cuentan. Fallos se muestran.
+# La barra global avanza por carpeta; abajo se ve que hace (crear/validar).
+# El "ya existe" va al log; solo se cuentan. Fallos se muestran (gb_note vía log).
 _dirs_new=0 _dirs_had=0
 _dirs_total=${#DIRS[@]}; _dirs_i=0
 for dir in "${DIRS[@]}"; do
     _dirs_i=$((_dirs_i + 1))
     if [[ -d "$dir" ]]; then
-        progress_live "$_dirs_i" "$_dirs_total" "validando ${dir/#$HOME/\~}"
+        gb_sub $(( _dirs_i * 100 / _dirs_total )) "validando ${dir/#$HOME/\~}"
         echo "[$(date +%H:%M:%S)][SKIP] $dir ya existe" >> "$LOG_FILE" 2>/dev/null || true
         _dirs_had=$((_dirs_had + 1))
     else
-        progress_live "$_dirs_i" "$_dirs_total" "creando ${dir/#$HOME/\~}"
+        gb_sub $(( _dirs_i * 100 / _dirs_total )) "creando ${dir/#$HOME/\~}"
         _QUIET_STEPS=1; run_step "Crear $dir" mkdir -p "$dir"; _QUIET_STEPS=0
         _dirs_new=$((_dirs_new + 1))
     fi
 done
-progress_live "$_dirs_total" "$_dirs_total" "listo"
-progress_live_end
 unset _dirs_total _dirs_i
 # Permisos seguros (.ssh 700, .env 600): exito garantizado -> al log. El fallo,
 # como siempre en run_step, se muestra en pantalla igual.
@@ -1145,7 +1186,8 @@ fi
 # 4. MIGRAR BACKUPS VIEJOS (.bak-*) → BACKUP_DIR
 # ==============================================================================
 
-log "--- [4/8] Migrando backups viejos ---" "SECTION"
+gb_step 4 "Migrando backups viejos"
+gb_sub 50 "buscando backups previos"
 
 migrate_old_backups() {
     local dst="$1"
@@ -1208,7 +1250,7 @@ fi
 # 5. COPIAR DOTFILES
 # ==============================================================================
 
-log "--- [5/8] Copiando dotfiles ---" "SECTION"
+gb_step 5 "Copiando dotfiles"
 
 copy_dotfile() {
     # $1 relativo → se resuelve contra $REPO_ROOT; $1 absoluto (ej. del vault) → se usa tal cual
@@ -1265,6 +1307,7 @@ copy_dotfile() {
 # (y cualquier fallo). Se desactiva antes de las claves SSH (que piden passphrase).
 _QUIET_STEPS=1; _QUIET_OK=0
 
+gb_sub 15 "symlinks de shell y git"
 # Shell (symlinks: editar en el repo se ve al instante)
 copy_dotfile "shell/bashrc"         "$HOME/.bashrc"        "link"
 copy_dotfile "shell/bash_profile"   "$HOME/.bash_profile"  "link"
@@ -1313,6 +1356,7 @@ fi
 # Se reactiva después para la segunda tanda; el resumen total va al cierre del paso.
 _QUIET_STEPS=0
 
+gb_sub 40 "claves SSH"
 # SSH keys (encriptadas con age, en el vault privado)
 SSH_KEYS_DIR="$VAULT_DIR/ssh/keys"
 SSH_KEYS_OK=0
@@ -1337,8 +1381,10 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
                 SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
             done
         else
-            log "Desencriptando claves SSH (se pide passphrase una sola vez)..." "INFO"
-            read -s -p "Passphrase para claves SSH: " AGE_PASSPHRASE
+            # Interaccion: pausar la barra para pedir la passphrase sin descuadre.
+            gb_pause
+            printf '  %sDesencriptando claves SSH (se pide passphrase una sola vez)...%s\n' "$C_DIM" "$C_RESET"
+            read -s -p "  Passphrase para claves SSH: " AGE_PASSPHRASE
             echo ""
             for age_file in "$SSH_KEYS_DIR"/*.age; do
                 key_name="$(basename "$age_file" .age)"
@@ -1381,6 +1427,7 @@ fi
 # Se reactiva aca (se habia apagado para las claves SSH) y se cierra al final del
 # paso, sumando al mismo contador _QUIET_OK para el resumen.
 _QUIET_STEPS=1
+gb_sub 60 "configs de apps"
 
 # Editorconfig
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
@@ -1483,7 +1530,8 @@ unset _ptyxis_dump
 # Cierre del modo silencioso del paso [5/8]: resumen total de symlinks/configs.
 # Lo que sigue (shell por defecto / GNOME) tiene su propia salida.
 _QUIET_STEPS=0
-log "${_QUIET_OK} archivos aplicados (symlinks/configs/dconf)   (detalle en el log)" "OK"
+gb_sub 75 "configs aplicadas"
+log "${_QUIET_OK} archivos aplicados (symlinks/configs/dconf)   (detalle en el log)" "INFO"
 
 # Shell por defecto (login shell). Si zsh esta instalado, ofrecemos elegir entre
 # bash y zsh con un menu de flechas (mismo estilo que el selector de herramientas)
@@ -1495,6 +1543,7 @@ _choose_default_shell() {
     has_cmd chsh || { log "chsh no disponible — shell por defecto sin cambios" "SKIP"; return 0; }
     { [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; } || {
         log "Sin TTY interactiva — shell por defecto sin cambios" "SKIP"; return 0; }
+    gb_pause                          # el menu de flechas necesita pantalla (solo si vamos a mostrarlo)
 
     local zsh_path bash_path current
     zsh_path="$(command -v zsh)"
@@ -1582,7 +1631,7 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
             if rpm -q "$_ext_pkg" &>/dev/null; then
                 echo "[$(date +%H:%M:%S)][SKIP] $_ext_pkg ya instalado" >> "$LOG_FILE" 2>/dev/null || true
             else
-                progress_clear
+                gb_pause   # dnf escupe salida: fuera de la barra
                 run_step "Instalar $_ext_pkg" $PKG_INSTALL "$_ext_pkg"
                 _gnome_ext_new=$((_gnome_ext_new + 1))
             fi
@@ -1605,18 +1654,17 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         _file="$REPO_ROOT/gnome/${_entry##*:}"
         _gnome_i=$((_gnome_i + 1))
         [[ -f "$_file" ]] || continue
-        progress_live "$_gnome_i" "$_gnome_total" "aplicando ${_entry##*:}"
+        # Tramo final del paso [5/8]: de 75% a 100% repartido entre los dconf de GNOME.
+        gb_sub $(( 75 + _gnome_i * 25 / _gnome_total )) "GNOME: ${_entry##*:}"
         run_step "Restaurar GNOME: ${_entry##*:}" \
             bash -c "dconf load '$_path' < '$_file'"
     done
-    progress_live "$_gnome_total" "$_gnome_total" "listo"
-    progress_live_end
     _QUIET_STEPS=0
-    # Resumen en una linea: N ajustes dconf + (si hubo) extensiones nuevas.
+    # Resumen al log (con barra activa no se imprime; queda la traza).
     if (( _gnome_ext_new > 0 )); then
-        log "GNOME restaurado: ${_gnome_total} ajustes · ${_gnome_ext_new} extensiones nuevas   (detalle en el log)" "OK"
+        log "GNOME restaurado: ${_gnome_total} ajustes · ${_gnome_ext_new} extensiones nuevas   (detalle en el log)" "INFO"
     else
-        log "GNOME restaurado: ${_gnome_total} ajustes dconf   (detalle en el log)" "OK"
+        log "GNOME restaurado: ${_gnome_total} ajustes dconf   (detalle en el log)" "INFO"
     fi
     unset _gnome_map _entry _path _file _gnome_total _gnome_i _gnome_ext_new
 fi
@@ -1625,12 +1673,14 @@ fi
 # 6. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================
 
-log "--- [6/8] Configuracion AWS SSO ---" "SECTION"
+gb_step 6 "Configuración AWS SSO"
 
 if [[ "$WITH_AWS" != true ]]; then
+    gb_sub 100 "saltado (usa --with-aws)"
     log "Saltando configuracion AWS SSO (usa --with-aws para incluirla)" "SKIP"
     log "  Nota: AWS CLI ya esta instalado para claude-smg, pero SSO requiere --with-aws" "INFO"
 else
+    gb_pause   # el login SSO abre navegador y es interactivo
     # Datos de la org (cuenta, portal SSO, rol) NO se versionan: son infra
     # privada. Se leen de ~/.env. Sin ellos no hay nada que preconfigurar.
     [[ -f "$HOME/.env" ]] && { set -a; . "$HOME/.env"; set +a; }
@@ -1693,8 +1743,8 @@ fi
 # 7. VALIDACION POST-BOOTSTRAP
 # ==============================================================================
 
-log "" "INFO"
-log "--- [7/8] Ejecutando validaciones post-bootstrap ---" "SECTION"
+gb_step 7 "Validaciones post-bootstrap"
+gb_sub 30 "ejecutando test-bootstrap.sh"
 
 TEST_SCRIPT="$REPO_ROOT/test-bootstrap.sh"
 if [[ -f "$TEST_SCRIPT" ]]; then
@@ -1708,6 +1758,7 @@ if [[ -f "$TEST_SCRIPT" ]]; then
         printf '%s\n' "$_test_out" >> "$LOG_FILE" 2>/dev/null || true
         _p="$(printf '%s\n' "$_test_out" | grep -oE 'PASS: *[0-9]+' | grep -oE '[0-9]+' | head -1)"
         _f="$(printf '%s\n' "$_test_out" | grep -oE 'FAIL: *[0-9]+' | grep -oE '[0-9]+' | head -1)"
+        gb_sub 100 "test-bootstrap.sh"
         if [[ "${_f:-0}" -ne 0 ]]; then
             log "Validaciones: ${_p:-?} OK · ${_f} con fallo — detalle abajo" "WARN"
             printf '%s\n' "$_test_out" | grep -iE 'FAIL|✗|\[X\]' | while IFS= read -r _l; do
@@ -1715,7 +1766,8 @@ if [[ -f "$TEST_SCRIPT" ]]; then
             done
             WARNINGS+=("Validaciones post-bootstrap: ${_f} fallo(s) — ver log")
         else
-            log "Validaciones: ${_p:-todas} OK   (detalle en el log)" "OK"
+            # Hito notable: queda escrito arriba de la barra.
+            gb_note "$C_OK" "$I_OK" "${_p:-todas} validaciones OK   (detalle en el log)"
         fi
         unset _test_out _p _f
     fi
@@ -1727,7 +1779,11 @@ fi
 # 8. RESUMEN FINAL
 # ==============================================================================
 
-log "--- [8/8] Resumen final ---" "SECTION"
+# Cierra la barra global al 100% y la limpia: lo que sigue es el resumen final.
+gb_step 8 "Finalizando"
+gb_sub 100 "escribiendo resumen"
+gb_end
+echo "[$(date +%H:%M:%S)] === [8/8] Resumen final ===" >> "$LOG_FILE" 2>/dev/null || true
 
 # Titular segun resultado
 if [[ ${#ERRORS[@]} -eq 0 ]]; then

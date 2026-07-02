@@ -18,8 +18,11 @@ SKIP_PACKAGES=false
 ALL_TOOLS=false
 TOOLS_ARG=""
 
-_usage="Uso: bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages] [--all-tools] [--tools=id1,id2,...]"
+_usage="Uso: bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages] [--all-tools] [--tools=id1,id2,...] [--pace=SEG]"
 
+# Ritmo de la barra de progreso (dwell por accion, en segundos). Se puede fijar por
+# variable de entorno BOOTSTRAP_PACE o con --pace. 0 = sin pausas (rapido, CI).
+BOOTSTRAP_PACE="${BOOTSTRAP_PACE:-0.18}"
 for arg in "$@"; do
     case "$arg" in
         --with-aws)       WITH_AWS=true ;;
@@ -27,6 +30,8 @@ for arg in "$@"; do
         --skip-packages)  SKIP_PACKAGES=true ;;
         --all-tools)      ALL_TOOLS=true ;;
         --tools=*)        TOOLS_ARG="${arg#*=}" ;;
+        --pace=*)         BOOTSTRAP_PACE="${arg#*=}" ;;
+        --fast)           BOOTSTRAP_PACE=0 ;;
         *)
             echo "$_usage"
             exit 1
@@ -172,6 +177,11 @@ _GB_WEIGHTS=(0 6 40 8 6 24 4 6 6)   # indice 1..8 (el 0 no se usa)
 _GB_BASE=(0 0 6 46 54 60 84 88 94)  # % acumulado ANTES de cada paso (calculado a mano de _GB_WEIGHTS)
 _GB_STEP=0 _GB_LABEL="" _GB_ACTION="" _GB_SUB=0 _GB_ACTIVE=0
 _GB_ENABLED=0; [[ -t 1 ]] && _GB_ENABLED=1     # solo con TTY
+# Ritmo minimo por accion ("dwell"): muchas acciones (validar carpetas, symlinks,
+# herramientas ya instaladas) son instantaneas y la barra las atravesaria de un
+# borron. gb_sub duerme este tiempo para que el usuario alcance a LEER cada paso.
+# Ajustable con --pace <seg> (0 = sin pausa, para CI/apuro). Solo aplica con TTY.
+_GB_DWELL="${BOOTSTRAP_PACE:-0.18}"
 
 # _gb_render — dibuja las 2 lineas y deja el cursor de vuelta en la barra.
 _gb_render() {
@@ -205,9 +215,17 @@ gb_step() {
 }
 
 # gb_sub <sub0..100> [accion] — actualiza el avance dentro del paso y la accion.
+# Con TTY, respeta el ritmo minimo (_GB_DWELL) para que cada accion sea legible:
+# duerme SOLO si cambio la accion (no en refrescos de puro %) y si dwell > 0.
 gb_sub() {
+    local changed=0
+    [[ $# -ge 2 && "$2" != "$_GB_ACTION" ]] && changed=1
     _GB_SUB="$1"; [[ $# -ge 2 ]] && _GB_ACTION="$2"
-    (( _GB_ENABLED )) && _gb_render
+    (( _GB_ENABLED )) || return 0
+    _gb_render
+    if (( changed )) && [[ "$_GB_DWELL" != "0" && -n "$_GB_DWELL" ]]; then
+        sleep "$_GB_DWELL" 2>/dev/null || true
+    fi
 }
 
 # gb_note <color> <icono> <msg> — evento notable (nuevo/warn/error): queda escrito

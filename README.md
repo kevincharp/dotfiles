@@ -190,8 +190,8 @@ Windows: `Flow Launcher` · `Obsidian` · `Logitech Options+` · `SDelete` · `U
 | — | `-SkipDotfiles` | Saltear copia de dotfiles |
 | `--all-tools` | `-AllTools` | Instalar todo el catálogo sin preguntar |
 | `--tools=id1,id2` | `-Tools id1,id2` | Instalar solo esas herramientas |
-| `--pace=SEG` | — | Ritmo de la barra de progreso (seg. por acción, default 0.18) |
-| `--fast` | — | Barra sin pausas (equivale a `--pace=0`; útil en CI) |
+| `--pace=SEG` | `-Pace SEG` | Ritmo de la barra de progreso (seg. por acción, default 0.18) |
+| `--fast` | `-Fast` | Barra sin pausas (equivale a `--pace=0` / `-Pace 0`; útil en CI) |
 
 **Instalador** (`install.sh` / `install.ps1`):
 

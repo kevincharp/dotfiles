@@ -2,6 +2,8 @@
 #   bootstrap.ps1 — Setup completo de entorno de desarrollo (Windows / pwsh 7)
 #   Autor: Kevin Charpentier
 #   Uso:   pwsh -ExecutionPolicy Bypass -File bootstrap.ps1
+#          [-WithAws] [-DryRun] [-SkipWinget] [-SkipModules] [-SkipDotfiles]
+#          [-Tools a,b,c] [-AllTools] [-Pace 0.18 | -Fast]
 # ==============================================================================
 #   Qué hace:
 #     1. Verifica requisitos (pwsh 7, winget)
@@ -22,7 +24,9 @@ param(
     [switch]$SkipModules,     # saltear instalacion de modulos PS
     [switch]$SkipDotfiles,    # saltear copia de dotfiles
     [string]$Tools = '',      # instalar solo estas herramientas (csv de keys); vacio = preguntar
-    [switch]$AllTools         # instalar todo el catalogo sin preguntar
+    [switch]$AllTools,        # instalar todo el catalogo sin preguntar
+    [double]$Pace = 0.18,     # ritmo de la barra (seg. por accion); 0 = sin pausas
+    [switch]$Fast             # barra sin pausas (equivale a -Pace 0; util en CI)
 )
 
 Set-StrictMode -Version Latest
@@ -182,6 +186,115 @@ $script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001) {
     @{ Section='>'; Ok='[OK]'; Warn='[!]'; Err='[X]'; Skip='[-]' }
 }
 
+# Paleta ANSI (espejo de bootstrap.sh). PowerShell 7 + Windows Terminal soportan
+# truecolor, asi que la barra y los titulos usan el MISMO naranja #D4874E del
+# prompt (oh-my-posh). El ESC se escribe con "`e" (PS 7+).
+$ESC = [char]27
+$script:C_RESET = "$ESC[0m"
+$script:C_BAR   = "$ESC[38;2;212;135;78m"       # naranja plano (barra)
+$script:C_SECT  = "$ESC[1;38;2;212;135;78m"     # naranja negrita (titulos/headers)
+$script:C_DIM   = "$ESC[90m"
+$script:C_OK    = "$ESC[32m"
+$script:C_WARN  = "$ESC[33m"
+$script:C_ERR   = "$ESC[31m"
+
+# ── BARRA DE PROGRESO GLOBAL (espejo de gb_* en bootstrap.sh) ────────────────
+# UNA sola barra que cruza los 9 pasos (0→100%), con dos lineas fijas abajo:
+#   ▰▰▰▱▱  42%
+#   [3/9] Codex/Claude/FiraCode · claude
+# El % es global y ponderado (GB_WEIGHTS). En interacciones (selector, sudo N/A,
+# passphrase, login AWS) se PAUSA (Suspend-Bar) y retoma en el proximo Step/Sub.
+# Sin consola interactiva NO dibuja: cae a headers de texto '[N/9] ...'.
+#
+# Pesos por paso (suman 100). Instalar winget es lo mas largo -> pesa mas.
+# Indice 1..9. GB_BASE = % acumulado ANTES de cada paso.
+$script:GB_WEIGHTS = @(0, 4, 34, 14, 8, 6, 4, 18, 4, 8)
+$script:GB_BASE    = @(0, 0, 4, 38, 52, 60, 66, 70, 88, 92)
+$script:GB_STEP   = 0
+$script:GB_LABEL  = ''
+$script:GB_ACTION = ''
+$script:GB_SUB    = 0
+$script:GB_ACTIVE = $false
+# Ritmo minimo por accion ("dwell"): -Fast o -Pace 0 lo desactivan.
+$script:GB_DWELL  = if ($Fast) { 0 } else { $Pace }
+# Solo dibuja con consola interactiva (humano). En CI/headless: headers de texto.
+$script:GB_ENABLED = $false
+
+function Get-BarConsoleWidth {
+    try { $w = [Console]::WindowWidth; if ($w -gt 0) { return $w } } catch {}
+    return 80
+}
+
+function Write-BarFrame {
+    if (-not $script:GB_ENABLED) { return }
+    $width = 40
+    $base   = $script:GB_BASE[$script:GB_STEP]
+    $weight = $script:GB_WEIGHTS[$script:GB_STEP]
+    $pct = [int]($base + $weight * $script:GB_SUB / 100)
+    if ($pct -gt 100) { $pct = 100 }
+    if ($pct -lt 0)   { $pct = 0 }
+    $filled = [int]($pct * $width / 100)
+    if ($filled -gt $width) { $filled = $width }
+    $bar = ('▰' * $filled) + ('▱' * ($width - $filled))
+    $line2 = "[$($script:GB_STEP)/9] $($script:GB_LABEL)"
+    if ($script:GB_ACTION) { $line2 += " · $($script:GB_ACTION)" }
+    $maxw = (Get-BarConsoleWidth) - 6
+    if ($maxw -lt 20) { $maxw = 20 }
+    if ($line2.Length -gt $maxw) { $line2 = $line2.Substring(0, $maxw - 1) + '…' }
+    # Dos lineas: barra+% y accion. `e[K limpia el resto; `e[1A vuelve a la barra.
+    $pctStr = ('{0,3}' -f $pct)
+    Write-Host ("`r  {0}{1} {2}%{3}$ESC[K" -f $script:C_BAR, $bar, $pctStr, $script:C_RESET) -NoNewline
+    Write-Host ("`n  {0}{1}{2}$ESC[K$ESC[1A`r" -f $script:C_BAR, $line2, $script:C_RESET) -NoNewline
+    $script:GB_ACTIVE = $true
+}
+
+function Step-Bar {
+    param([int]$N, [string]$Label)
+    $script:GB_STEP = $N; $script:GB_LABEL = $Label; $script:GB_SUB = 0; $script:GB_ACTION = ''
+    Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')] === [$N/9] $Label ===" -ErrorAction SilentlyContinue
+    if ($script:GB_ENABLED) { Write-BarFrame }
+    else { Write-Host ''; Write-Host "$($script:ICONS.Section) [$N/9] $Label" -ForegroundColor DarkYellow }
+}
+
+function Sub-Bar {
+    param([int]$Sub, [string]$Action = $null)
+    $changed = ($null -ne $Action -and $Action -ne $script:GB_ACTION)
+    $script:GB_SUB = $Sub
+    if ($null -ne $Action) { $script:GB_ACTION = $Action }
+    if (-not $script:GB_ENABLED) { return }
+    Write-BarFrame
+    if ($changed -and $script:GB_DWELL -gt 0) { Start-Sleep -Seconds $script:GB_DWELL }
+}
+
+function Note-Bar {
+    # Evento notable (nuevo/warn/error): queda escrito ARRIBA de la barra.
+    param([string]$Color, [string]$Icon, [string]$Msg)
+    if ($script:GB_ENABLED -and $script:GB_ACTIVE) {
+        Write-Host "`r$ESC[K`n`r$ESC[K$ESC[1A`r" -NoNewline
+    }
+    Write-Host "  $Color$Icon$($script:C_RESET) $Msg"
+    if ($script:GB_ENABLED) { Write-BarFrame }
+}
+
+function Suspend-Bar {
+    # Borra la barra para una interaccion (selector/passphrase/login). Reaparece
+    # sola en el proximo Step-Bar/Sub-Bar.
+    if ($script:GB_ENABLED -and $script:GB_ACTIVE) {
+        Write-Host "`r$ESC[K`n`r$ESC[K$ESC[1A`r" -NoNewline
+    }
+    $script:GB_ACTIVE = $false
+}
+
+function Complete-Bar {
+    # Completa la barra al 100%, la limpia y deja el cursor listo para el resumen.
+    if ($script:GB_ENABLED) {
+        $script:GB_STEP = 9; $script:GB_SUB = 100; $script:GB_ACTION = ''
+        Write-BarFrame
+        Write-Host "`r$ESC[K`n`r$ESC[K$ESC[1A`r" -NoNewline
+    }
+    $script:GB_ACTIVE = $false
+}
+
 # Acceso a la consola física (CONIN$) — equivalente a /dev/tty en Linux.
 # Permite leer el teclado real aunque stdin esté ocupado por 'irm | iex'.
 Add-Type -Namespace Win32 -Name NativeConsole -MemberDefinition @'
@@ -207,13 +320,25 @@ function Write-Log {
     $ts = Get-Date -Format 'HH:mm:ss'
     Add-Content -Path $LOG_FILE -Value "[$ts][$Level] $Message" -ErrorAction SilentlyContinue
 
+    # Con la barra global ACTIVA, la pantalla la maneja la barra: el ruido de
+    # exito (OK/INFO/SKIP) ya quedo en el log, no se imprime. Solo lo notable
+    # (WARN/ERROR) scrollea ARRIBA de la barra. SECTION se ignora (los headers los
+    # pone Step-Bar). Sin barra, comportamiento normal de abajo.
+    if ($script:GB_ACTIVE) {
+        switch ($Level) {
+            'WARN'  { Note-Bar $script:C_WARN $script:ICONS.Warn $Message }
+            'ERROR' { Note-Bar $script:C_ERR  $script:ICONS.Err  $Message }
+        }
+        return
+    }
+
     # A pantalla: iconos + jerarquia
     switch ($Level) {
         'SECTION' {
             $clean = ($Message -replace '^[\s=#-]+', '' -replace '[\s=#-]+$', '')
             if (-not $clean) { return }
             Write-Host ''
-            Write-Host "$($script:ICONS.Section) $clean" -ForegroundColor Cyan
+            Write-Host "$($script:ICONS.Section) $clean" -ForegroundColor DarkYellow
         }
         'OK'    { Write-Host "  $($script:ICONS.Ok) " -ForegroundColor Green      -NoNewline; Write-Host $Message }
         'WARN'  { Write-Host "  $($script:ICONS.Warn) " -ForegroundColor DarkYellow -NoNewline; Write-Host $Message }
@@ -354,7 +479,7 @@ function Select-ToolsInteractive {
     }
 
     Write-Host ''
-    Write-Host '  ▶ Elegí qué instalar' -ForegroundColor Cyan
+    Write-Host "  $($script:C_SECT)▶ Elegí qué instalar$($script:C_RESET)"
     Write-Host '  ↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar' -ForegroundColor DarkGray
     Write-Host ''
 
@@ -378,18 +503,18 @@ function Select-ToolsInteractive {
                 $box = switch ($gs.State) { 'all' { '▰' } 'partial' { '▨' } default { '▱' } }
                 $arrow = if ($expanded[$row.Group]) { '▾' } else { '▸' }
                 $line = ("  {0} {1} {2} {3,-8} ({4}/{5})" -f $ptr, $arrow, $box, $row.Group, $gs.On, $gs.Tot)
-                $color = if ($di -eq $cur) { 'Cyan' } elseif ($gs.State -eq 'all') { 'Green' } elseif ($gs.State -eq 'partial') { 'DarkYellow' } else { 'Gray' }
+                $color = if ($di -eq $cur) { 'DarkYellow' } elseif ($gs.State -eq 'all') { 'Green' } elseif ($gs.State -eq 'partial') { 'DarkYellow' } else { 'Gray' }
                 Write-Host $line.PadRight(70) -ForegroundColor $color
             } else {
                 $box = if ($marked[$row.Key]) { '▰' } else { '▱' }
                 $line = ("      {0} {1} {2,-16} {3}" -f $ptr, $box, $row.Key, $row.Name)
-                $color = if ($di -eq $cur) { 'Cyan' } elseif ($marked[$row.Key]) { 'Green' } else { 'Gray' }
+                $color = if ($di -eq $cur) { 'DarkYellow' } elseif ($marked[$row.Key]) { 'Green' } else { 'Gray' }
                 Write-Host $line.PadRight(70) -ForegroundColor $color
             }
             $drawn++
         }
         $total = @($keys | Where-Object { $marked[$_] }).Count
-        Write-Host ("  {0} de {1} seleccionadas" -f $total, $keys.Count).PadRight(70) -ForegroundColor Cyan
+        Write-Host ("  {0} de {1} seleccionadas" -f $total, $keys.Count).PadRight(70) -ForegroundColor DarkYellow
         $drawn++
 
         $k = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
@@ -433,7 +558,7 @@ function Select-ToolsInteractiveText {
 
     while ($true) {
         Write-Host ''
-        Write-Host '  == Selector de herramientas ==' -ForegroundColor Cyan
+        Write-Host '  == Selector de herramientas ==' -ForegroundColor DarkYellow
         Write-Host '  Marca/desmarca por numero. Enter sin nada = instalar lo marcado.'
         Write-Host ''
         $idx = 0
@@ -498,13 +623,14 @@ function Resolve-SelectedTools {
             $WARNINGS.Add("-Tools tenia keys desconocidas: $($unknown -join ', ')")
         }
         $script:SELECTED_KEYS = $valid
-        Write-Log "Herramientas via -Tools: $($valid -join ', ')" 'INFO'
+        # Al log (no a pantalla): la barra global ya nombra cada herramienta.
+        Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')][INFO] Herramientas via -Tools: $($valid -join ', ')" -ErrorAction SilentlyContinue
     } elseif ($AllTools -or $DryRun) {
         $script:SELECTED_KEYS = @($allKeys)
-        Write-Log "Instalando catalogo completo ($($allKeys.Count) herramientas)" 'INFO'
+        Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')][INFO] Instalando catalogo completo ($($allKeys.Count) herramientas)" -ErrorAction SilentlyContinue
     } elseif (Test-Interactive) {
         $script:SELECTED_KEYS = @(Select-ToolsInteractive)
-        Write-Log "Seleccionadas $($script:SELECTED_KEYS.Count): $($script:SELECTED_KEYS -join ', ')" 'INFO'
+        Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')][INFO] Seleccionadas $($script:SELECTED_KEYS.Count): $($script:SELECTED_KEYS -join ', ')" -ErrorAction SilentlyContinue
     } else {
         $script:SELECTED_KEYS = @()
         Write-Log 'Sin consola interactiva y sin -Tools/-AllTools - no instalo nada' 'WARN'
@@ -530,35 +656,36 @@ function Show-Welcome {
     $total  = $TOOLS_CATALOG.Count
     $vault  = if (Test-Path $VAULT_DIR) { '✓ vault presente' } else { '✗ sin vault' }
 
+    $o = $script:C_SECT; $r = $script:C_RESET; $d = $script:C_DIM; $gr = $script:C_OK
     Write-Host ''
-    Write-Host '  ╭────────────────────────────────────────────────────────────╮' -ForegroundColor Cyan
-    Write-Host '  │                                                              │' -ForegroundColor Cyan
-    Write-Host '  │   ●  dotfiles · Setup de entorno                             │' -ForegroundColor Cyan
-    Write-Host '  │      Windows · reproducible en cualquier máquina             │' -ForegroundColor Cyan
-    Write-Host '  │                                                              │' -ForegroundColor Cyan
-    Write-Host '  ╰────────────────────────────────────────────────────────────╯' -ForegroundColor Cyan
+    Write-Host "  $o╭────────────────────────────────────────────────────────────╮$r"
+    Write-Host "  $o│                                                              │$r"
+    Write-Host "  $o│   ●  dotfiles · Setup de entorno                             │$r"
+    Write-Host "  $o│      Windows · reproducible en cualquier máquina             │$r"
+    Write-Host "  $o│                                                              │$r"
+    Write-Host "  $o╰────────────────────────────────────────────────────────────╯$r"
     Write-Host ''
-    Write-Host '  Qué hace' -ForegroundColor Cyan
+    Write-Host "  ${o}Qué hace$r"
     Write-Host ''
-    Write-Host '    1  Instala las herramientas que elijas   ' -NoNewline; Write-Host '(shell, editor, git, nube…)' -ForegroundColor DarkGray
-    Write-Host '    2  Crea los symlinks de tus configs      ' -NoNewline; Write-Host '(pwsh, git, nvim…)' -ForegroundColor DarkGray
-    Write-Host '    3  Aplica lo sensible desde el vault     ' -NoNewline; Write-Host '(claves SSH, identidades)' -ForegroundColor DarkGray
+    Write-Host '    1  Instala las herramientas que elijas   ' -NoNewline; Write-Host "$d(shell, editor, git, nube…)$r"
+    Write-Host '    2  Crea los symlinks de tus configs      ' -NoNewline; Write-Host "$d(pwsh, git, nvim…)$r"
+    Write-Host '    3  Aplica lo sensible desde el vault     ' -NoNewline; Write-Host "$d(claves SSH, identidades)$r"
     Write-Host ''
-    Write-Host "  Catálogo  ($total herramientas · elegís qué instalar)" -ForegroundColor Cyan
+    Write-Host "  ${o}Catálogo$r  $d($total herramientas · elegís qué instalar)$r"
     Write-Host ''
     foreach ($g in $groups) {
         $items = @($TOOLS_CATALOG | Where-Object Group -eq $g)
         if ($items.Count -eq 0) { continue }
         $line = ($items | Select-Object -First 5 | ForEach-Object { $_.Key }) -join ' · '
-        Write-Host ("    {0,-6} {1,2}  " -f $g, $items.Count) -ForegroundColor Green -NoNewline
-        Write-Host "$line…" -ForegroundColor DarkGray
+        Write-Host ("    $gr{0,-6} {1,2}$r  " -f $g, $items.Count) -NoNewline
+        Write-Host "$d$line…$r"
     }
     Write-Host ''
-    Write-Host '  Entorno   ' -ForegroundColor Cyan -NoNewline
-    Write-Host "✓ Windows   ✓ winget   $vault" -ForegroundColor Green
+    Write-Host "  ${o}Entorno$r   " -NoNewline
+    Write-Host "$gr✓ Windows   ✓ winget   $vault$r"
     Write-Host ''
-    Write-Host '  ────────────────────────────────────────────────────────────' -ForegroundColor DarkGray
-    Write-Host '  Enter' -ForegroundColor Cyan -NoNewline; Write-Host ' elegir herramientas  ·  ' -NoNewline; Write-Host 'Ctrl+C' -ForegroundColor Cyan -NoNewline; Write-Host ' cancelar'
+    Write-Host "  $d────────────────────────────────────────────────────────────$r"
+    Write-Host "  ${o}Enter$r elegir herramientas  ·  ${o}Ctrl+C$r cancelar"
     [void](Read-Console)
 }
 
@@ -575,70 +702,84 @@ if (-not $Tools -and -not $AllTools -and -not $DryRun -and (Test-Interactive)) {
     Show-Welcome
 }
 
-Write-Log "bootstrap.ps1 — Setup de entorno" 'SECTION'
-Write-Log "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')$(if ($DryRun) { '  ·  modo DryRun' })" 'INFO'
-Write-Log "" 'INFO'
-Write-Log "Instalaciones manuales requeridas antes de continuar" 'WARN'
-Write-Log "Estos programas NO se instalan automaticamente (hay razones):" 'INFO'
-Write-Log "1. VSCode System Installer (x64)" 'INFO'
-Write-Log "   https://code.visualstudio.com/docs/?dv=win64user" 'INFO'
-Write-Log "   Razon: el System Installer agrega 'code' al PATH global." 'INFO'
-Write-Log "2. Python (instalador oficial amd64)" 'INFO'
-Write-Log "   https://www.python.org/downloads/windows/" 'INFO'
-Write-Log "   Razon: marca 'Add Python to PATH' - necesario para Neovim." 'INFO'
-Write-Log "" 'INFO'
-Write-Log "Ya los instalaste? Si no, presiona Ctrl+C y hacelo primero." 'WARN'
+Write-Host ''
+Write-Host "$($script:C_SECT)$($script:ICONS.Section) bootstrap.ps1 — Setup de entorno$($script:C_RESET)"
+Write-Host "  $($script:C_DIM)$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')$(if ($DryRun) { '  ·  modo DryRun' })$($script:C_RESET)"
+Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')] === bootstrap.ps1 — Setup de entorno ===" -ErrorAction SilentlyContinue
 
-if (-not $DryRun) { Write-Host "  Presiona Enter para continuar: " -NoNewline; [void](Read-Console) }
+# Recordatorio de instalaciones manuales (VSCode/Python). Va antes de la barra
+# porque pide una confirmacion (Enter) — es interaccion, no ruido de progreso.
+Write-Host ''
+Write-Host "  $($script:C_WARN)$($script:ICONS.Warn)$($script:C_RESET) Instalaciones manuales requeridas antes de continuar"
+Write-Host "    $($script:C_DIM)1. VSCode System Installer (x64) — https://code.visualstudio.com/docs/?dv=win64user$($script:C_RESET)"
+Write-Host "    $($script:C_DIM)   (agrega 'code' al PATH global)$($script:C_RESET)"
+Write-Host "    $($script:C_DIM)2. Python oficial amd64 — https://www.python.org/downloads/windows/$($script:C_RESET)"
+Write-Host "    $($script:C_DIM)   (marca 'Add Python to PATH' — necesario para Neovim)$($script:C_RESET)"
+
+if (-not $DryRun) { Write-Host "  ¿Ya los instalaste? Enter para continuar (Ctrl+C para salir): " -NoNewline; [void](Read-Console) }
+
+# Activar la barra global solo con consola interactiva (humano). En CI/headless
+# o sin consola, GB_ENABLED queda en $false y se cae a headers de texto.
+if (Test-Interactive) { $script:GB_ENABLED = $true }
 
 # ==============================================================================
 # 1. VERIFICAR REQUISITOS
 # ==============================================================================
 
-Write-Log "--- [1/9] Verificando requisitos ---" 'SECTION'
+Step-Bar 1 "Verificando requisitos"
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     Write-Log "Se requiere PowerShell 7+. Versión actual: $($PSVersionTable.PSVersion)" 'ERROR'
     Write-Log "Instalá pwsh 7 con: winget install --id Microsoft.PowerShell --source winget" 'WARN'
     exit 1
 }
+Sub-Bar 50 "PowerShell $($PSVersionTable.PSVersion)"
 Write-Log "PowerShell $($PSVersionTable.PSVersion) OK" 'OK'
 
 if (-not (Test-WingetAvailable)) {
     Write-Log "winget no está disponible. Instalalo desde: https://aka.ms/getwinget" 'ERROR'
     exit 1
 }
+Sub-Bar 100 "winget disponible"
 Write-Log "winget disponible" 'OK'
 
 # ==============================================================================
 # 2. INSTALAR PAQUETES WINGET
 # ==============================================================================
 
-Write-Log "--- [2/9] Instalando paquetes winget ---" 'SECTION'
+Step-Bar 2 "Instalando paquetes"
 
+# El selector pide pantalla completa: pausar la barra mientras se elige.
+Suspend-Bar
 # Resolver que herramientas instalar (-Tools / -AllTools / menu / red de seguridad)
 Resolve-SelectedTools
 
 if ($SkipWinget) {
+    Step-Bar 2 "Instalando paquetes"
     Write-Log "SkipWinget activado, saltando instalacion de paquetes" 'SKIP'
 } elseif ($script:SELECTED_KEYS.Count -eq 0) {
+    Step-Bar 2 "Instalando paquetes"
     Write-Log "No se selecciono ninguna herramienta, saltando instalacion" 'SKIP'
 } else {
     if (-not (Test-WingetAvailable)) {
+        Step-Bar 2 "Instalando paquetes"
         Write-Log "winget no disponible, saltando paquetes" 'WARN'
     } else {
+        # Retomar la barra ya con la seleccion hecha.
+        Step-Bar 2 "Instalando paquetes"
         # Actualizar fuentes de winget primero
         Invoke-Step "Actualizar fuentes winget" {
             winget source update 2>&1 | Out-Null
         }
 
-        foreach ($pkg in $WINGET_PACKAGES) {
-            # Saltar lo no seleccionado
-            if (-not (Test-ToolSelected $pkg.Key)) {
-                Write-Log "$($pkg.Name) no seleccionado, saltando" 'SKIP'
-                continue
-            }
-            # WSL se instala diferente
+        # Solo iteramos los paquetes seleccionados, para que el % avance parejo.
+        $wingetSel = @($WINGET_PACKAGES | Where-Object { Test-ToolSelected $_.Key })
+        $wingetTot = [Math]::Max($wingetSel.Count, 1)
+        $wingetIdx = 0
+        foreach ($pkg in $wingetSel) {
+            $wingetIdx++
+            Sub-Bar ([int]($wingetIdx * 100 / $wingetTot)) $pkg.Name
+            # WSL se instala diferente y su salida streamea: pausar la barra.
             if ($pkg.Id -eq 'Canonical.Ubuntu.2204') {
                 if ($DryRun) {
                     Write-Log "[DryRun] wsl --install -d Ubuntu-22.04" 'SKIP'
@@ -647,9 +788,11 @@ if ($SkipWinget) {
                     if ($wslCheck) {
                         Write-Log "WSL Ubuntu ya instalado, saltando" 'SKIP'
                     } else {
+                        Suspend-Bar
                         Invoke-Step "Instalar WSL Ubuntu 22.04" {
                             wsl --install -d Ubuntu-22.04
                         }
+                        Sub-Bar ([int]($wingetIdx * 100 / $wingetTot)) $pkg.Name
                     }
                 }
                 continue
@@ -687,12 +830,13 @@ if ($SkipWinget) {
 # 3. HERRAMIENTAS CON INSTALACION PROPIA (Codex, Claude Code, FiraCode)
 # ==============================================================================
 
-Write-Log "--- [3/9] Codex CLI, Claude Code y FiraCode Nerd Font ---" 'SECTION'
+Step-Bar 3 "Codex, Claude y FiraCode"
 
 if ($SkipWinget) {
     Write-Log "SkipWinget activado, saltando" 'SKIP'
 } else {
     # --- Codex CLI ---
+    Sub-Bar 20 "codex"
     if (-not (Test-ToolSelected 'codex')) {
         Write-Log "Codex CLI no seleccionado, saltando" 'SKIP'
     } elseif (Test-CommandAvailable 'codex') {
@@ -703,6 +847,7 @@ if ($SkipWinget) {
     }
 
     # --- Claude Code ---
+    Sub-Bar 40 "claude"
     if (-not (Test-ToolSelected 'claude')) {
         Write-Log "Claude Code no seleccionado, saltando" 'SKIP'
     } elseif (Test-CommandAvailable 'claude') {
@@ -716,6 +861,7 @@ if ($SkipWinget) {
     # --- FiraCode Nerd Font ---
     # Replica lo que hace Linux: baja el zip de nerd-fonts y registra los .ttf
     # para el usuario actual (sin admin). La terminal ya usa 'FiraCode Nerd Font'.
+    Sub-Bar 65 "firacode"
     if (-not (Test-ToolSelected 'firacode')) {
         Write-Log "FiraCode Nerd Font no seleccionada, saltando" 'SKIP'
     } else {
@@ -755,6 +901,7 @@ if ($SkipWinget) {
     # --- lazyssh (TUI para SSH) ---
     # No esta en winget/scoop: se baja el binario del release oficial a
     # ~/.local/bin (igual que en Linux) y se agrega ese dir al PATH de usuario.
+    Sub-Bar 90 "lazyssh"
     if (-not (Test-ToolSelected 'lazyssh')) {
         Write-Log "lazyssh no seleccionado, saltando" 'SKIP'
     } elseif (Test-CommandAvailable 'lazyssh') {
@@ -791,12 +938,15 @@ if ($SkipWinget) {
 # 4. INSTALAR MODULOS DE POWERSHELL
 # ==============================================================================
 
-Write-Log "--- [4/9] Instalando modulos de PowerShell ---" 'SECTION'
+Step-Bar 4 "Módulos de PowerShell"
 
 if ($SkipModules) {
     Write-Log "SkipModules activado, saltando módulos" 'SKIP'
 } else {
+    $modTot = [Math]::Max($PS_MODULES.Count, 1); $modIdx = 0
     foreach ($mod in $PS_MODULES) {
+        $modIdx++
+        Sub-Bar ([int]($modIdx * 100 / $modTot)) $mod
         if (Get-Module -ListAvailable -Name $mod) {
             Write-Log "Módulo '$mod' ya instalado, saltando" 'SKIP'
         } else {
@@ -811,12 +961,17 @@ if ($SkipModules) {
 # 4. CREAR ESTRUCTURA DE CARPETAS
 # ==============================================================================
 
-Write-Log "--- [5/9] Creando estructura de carpetas ---" 'SECTION'
+Step-Bar 5 "Creando carpetas"
 
+$dirTot = [Math]::Max($DIRS.Count, 1); $dirIdx = 0
 foreach ($dir in $DIRS) {
+    $dirIdx++
+    $dirShort = $dir.Replace($HOME, '~')
     if (Test-Path $dir) {
+        Sub-Bar ([int]($dirIdx * 100 / $dirTot)) "validando $dirShort"
         Write-Log "$dir ya existe, saltando" 'SKIP'
     } else {
+        Sub-Bar ([int]($dirIdx * 100 / $dirTot)) "creando $dirShort"
         Invoke-Step "Crear $dir" {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
         }
@@ -856,7 +1011,8 @@ if (Test-Path $envFile) {
 # 5. MIGRAR BACKUPS VIEJOS (.bak-*) → BACKUP_DIR
 # ==============================================================================
 
-Write-Log "--- [6/9] Migrando backups viejos ---" 'SECTION'
+Step-Bar 6 "Migrando backups viejos"
+Sub-Bar 50 "buscando backups previos"
 
 if ($SkipDotfiles) {
     Write-Log "SkipDotfiles activado, saltando migracion de backups" 'SKIP'
@@ -910,12 +1066,16 @@ if ($SkipDotfiles) {
 # 6. COPIAR DOTFILES
 # ==============================================================================
 
-Write-Log "--- [7/9] Copiando dotfiles ---" 'SECTION'
+Step-Bar 7 "Copiando dotfiles"
 
 if ($SkipDotfiles) {
     Write-Log "SkipDotfiles activado, saltando dotfiles" 'SKIP'
 } else {
+    Sub-Bar 15 "symlinks y configs"
+    $dfTot = [Math]::Max($DOTFILES.Count, 1); $dfIdx = 0
     foreach ($df in $DOTFILES) {
+        $dfIdx++
+        Sub-Bar ([int]($dfIdx * 60 / $dfTot)) "$($df.Src)"
         # Resolver raiz: 'vault' (privado) o repo publico por defecto
         $root = if ($df.PSObject.Properties['Root'] -and $df.Root -eq 'vault') { $VAULT_DIR } else { $REPO_ROOT }
         $src = Join-Path $root $df.Src
@@ -1029,10 +1189,13 @@ if ($SkipDotfiles) {
     $sshKeysDir = Join-Path $VAULT_DIR "ssh\keys"
     $ageFiles = Get-ChildItem -Path $sshKeysDir -Filter "*.age" -File -ErrorAction SilentlyContinue
 
+    Sub-Bar 70 "claves SSH"
     if ($ageFiles) {
         if (Test-CommandAvailable 'age') {
-            Write-Log "Desencriptando claves SSH (se pide passphrase una sola vez)..." 'INFO'
-            $secPass = Read-Host "Passphrase para claves SSH" -AsSecureString
+            # La passphrase es interaccion: pausar la barra para pedirla limpio.
+            Suspend-Bar
+            Write-Host "  Desencriptando claves SSH (se pide passphrase una sola vez)..."
+            $secPass = Read-Host "  Passphrase para claves SSH" -AsSecureString
             $agePassphrase = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
                 [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secPass)
             )
@@ -1078,9 +1241,7 @@ if ($SkipDotfiles) {
     }
 
     # --- Limpieza de archivos residuales ---
-    Write-Log "" 'INFO'
-    Write-Log "--- Limpieza de archivos residuales ---" 'SECTION'
-
+    Sub-Bar 95 "limpieza de residuales"
     # .condarc residual
     $condarc = Join-Path $HOME ".condarc"
     if (Test-Path $condarc) {
@@ -1094,14 +1255,19 @@ if ($SkipDotfiles) {
 # 6. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================
 
-Write-Log "--- [8/9] Configuración AWS ---" 'SECTION'
+Step-Bar 8 "Configuración AWS SSO"
 
 if (-not $WithAws) {
+    Sub-Bar 100 "saltado (usá -WithAws)"
     Write-Log "Saltando configuración AWS (usá -WithAws para incluirla)" 'SKIP'
 } elseif (-not (Test-CommandAvailable 'aws')) {
+    Suspend-Bar
     Write-Log "AWS CLI no está instalado, saltando configuración SSO" 'WARN'
     $WARNINGS.Add("AWS CLI no encontrado — instalalo y ejecutá 'aws configure sso' manualmente")
 } else {
+    # AWS con certificados + login por navegador: todo interactivo/verboso -> fuera
+    # de la barra.
+    Suspend-Bar
     # Configurar combined-ca.pem para Netskope (solo si existe el cert)
     $netskopeThumb = (Get-ChildItem -Path Cert:\LocalMachine\Root |
                       Where-Object { $_.Subject -match "Netskope" } |
@@ -1193,7 +1359,8 @@ output = json
 # 7. CONFIGURAR PROFILE DE POWERSHELL
 # ==============================================================================
 
-Write-Log "--- [9/9] Configurando perfil de PowerShell ---" 'SECTION'
+Step-Bar 9 "Perfil de PowerShell y validaciones"
+Sub-Bar 20 "configurando `$PROFILE"
 
 $loaderProfile = $PROFILE
 $loaderContent = @"
@@ -1223,23 +1390,25 @@ if (Test-Path $loaderProfile) {
     }
 }
 
-# ==============================================================================
-# VALIDACION POST-BOOTSTRAP
-# ==============================================================================
-
-Write-Log "Validaciones post-bootstrap" 'SECTION'
+# --- Validaciones post-bootstrap (parte del paso 9) ---
+Sub-Bar 70 "validaciones post-bootstrap"
 
 $testScript = Join-Path $REPO_ROOT "test-bootstrap.ps1"
 if (Test-Path $testScript) {
     if ($DryRun) {
         Write-Log "[DryRun] pwsh -File $testScript" 'SKIP'
     } else {
-        & pwsh -File $testScript
-        if ($LASTEXITCODE -ne 0) {
-            Write-Log "Validaciones post-bootstrap: hay fallos (exit $LASTEXITCODE)" 'WARN'
-            $WARNINGS.Add("Validaciones post-bootstrap con fallos — revisar output arriba")
+        # Anti-choclo: capturar la salida completa al log; en pantalla solo el
+        # resumen (como hito arriba de la barra). Los fallos siempre se muestran.
+        $testOut = & pwsh -File $testScript 2>&1
+        $testExit = $LASTEXITCODE
+        Add-Content -Path $LOG_FILE -Value ($testOut -join "`n") -ErrorAction SilentlyContinue
+        Sub-Bar 90 "validaciones post-bootstrap"
+        if ($testExit -ne 0) {
+            Write-Log "Validaciones post-bootstrap: hay fallos (exit $testExit) — detalle en el log" 'WARN'
+            $WARNINGS.Add("Validaciones post-bootstrap con fallos — revisar el log")
         } else {
-            Write-Log "Validaciones post-bootstrap: todo OK" 'OK'
+            Note-Bar $script:C_OK $script:ICONS.Ok "validaciones post-bootstrap OK   (detalle en el log)"
         }
     }
 } else {
@@ -1250,13 +1419,15 @@ if (Test-Path $testScript) {
 # RESUMEN FINAL
 # ==============================================================================
 
-Write-Log "--- Resumen final ---" 'SECTION'
+# Cierra la barra global al 100% y la limpia: lo que sigue es el resumen.
+Complete-Bar
+Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')] === Resumen final ===" -ErrorAction SilentlyContinue
 
 # Titular segun resultado (espejo del resumen de bootstrap.sh)
 if ($ERRORS.Count -eq 0) {
-    Write-Host '  ✓ Bootstrap completado' -ForegroundColor Green
+    Write-Host "  $($script:C_SECT)$($script:ICONS.Ok) Bootstrap completado$($script:C_RESET)"
 } else {
-    Write-Host "  ✗ Bootstrap terminó con $($ERRORS.Count) error(es)" -ForegroundColor Red
+    Write-Host "  $($script:C_ERR)$($script:ICONS.Err) Bootstrap terminó con $($ERRORS.Count) error(es)$($script:C_RESET)"
 }
 
 # Warnings/errores destacados (siempre visibles)
@@ -1275,14 +1446,15 @@ Write-Host ''
 Write-Host "    Log:     $LOG_FILE" -ForegroundColor DarkGray
 Write-Host "    Backups: $BACKUP_DIR" -ForegroundColor DarkGray
 
-Write-Log "Proximos pasos manuales" 'SECTION'
+Write-Host ''
+Write-Host "$($script:C_SECT)$($script:ICONS.Section) Proximos pasos manuales$($script:C_RESET)"
 $stepNum = 1
-Write-Log "$stepNum. Abri una terminal nueva para recargar el profile" 'INFO'
+Write-Host "    $($script:C_DIM)$stepNum. Abri una terminal nueva para recargar el profile$($script:C_RESET)"
 $stepNum++
 if ($WithAws) {
-    Write-Log "$stepNum. Ejecuta: aws configure sso (completar datos de SMG)" 'INFO'
+    Write-Host "    $($script:C_DIM)$stepNum. Ejecuta: aws configure sso (completar datos de SMG)$($script:C_RESET)"
     $stepNum++
-    Write-Log "$stepNum. Ejecuta: aws sts get-caller-identity --profile tu_usuario" 'INFO'
+    Write-Host "    $($script:C_DIM)$stepNum. Ejecuta: aws sts get-caller-identity --profile tu_usuario$($script:C_RESET)"
     $stepNum++
 }
-Write-Log "$stepNum. Verifica tus claves SSH: ssh -T git@github.com-kevincharp" 'INFO'
+Write-Host "    $($script:C_DIM)$stepNum. Verifica tus claves SSH: ssh -T git@github.com-kevincharp$($script:C_RESET)"

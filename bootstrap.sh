@@ -187,9 +187,10 @@ _gb_render() {
     line2="[${_GB_STEP}/8] ${_GB_LABEL}"
     [[ -n "$_GB_ACTION" ]] && line2+=" · ${_GB_ACTION}"
     (( ${#line2} > maxw )) && line2="${line2:0:maxw-1}…"
-    printf '\r  %b%s%b %b%3d%%%b\033[K\n  %b%s%b\033[K\033[1A\r' \
-        "$C_BAR" "$b" "$C_RESET" "$C_BOLD" "$pct" "$C_RESET" \
-        "$C_DIM" "$line2" "$C_RESET"
+    # Barra, % y linea de estado, todo en el naranja del prompt (#D4874E).
+    printf '\r  %b%s %3d%%%b\033[K\n  %b%s%b\033[K\033[1A\r' \
+        "$C_BAR" "$b" "$pct" "$C_RESET" \
+        "$C_BAR" "$line2" "$C_RESET"
     _GB_ACTIVE=1
 }
 
@@ -968,6 +969,78 @@ select_tools() {
     fi
 }
 
+# _ask_default_shell — PREGUNTA (no aplica) el shell por defecto, con un menu de
+# flechas al estilo del selector de herramientas. Guarda la eleccion en la global
+# DEFAULT_SHELL_TARGET (ruta del binario) para que _apply_default_shell la use
+# despues, ya con zsh instalado y .zshrc copiado. Se llama arriba, junto al
+# selector de tools, para juntar todas las decisiones del usuario al arranque.
+# Solo pregunta si zsh se va a tener (instalado o recien seleccionado) y hay tty.
+DEFAULT_SHELL_TARGET=""
+_ask_default_shell() {
+    # Solo en el flujo interactivo real (igual que la bienvenida y el selector de
+    # tools): con --dry-run/--tools/--all-tools/sin-tty no se pregunta.
+    [[ -z "$TOOLS_ARG" && "$ALL_TOOLS" == false && "$DRY_RUN" == false ]] || return 0
+    # zsh disponible: ya instalado, o elegido en el selector (se instalara en [2/8]).
+    local zsh_selected=0 t
+    for t in "${SELECTED_TOOLS[@]}"; do [[ "$t" == "zsh" ]] && zsh_selected=1; done
+    { has_cmd zsh || (( zsh_selected )); } || return 0
+    { [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; } || return 0   # sin tty: no preguntar
+
+    local zsh_path bash_path current
+    zsh_path="$(command -v zsh 2>/dev/null || echo /usr/bin/zsh)"
+    bash_path="$(command -v bash 2>/dev/null || echo /bin/bash)"
+    current="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
+    [[ -n "$current" ]] || current="$SHELL"
+
+    local -a sh_names sh_paths
+    sh_names=(bash zsh); sh_paths=("$bash_path" "$zsh_path")
+    local cur=0
+    [[ "$current" == "$zsh_path" ]] && cur=1
+
+    local saved_stty
+    saved_stty="$(stty -g < /dev/tty 2>/dev/null)" || saved_stty=""
+    if [[ -z "$saved_stty" ]]; then
+        printf '\n  Shell por defecto: 1) bash  2) zsh  [Enter = sin cambios]\n  > ' > /dev/tty
+        local ans; read -r ans < /dev/tty || ans=""
+        case "$ans" in
+            1) cur=0 ;; 2) cur=1 ;; *) return 0 ;;
+        esac
+    else
+        stty -echo -icanon min 1 time 0 < /dev/tty
+        printf '\033[?25l' > /dev/tty
+        local nlines=0 i key="" rest=""
+        while true; do
+            local out=$'\n  '"$C_BAR"$'▶ Shell por defecto'"$C_RESET"$'\n'
+            out+=$'  \033[90m↑/↓ mover · Enter confirmar  (● = actual)\033[0m\n\n'
+            for ((i = 0; i < 2; i++)); do
+                local ptr box=$'\033[90m▱\033[0m'
+                [[ "${sh_paths[i]}" == "$current" ]] && box=$'\033[32m●\033[0m'
+                if (( i == cur )); then ptr="$C_BAR"$'❯'"$C_RESET"; else ptr=' '; fi
+                out+="  $ptr $box ${sh_names[i]}"$'\n'
+            done
+            if (( nlines > 0 )); then printf '\033[%dA\033[J' "$nlines" > /dev/tty; fi
+            printf '%b' "$out" > /dev/tty
+            local nl="${out//[^$'\n']/}"; nlines=${#nl}
+            IFS= read -rsn1 key < /dev/tty || break
+            if [[ "$key" == $'\033' ]]; then
+                read -rsn2 -t 0.01 rest < /dev/tty || true
+                key+="$rest"
+            fi
+            case "$key" in
+                $'\033[A'|k|K) cur=$(( (cur - 1 + 2) % 2 )) ;;
+                $'\033[B'|j|J) cur=$(( (cur + 1) % 2 )) ;;
+                ''|$'\n')      break ;;
+                q|Q)           cur=-1; break ;;
+            esac
+        done
+        stty "$saved_stty" < /dev/tty 2>/dev/null || true
+        printf '\033[?25h' > /dev/tty
+        (( cur < 0 )) && return 0
+    fi
+    DEFAULT_SHELL_TARGET="${sh_paths[cur]}"
+    echo "[$(date +%H:%M:%S)][INFO] Shell por defecto elegido: ${sh_names[cur]} ($DEFAULT_SHELL_TARGET)" >> "$LOG_FILE" 2>/dev/null || true
+}
+
 # ==============================================================================
 # PANTALLA DE BIENVENIDA
 # ------------------------------------------------------------------------------
@@ -1084,6 +1157,9 @@ else
     gb_pause
     # Resuelve que herramientas instalar (--tools / --all-tools / menu / red de seguridad)
     select_tools
+    # Juntamos aca la otra decision del usuario: shell por defecto. Se PREGUNTA
+    # ahora (pegado al selector) pero se APLICA luego en [5/8] con _apply_default_shell.
+    _ask_default_shell
 
     if [[ ${#SELECTED_TOOLS[@]} -eq 0 ]]; then
         gb_step 2 "Instalando paquetes"
@@ -1533,86 +1609,33 @@ _QUIET_STEPS=0
 gb_sub 75 "configs aplicadas"
 log "${_QUIET_OK} archivos aplicados (symlinks/configs/dconf)   (detalle en el log)" "INFO"
 
-# Shell por defecto (login shell). Si zsh esta instalado, ofrecemos elegir entre
-# bash y zsh con un menu de flechas (mismo estilo que el selector de herramientas)
-# y aplicamos 'chsh' solo si la eleccion difiere del shell actual. Sin TTY
-# (curl | bash) no se pregunta ni se toca el shell: red de seguridad.
-_choose_default_shell() {
-    has_cmd zsh || return 0          # sin zsh no hay nada que elegir
-    [[ "$DRY_RUN" == true ]] && { log "[DryRun] Selector de shell por defecto" "SKIP"; return 0; }
+# El shell por defecto (bash/zsh) se PREGUNTA arriba, junto al selector de
+# herramientas (ver _ask_default_shell mas abajo, llamado en [2/8]), y se APLICA
+# aca en silencio: para entonces zsh ya esta instalado y su .zshrc copiado. Asi
+# el usuario toma todas las decisiones al arranque y el resto corre solo.
+_apply_default_shell() {
+    [[ -n "${DEFAULT_SHELL_TARGET:-}" ]] || return 0   # no se eligio nada
     has_cmd chsh || { log "chsh no disponible — shell por defecto sin cambios" "SKIP"; return 0; }
-    { [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; } || {
-        log "Sin TTY interactiva — shell por defecto sin cambios" "SKIP"; return 0; }
-    gb_pause                          # el menu de flechas necesita pantalla (solo si vamos a mostrarlo)
-
-    local zsh_path bash_path current
-    zsh_path="$(command -v zsh)"
-    bash_path="$(command -v bash)"
+    local current
     current="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
     [[ -n "$current" ]] || current="$SHELL"
-
-    # Opciones y cursor inicial sobre el shell actual
-    local -a sh_names sh_paths
-    sh_names=(bash zsh); sh_paths=("$bash_path" "$zsh_path")
-    local cur=0
-    [[ "$current" == "$zsh_path" ]] && cur=1
-
-    local saved_stty
-    saved_stty="$(stty -g < /dev/tty 2>/dev/null)" || saved_stty=""
-    if [[ -z "$saved_stty" ]]; then
-        # Fallback por texto si no hay modo raw
-        printf '\n  Shell por defecto: 1) bash  2) zsh  [Enter = sin cambios]\n  > ' > /dev/tty
-        local ans; read -r ans < /dev/tty || ans=""
-        case "$ans" in
-            1) cur=0 ;; 2) cur=1 ;; *) return 0 ;;
-        esac
-    else
-        stty -echo -icanon min 1 time 0 < /dev/tty
-        printf '\033[?25l' > /dev/tty
-        local nlines=0 i key="" rest=""
-        while true; do
-            local out=$'\n  \033[1;36m▶ Shell por defecto\033[0m\n'
-            out+=$'  \033[90m↑/↓ mover · Enter confirmar  (● = actual)\033[0m\n\n'
-            for ((i = 0; i < 2; i++)); do
-                local ptr box=$'\033[90m▱\033[0m'
-                [[ "${sh_paths[i]}" == "$current" ]] && box=$'\033[32m●\033[0m'
-                if (( i == cur )); then ptr=$'\033[36m❯\033[0m'; else ptr=' '; fi
-                out+="  $ptr $box ${sh_names[i]}"$'\n'
-            done
-            if (( nlines > 0 )); then printf '\033[%dA\033[J' "$nlines" > /dev/tty; fi
-            printf '%b' "$out" > /dev/tty
-            local nl="${out//[^$'\n']/}"; nlines=${#nl}
-            IFS= read -rsn1 key < /dev/tty || break
-            if [[ "$key" == $'\033' ]]; then
-                read -rsn2 -t 0.01 rest < /dev/tty || true
-                key+="$rest"
-            fi
-            case "$key" in
-                $'\033[A'|k|K) cur=$(( (cur - 1 + 2) % 2 )) ;;
-                $'\033[B'|j|J) cur=$(( (cur + 1) % 2 )) ;;
-                ''|$'\n')      break ;;
-                q|Q)           cur=-1; break ;;
-            esac
-        done
-        stty "$saved_stty" < /dev/tty 2>/dev/null || true
-        printf '\033[?25h' > /dev/tty
-        (( cur < 0 )) && return 0
-    fi
-
-    local target="${sh_paths[cur]}"
-    if [[ "$target" == "$current" ]]; then
-        # Sin cambio: no ensuciar la pantalla, solo dejar rastro en el log.
-        echo "[$(date +%H:%M:%S)][SKIP] Shell por defecto ya es ${sh_names[cur]} — sin cambios" >> "$LOG_FILE" 2>/dev/null || true
+    if [[ "$DEFAULT_SHELL_TARGET" == "$current" ]]; then
+        echo "[$(date +%H:%M:%S)][SKIP] Shell por defecto ya es $DEFAULT_SHELL_TARGET — sin cambios" >> "$LOG_FILE" 2>/dev/null || true
         return 0
     fi
-    if chsh -s "$target"; then
-        log "Shell por defecto cambiado a ${sh_names[cur]} ($target) — efectivo al reloguear" "OK"
+    if [[ "$DRY_RUN" == true ]]; then
+        echo "[$(date +%H:%M:%S)][SKIP] [DryRun] chsh -s $DEFAULT_SHELL_TARGET" >> "$LOG_FILE" 2>/dev/null || true
+        return 0
+    fi
+    if chsh -s "$DEFAULT_SHELL_TARGET"; then
+        # Hito notable: scrollea arriba de la barra.
+        gb_note "$C_OK" "$I_OK" "shell por defecto → $(basename "$DEFAULT_SHELL_TARGET") (efectivo al reloguear)"
     else
         log "No se pudo cambiar el shell (chsh fallo)" "WARN"
-        WARNINGS+=("Cambiar shell manualmente: chsh -s $target")
+        WARNINGS+=("Cambiar shell manualmente: chsh -s $DEFAULT_SHELL_TARGET")
     fi
 }
-_choose_default_shell
+_apply_default_shell
 
 # GNOME — atajos, dock, extensiones y favoritos (solo si corre GNOME).
 # Las extensiones de Fedora vienen como paquetes; primero se instalan, despues

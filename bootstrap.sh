@@ -63,13 +63,15 @@ fi
 
 # Colores ANSI
 C_RESET=$'\033[0m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERROR=$'\033[31m'
-C_SKIP=$'\033[90m'; C_SECTION=$'\033[1;36m'; C_DIM=$'\033[90m'; C_BOLD=$'\033[1m'
-# Naranja de la barra de progreso: el MISMO #D4874E del prompt (oh-my-posh). Si la
-# terminal no soporta truecolor, degrada a naranja de 256-colores (208).
+C_SKIP=$'\033[90m'; C_DIM=$'\033[90m'; C_BOLD=$'\033[1m'
+# Naranja de marca: el MISMO #D4874E del prompt (oh-my-posh). Si la terminal no
+# soporta truecolor, degrada a naranja de 256-colores (208). C_BAR es el naranja
+# plano (barra de progreso); C_SECTION es el mismo naranja en negrita, usado para
+# la caja de bienvenida, titulos de seccion, headers de paso y el banner.
 if [[ "${COLORTERM:-}" == *truecolor* || "${COLORTERM:-}" == *24bit* ]]; then
-    C_BAR=$'\033[38;2;212;135;78m'
+    C_BAR=$'\033[38;2;212;135;78m'; C_SECTION=$'\033[1;38;2;212;135;78m'
 else
-    C_BAR=$'\033[38;5;208m'
+    C_BAR=$'\033[38;5;208m';        C_SECTION=$'\033[1;38;5;208m'
 fi
 
 # ==============================================================================
@@ -804,12 +806,12 @@ _select_interactive() {
         _build_rows
         local nrows=${#ROWS[@]} r kind val total=0 j box ptr arrow st on tot out="" K=$'\033[K'
         for ((j = 0; j < n; j++)); do [[ "${MARK[j]}" == 1 ]] && total=$((total + 1)); done
-        out+="  \033[1;36m▶ Elegí qué instalar\033[0m${K}"$'\n'
+        out+="  ${C_SECTION}▶ Elegí qué instalar${C_RESET}${K}"$'\n'
         out+="  \033[90m↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar\033[0m${K}"$'\n'
         out+="${K}"$'\n'
         for ((r = 0; r < nrows; r++)); do
             kind="${ROWS[r]%%:*}"; val="${ROWS[r]#*:}"
-            if (( r == cur )); then ptr=$'\033[36m❯\033[0m'; else ptr=' '; fi
+            if (( r == cur )); then ptr="${C_BAR}❯${C_RESET}"; else ptr=' '; fi
             if [[ "$kind" == G ]]; then
                 read -r st on tot <<< "$(_grp_state "$val")"
                 case "$st" in 1) box=$'\033[32m▰\033[0m';; 2) box=$'\033[33m▨\033[0m';; *) box=$'\033[90m▱\033[0m';; esac
@@ -821,7 +823,7 @@ _select_interactive() {
             fi
         done
         out+="${K}"$'\n'
-        out+="  \033[36m${total}\033[0m\033[90m de ${n} seleccionadas\033[0m${K}"$'\n'
+        out+="  ${C_BAR}${total}${C_RESET}\033[90m de ${n} seleccionadas\033[0m${K}"$'\n'
         FRAME_N=$(( nrows + 5 ))
         FRAME="$out"
     }
@@ -880,7 +882,7 @@ _select_interactive_text() {
     local g entry id grp desc
 
     while true; do
-        printf '\n  \033[36m== Selector de herramientas ==\033[0m\n' > /dev/tty
+        printf '\n  %b== Selector de herramientas ==%b\n' "$C_SECTION" "$C_RESET" > /dev/tty
         printf '  Marca/desmarca por numero. Enter sin nada = instalar lo marcado.\n\n' > /dev/tty
         for g in "${groups[@]}"; do
             printf '  \033[1m[%s]\033[0m\n' "$g" > /dev/tty

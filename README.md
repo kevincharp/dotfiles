@@ -250,6 +250,8 @@ bash bootstrap.sh --dry-run
 | `--skip-packages` | Saltear instalacion de paquetes |
 | `--all-tools` | Instalar todo el catalogo sin preguntar |
 | `--tools=id1,id2` | Instalar solo esas herramientas (ver selector) |
+| `--pace=SEG` | Ritmo de la barra de progreso (seg. por accion, default 0.18) |
+| `--fast` | Barra sin pausas (equivale a `--pace=0`; util en CI) |
 
 ### Selector de herramientas
 

@@ -1081,15 +1081,19 @@ for dir in "${DIRS[@]}"; do
         _dirs_new=$((_dirs_new + 1))
     fi
 done
-log "${_dirs_new} carpetas creadas · ${_dirs_had} ya existían" "OK"
-
-# Permisos seguros para .ssh
+# Permisos seguros (.ssh 700, .env 600): exito garantizado -> al log. El fallo,
+# como siempre en run_step, se muestra en pantalla igual.
+_QUIET_STEPS=1
 run_step "Permisos ~/.ssh" chmod 700 "$HOME/.ssh"
-
-# Permisos seguros para .env (solo tu usuario puede leerlo)
 if [[ -f "$HOME/.env" ]]; then
     run_step "Permisos ~/.env" chmod 600 "$HOME/.env"
-else
+fi
+_QUIET_STEPS=0
+
+log "${_dirs_new} carpetas creadas · ${_dirs_had} ya existían · permisos aplicados" "OK"
+
+# Advertencia de .env (fuera del modo silencioso: es un aviso, no un paso exitoso)
+if [[ ! -f "$HOME/.env" ]]; then
     log "~/.env no existe — crealo manualmente con tus tokens" "WARN"
     WARNINGS+=("~/.env no encontrado — crealo y volve a ejecutar el bootstrap para asegurar permisos")
 fi
@@ -1422,13 +1426,9 @@ if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys
 fi
 unset _chrome_sys_desktop _chrome_override
 
-# Cierre del modo silencioso del paso [5/8]: resumen total de symlinks/configs.
-# Lo que sigue (Ptyxis/GNOME dconf) SÍ se muestra: es restauración de sistema.
-_QUIET_STEPS=0
-log "${_QUIET_OK} archivos aplicados (symlinks/configs)   (detalle en el log)" "OK"
-
 # Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un
-# archivo), asi que no se puede symlinkear: se restaura con 'dconf load'.
+# archivo), asi que no se puede symlinkear: se restaura con 'dconf load'. Cuenta
+# dentro del modo silencioso (aun activo): un dconf load mas hacia el resumen.
 # El dump versionado se actualiza con el helper 'ptyxis-save' (ver bashrc).
 _ptyxis_dump="$REPO_ROOT/terminal/ptyxis.dconf"
 if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
@@ -1436,6 +1436,11 @@ if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
         bash -c "dconf load /org/gnome/Ptyxis/ < '$_ptyxis_dump'"
 fi
 unset _ptyxis_dump
+
+# Cierre del modo silencioso del paso [5/8]: resumen total de symlinks/configs.
+# Lo que sigue (shell por defecto / GNOME) tiene su propia salida.
+_QUIET_STEPS=0
+log "${_QUIET_OK} archivos aplicados (symlinks/configs/dconf)   (detalle en el log)" "OK"
 
 # Shell por defecto (login shell). Si zsh esta instalado, ofrecemos elegir entre
 # bash y zsh con un menu de flechas (mismo estilo que el selector de herramientas)
@@ -1504,7 +1509,8 @@ _choose_default_shell() {
 
     local target="${sh_paths[cur]}"
     if [[ "$target" == "$current" ]]; then
-        log "Shell por defecto ya es ${sh_names[cur]} — sin cambios" "SKIP"
+        # Sin cambio: no ensuciar la pantalla, solo dejar rastro en el log.
+        echo "[$(date +%H:%M:%S)][SKIP] Shell por defecto ya es ${sh_names[cur]} — sin cambios" >> "$LOG_FILE" 2>/dev/null || true
         return 0
     fi
     if chsh -s "$target"; then
@@ -1520,13 +1526,22 @@ _choose_default_shell
 # Las extensiones de Fedora vienen como paquetes; primero se instalan, despues
 # se aplican los dumps versionados. La config se actualiza con 'gnome-save'.
 if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
+    # Todo este bloque se colapsa: instalar extensiones + cargar los dumps dconf es
+    # ruidoso (hasta ~10 lineas) y siempre exitoso. Va al log con barra de progreso;
+    # solo se muestra una linea de resumen (y cualquier fallo, que run_step siempre
+    # imprime). Mismo patron que [2/8] y las validaciones de [7/8].
+    _QUIET_STEPS=1; _QUIET_OK=0
+    _gnome_ext_new=0
+
     # Extensiones (paquetes nativos en Fedora; en otras distros se omiten)
     if [[ "$PKG_MANAGER" == "dnf" ]]; then
         for _ext_pkg in gnome-shell-extension-dash-to-dock gnome-shell-extension-gpaste gnome-shell-extension-blur-my-shell; do
             if rpm -q "$_ext_pkg" &>/dev/null; then
-                log "$_ext_pkg ya instalado" "SKIP"
+                echo "[$(date +%H:%M:%S)][SKIP] $_ext_pkg ya instalado" >> "$LOG_FILE" 2>/dev/null || true
             else
+                progress_clear
                 run_step "Instalar $_ext_pkg" $PKG_INSTALL "$_ext_pkg"
+                _gnome_ext_new=$((_gnome_ext_new + 1))
             fi
         done
         unset _ext_pkg
@@ -1541,14 +1556,26 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         "/org/gnome/GPaste/:gpaste.dconf"
         "/org/gnome/shell/:shell.dconf"
     )
+    _gnome_total=${#_gnome_map[@]}; _gnome_i=0
     for _entry in "${_gnome_map[@]}"; do
         _path="${_entry%%:*}"
         _file="$REPO_ROOT/gnome/${_entry##*:}"
+        _gnome_i=$((_gnome_i + 1))
         [[ -f "$_file" ]] || continue
+        progress_bar "$_gnome_i" "$_gnome_total" "${_entry##*:}"
         run_step "Restaurar GNOME: ${_entry##*:}" \
             bash -c "dconf load '$_path' < '$_file'"
     done
-    unset _gnome_map _entry _path _file
+    progress_bar "$_gnome_total" "$_gnome_total" "listo"
+    progress_clear
+    _QUIET_STEPS=0
+    # Resumen en una linea: N ajustes dconf + (si hubo) extensiones nuevas.
+    if (( _gnome_ext_new > 0 )); then
+        log "GNOME restaurado: ${_gnome_total} ajustes · ${_gnome_ext_new} extensiones nuevas   (detalle en el log)" "OK"
+    else
+        log "GNOME restaurado: ${_gnome_total} ajustes dconf   (detalle en el log)" "OK"
+    fi
+    unset _gnome_map _entry _path _file _gnome_total _gnome_i _gnome_ext_new
 fi
 
 # ==============================================================================

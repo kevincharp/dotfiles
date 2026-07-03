@@ -51,6 +51,22 @@ function _Invoke-CachedInit {
             ForEach-Object { (Get-Item $_).LastWriteTimeUtc } |
             Sort-Object -Descending | Select-Object -First 1
         $stale = $newest -and ($newest -gt $cacheTime)
+
+        # oh-my-posh v29 no cachea el prompt inline: su 'init' es un loader que hace
+        # dot-source de un temporal init.<n>.ps1 en el LocalCache del paquete Appx. Al
+        # actualizarse (winget upgrade), oh-my-posh genera un temporal nuevo y el viejo
+        # puede desaparecer, pero el shim oh-my-posh.exe de WindowsApps NO cambia de fecha
+        # (el binario real vive en Packages\...), asi que $Sources no detecta el cambio y
+        # el cache queda apuntando a un init inexistente -> prompt roto. Blindaje: si el
+        # cache referencia con "& '...'" un archivo que ya no existe, se da por viejo.
+        if (-not $stale) {
+            foreach ($ref in [regex]::Matches((Get-Content -Raw -LiteralPath $cacheFile), "&\s*'([^']+)'")) {
+                $refPath = $ref.Groups[1].Value
+                if ($refPath -match '\.ps1$' -and -not (Test-Path -LiteralPath $refPath)) {
+                    $stale = $true; break
+                }
+            }
+        }
     }
 
     if ($stale) {

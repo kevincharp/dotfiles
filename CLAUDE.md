@@ -87,6 +87,31 @@ los emoji salen en blanco y negro. El `fonts.conf` las desprioriza con `rejectfo
 - Arregla solo el **renderizado**. La **entrada** de emoji (Ctrl+. de GTK) no
   funciona dentro de Chrome en Wayland (los campos de Chrome no son widgets GTK).
 
+### Entrada de emojis: atajo `Super+.` → GNOME Caracteres
+
+Como el picker nativo de GTK (`Ctrl+.`) no engancha con Chrome/PWAs bajo Wayland,
+la entrada se resuelve con un **atajo a `gnome-characters`** (app nativa que ya
+viene con Fedora, `Super+.` como en Windows/KDE). Flujo: abrís, elegís, **copia al
+portapapeles** y pegás con `Ctrl+V`. Vive en `gnome/media-keys.dconf` como
+`custom4` y lo aplica el bloque GNOME del bootstrap (`dconf load`). Reversionar:
+`gnome-save`.
+
+- **No hay nada que instalar:** `gnome-characters` es parte de Fedora, no está en
+  el catálogo del bootstrap.
+- **Por qué NO auto-inserta (siempre `Ctrl+V`):** Wayland **prohíbe que una app
+  simule teclado en otra** (aislamiento). Ningún picker (Caracteres, Smile con su
+  auto-paste vía xdotool, etc.) puede insertar directo en Chrome/Outlook web bajo
+  Wayland — todos terminan en copiar→pegar.
+- **Por qué aparece como app (dock + overview):** cualquier ventana normal sale en
+  el dock/multitarea; lo decide el compositor, no la app. El panel de emojis de
+  Windows no es una app sino parte del shell. Replicar ese "no-app" en GNOME
+  requeriría una **extensión de shell**, no una app.
+- **Por qué Caracteres y no Smile:** se evaluó **Smile** (Flatpak) y se descartó —
+  bajo Wayland tiene el **mismo** comportamiento (app en dock, `Ctrl+V` porque su
+  auto-paste xdotool no inyecta en apps Wayland nativas). Solo sumaba favoritos/tags
+  a cambio de una dependencia extra; Caracteres ya está y cubre además **todo
+  Unicode** (símbolos, flechas, matemáticas), no solo emojis.
+
 ## Chrome duplicado en "Aplicaciones predeterminadas → Web"
 
 El `.rpm` oficial de Google instala **dos** `.desktop` en `/usr/share/applications/`

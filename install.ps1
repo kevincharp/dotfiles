@@ -30,7 +30,7 @@ param(
     [switch]$SkipPackages,
     [switch]$SkipVault,
     [switch]$UpdateOnly,
-    [ValidateSet('gh', 'ssh', 'skip')]
+    [ValidateSet('gh', 'ssh', 'skip', '')]
     [string]$VaultAuth = '',
     [string]$Tools = '',
     [switch]$AllTools

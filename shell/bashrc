@@ -805,6 +805,28 @@ icloud-pull() {
     rclone copy "${ICLOUD_REMOTE}:${src}" "$dst" -P --transfers 8
 }
 
+# --- icloud-move: mover una carpeta de iCloud al destino (LIBERA espacio) ---
+# Como icloud-pull, pero BORRA de iCloud cada archivo tras copiarlo con exito.
+# Util cuando iCloud avisa que se quedo sin espacio. Muestra primero un dry-run
+# y pide confirmacion antes de tocar nada (es destructivo del lado de iCloud).
+# Uso: icloud-move <carpeta-remota> <destino-local>
+# Ej:  icloud-move images /run/media/$USER/disco-externo/Fotos
+icloud-move() {
+    local src="${1:?Uso: icloud-move <carpeta-remota> <destino-local>}"
+    local dst="${2:?Uso: icloud-move <carpeta-remota> <destino-local>}"
+    _icloud_check || return 1
+    echo "== Simulacion (dry-run): esto se moveria de iCloud '${src}' a '${dst}' =="
+    rclone move "${ICLOUD_REMOTE}:${src}" "$dst" --dry-run -P || return 1
+    echo
+    printf "Mover de verdad y BORRAR de iCloud '%s'? [s/N] " "${src}"
+    local reply; read -r reply
+    case "$reply" in
+        [sSyY]) rclone move "${ICLOUD_REMOTE}:${src}" "$dst" -P --transfers 8 \
+                    --delete-empty-src-dirs ;;
+        *) echo "Cancelado. Nada se movio." ;;
+    esac
+}
+
 # ==============================================================================
 # SPF — listado de funciones/aliases del bashrc
 # ==============================================================================

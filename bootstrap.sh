@@ -1465,8 +1465,9 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
         done
     elif has_cmd age; then
         # Optimizacion + anti-choclo: si TODAS las claves privadas ya existen, ni
-        # pedimos la passphrase. Si falta alguna, se pide una vez. Los "ya existe"
-        # van al log; en pantalla solo un resumen (y los errores/desencriptados).
+        # tocamos age. Si falta alguna, age pide la passphrase POR CADA UNA (age
+        # siempre lee del /dev/tty, ignora stdin/pipe — no se puede pasar por
+        # variable). Los "ya existe" van al log; en pantalla solo un resumen.
         _keys_missing=0 _keys_new=0
         for age_file in "$SSH_KEYS_DIR"/*.age; do
             [[ -f "$HOME/.ssh/$(basename "$age_file" .age)" ]] || _keys_missing=$((_keys_missing + 1))
@@ -1478,27 +1479,28 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
                 SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
             done
         else
-            # Interaccion: pausar la barra para pedir la passphrase sin descuadre.
+            # Interaccion: pausar la barra para que age pida la passphrase (por su
+            # cuenta, en el tty) sin descuadre. age NO acepta la passphrase por
+            # pipe/variable — la lee siempre de /dev/tty — asi que la pide una vez
+            # POR CADA clave faltante. Normalmente falta 0-1, no molesta.
             gb_pause
-            printf '  %sDesencriptando claves SSH (se pide passphrase una sola vez)...%s\n' "$C_DIM" "$C_RESET"
-            read -s -p "  Passphrase para claves SSH: " AGE_PASSPHRASE
-            echo ""
+            printf '  %sDesencriptando claves SSH que faltan (%d)...%s\n' "$C_DIM" "$_keys_missing" "$C_RESET"
             for age_file in "$SSH_KEYS_DIR"/*.age; do
                 key_name="$(basename "$age_file" .age)"
                 dst_key="$HOME/.ssh/$key_name"
                 if [[ -f "$dst_key" ]]; then
                     echo "[$(date +%H:%M:%S)][SKIP] ~/.ssh/$key_name ya existe" >> "$LOG_FILE" 2>/dev/null || true
                     SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
-                elif printf '%s' "$AGE_PASSPHRASE" | age -d -o "$dst_key" "$age_file" 2>/dev/null; then
+                elif age -d -o "$dst_key" "$age_file" </dev/tty; then
                     chmod 600 "$dst_key"
                     log "Desencriptado $key_name → ~/.ssh/$key_name" "OK"
                     SSH_KEYS_OK=$((SSH_KEYS_OK + 1)); _keys_new=$((_keys_new + 1))
                 else
                     log "Error desencriptando $key_name (passphrase incorrecta?)" "ERROR"
                     ERRORS+=("Desencriptar SSH key $key_name")
+                    rm -f "$dst_key"
                 fi
             done
-            unset AGE_PASSPHRASE
         fi
 
         # Copiar claves publicas (silencioso: al log, solo cuenta)

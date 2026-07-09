@@ -430,6 +430,15 @@ function clear-history {
         return
     }
 
+    # Salvaguarda: distinguir "sin args" de "un arg vacio". Si se paso -Pattern
+    # pero quedo vacio (ej: variable sin definir), NO vaciar todo — abortar. Solo
+    # el 'sin args' explicito borra el historial completo.
+    if ($PSBoundParameters.ContainsKey('Pattern') -and [string]::IsNullOrEmpty($Pattern)) {
+        Write-Host "clear-history: el patron esta vacio (variable sin definir?). Abortado." -ForegroundColor Red
+        Write-Host "  Para vaciar TODO el historial, corre 'clear-history' sin argumentos." -ForegroundColor Red
+        return
+    }
+
     if ($Pattern) {
         $kept = Get-Content -LiteralPath $hist | Where-Object { $_ -notlike "*$Pattern*" }
         Set-Content -LiteralPath $hist -Value $kept

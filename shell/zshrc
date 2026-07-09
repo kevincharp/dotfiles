@@ -454,6 +454,14 @@ killdev() {
 # Sin args borra TODO; con un patron borra solo las lineas que matcheen
 # (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
 clear-history() {
+    # Salvaguarda: distinguir "sin args" de "un arg vacio". Si se paso un patron
+    # pero quedo vacio (ej: 'clear-history "$home"' con $home sin definir), NO vaciar
+    # todo — abortar. Solo el 'sin args' explicito borra el historial completo.
+    if (( $# > 0 )) && [[ -z "$1" ]]; then
+        echo "clear-history: el patron esta vacio (variable sin definir?). Abortado." >&2
+        echo "  Para vaciar TODO el historial, corre 'clear-history' sin argumentos." >&2
+        return 1
+    fi
     if [[ -n "$1" ]]; then
         # Borrado selectivo: quita del archivo las lineas que matcheen el patron.
         grep -v -- "$1" "$HISTFILE" > "${HISTFILE}.tmp" && mv "${HISTFILE}.tmp" "$HISTFILE"

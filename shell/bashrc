@@ -480,6 +480,14 @@ killdev() {
 # Espejo del zshrc; en bash se usa 'history -c/-r' (no existe 'fc -p').
 clear-history() {
     local hist="${HISTFILE:-$HOME/.bash_history}"
+    # Salvaguarda: distinguir "sin args" de "un arg vacio". Si se paso un patron
+    # pero quedo vacio (ej: 'clear-history "$var"' con $var sin definir), NO vaciar
+    # todo — abortar. Solo el 'sin args' explicito borra el historial completo.
+    if (( $# > 0 )) && [[ -z "$1" ]]; then
+        echo "clear-history: el patron esta vacio (variable sin definir?). Abortado." >&2
+        echo "  Para vaciar TODO el historial, corre 'clear-history' sin argumentos." >&2
+        return 1
+    fi
     if [[ -n "$1" ]]; then
         grep -v -- "$1" "$hist" > "${hist}.tmp" && mv "${hist}.tmp" "$hist"
         history -c; history -r "$hist"   # recarga el historial limpio

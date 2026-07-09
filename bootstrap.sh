@@ -1692,6 +1692,7 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         "/org/gnome/shell/extensions/dash-to-dock/:dash-to-dock.dconf"
         "/org/gnome/shell/extensions/blur-my-shell/:blur-my-shell.dconf"
         "/org/gnome/GPaste/:gpaste.dconf"
+        "/org/gnome/settings-daemon/global-shortcuts/:gpaste-shortcuts.dconf"
         "/org/gnome/shell/:shell.dconf"
     )
     _gnome_total=${#_gnome_map[@]}; _gnome_i=0

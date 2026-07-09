@@ -1,0 +1,5 @@
+[/]
+applications=['org.gnome.GPaste.Daemon']
+
+[org.gnome.GPaste.Daemon]
+shortcuts=[('show-history', {'description': <'Show History'>}), ('upload', {'shortcuts': <['<Control><Alt>u']>, 'description': <'Upload to Pastebin'>}), ('launch-ui', {'shortcuts': <['<Control><Alt>g']>, 'description': <'Launch UI'>}), ('make-password', {'description': <'Convert to Password'>}), ('pop', {'shortcuts': <['<Control><Alt>v']>, 'description': <'Pop from History'>}), ('sync-primary-to-clipboard', {'shortcuts': <['<Control><Alt>p']>, 'description': <'Sync Primary to Clipboard'>}), ('sync-clipboard-to-primary', {'shortcuts': <['<Control><Alt>o']>, 'description': <'Sync Clipboard to Primary'>})]

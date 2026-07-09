@@ -1129,6 +1129,120 @@ function gremote {
 }
 
 # ==============================================================================
+# SSH KEYS — dar de alta y sincronizar claves del vault (paridad bash/zsh)
+# ------------------------------------------------------------------------------
+# El vault privado versiona las claves SSH encriptadas con age (.age) + su .pub,
+# y un ssh/config con los Host. ssh-newkey da de alta una clave nueva (genera,
+# encripta, la mete al vault); vault-sync trae los cambios a esta maquina (pull,
+# aplica config, desencripta lo que falte). Misma logica que bootstrap.ps1.
+# ==============================================================================
+
+$script:VAULT_DIR = if ($env:VAULT_DIR) { $env:VAULT_DIR } else { Join-Path $HOME '.dotfiles-vault' }
+
+# ssh-newkey <nombre> — genera una clave nueva y la deja lista en el vault.
+# Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+function ssh-newkey {
+    param([Parameter(Mandatory)][string]$Name)
+
+    if (-not (Get-Command age -EA SilentlyContinue))        { Write-Host "Falta 'age' (winget install FiloSottile.age)" -ForegroundColor Red; return }
+    if (-not (Get-Command ssh-keygen -EA SilentlyContinue)) { Write-Host "Falta 'ssh-keygen' (OpenSSH)" -ForegroundColor Red; return }
+    $keysDir = Join-Path $script:VAULT_DIR 'ssh\keys'
+    if (-not (Test-Path $keysDir)) { Write-Host "No existe $keysDir (falta el vault?)" -ForegroundColor Red; return }
+
+    $key     = Join-Path $HOME ".ssh\$Name"
+    $ageFile = Join-Path $keysDir "$Name.age"
+    if ((Test-Path $key) -or (Test-Path $ageFile)) {
+        Write-Host "Ya existe una clave '$Name' (en ~/.ssh o en el vault). Elegi otro nombre." -ForegroundColor Red; return
+    }
+    if (-not (Test-Path (Join-Path $HOME '.ssh'))) { New-Item -ItemType Directory -Path (Join-Path $HOME '.ssh') | Out-Null }
+
+    # 1) Generar el par (sin passphrase: la protege age en el vault)
+    ssh-keygen -t ed25519 -f $key -N '""' -C "$Name-$env:COMPUTERNAME"
+    if ($LASTEXITCODE -ne 0) { Write-Host "Fallo ssh-keygen" -ForegroundColor Red; return }
+
+    # 2) Encriptar la privada con age (pide passphrase interactiva — la tipeas vos)
+    Write-Host "Encriptando la clave con age (usa la MISMA passphrase que las otras del vault):"
+    age -p -o $ageFile $key
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Fallo el encriptado con age. Limpiando." -ForegroundColor Red
+        Remove-Item -Force -EA SilentlyContinue $key, "$key.pub", $ageFile; return
+    }
+    # 3) Copiar la publica al vault
+    Copy-Item "$key.pub" (Join-Path $keysDir "$Name.pub") -Force
+
+    # 4) Datos del Host para el ssh/config (opcional)
+    $host_ = Read-Host "Alias/Host para ssh/config [$Name] (vacio = no agregar)"
+    if ($host_) {
+        $hostname = Read-Host "HostName (IP o dominio)"
+        $user     = Read-Host "Usuario remoto"
+        $port     = Read-Host "Puerto [22]"
+        $cfg = Join-Path $script:VAULT_DIR 'ssh\config'
+        $block = "`n# $Name`nHost $host_`n    HostName $(if($hostname){$hostname}else{'CAMBIAME'})`n    User $(if($user){$user}else{'CAMBIAME'})`n"
+        if ($port -and $port -ne '22') { $block += "    Port $port`n" }
+        $block += "    IdentityFile ~/.ssh/$Name`n    IdentitiesOnly yes`n"
+        Add-Content -Path $cfg -Value $block
+        Copy-Item $cfg (Join-Path $HOME '.ssh\config') -Force
+        Write-Host "Host '$host_' agregado a ssh/config (vault y ~/.ssh)."
+    }
+
+    # 5) Dejar el git add listo (commit/push manual)
+    git -C $script:VAULT_DIR add "ssh/keys/$Name.age" "ssh/keys/$Name.pub" ssh/config 2>$null
+    Write-Host ""
+    Write-Host "Clave '$Name' lista. Publica (dasela al server / ssh-copy-id):"
+    Write-Host "  $(Get-Content "$key.pub")"
+    Write-Host ""
+    Write-Host "Falta commitear/pushear el vault:"
+    Write-Host "  git -C `"$script:VAULT_DIR`" commit -m `"feat(ssh): agrego clave $Name`" ; git -C `"$script:VAULT_DIR`" push"
+}
+
+# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves.
+# Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
+function vault-sync {
+    if (-not (Test-Path (Join-Path $script:VAULT_DIR '.git'))) { Write-Host "No hay repo git en $script:VAULT_DIR (falta el vault?)" -ForegroundColor Red; return }
+
+    # 1) Pull del remoto
+    Write-Host "Actualizando el vault ($script:VAULT_DIR)..."
+    git -C $script:VAULT_DIR pull --rebase --autostash
+    if ($LASTEXITCODE -ne 0) { Write-Host "Fallo el git pull del vault." -ForegroundColor Red; return }
+
+    $sshDir = Join-Path $HOME '.ssh'
+    if (-not (Test-Path $sshDir)) { New-Item -ItemType Directory -Path $sshDir | Out-Null }
+
+    # 2) Aplicar ssh/config (copia, no symlink — igual que el bootstrap)
+    $cfg = Join-Path $script:VAULT_DIR 'ssh\config'
+    if (Test-Path $cfg) { Copy-Item $cfg (Join-Path $sshDir 'config') -Force; Write-Host "ssh/config aplicado." }
+
+    # 3) Desencriptar las .age que falten
+    if (-not (Get-Command age -EA SilentlyContinue)) { Write-Host "Falta 'age' — no puedo desencriptar (winget install FiloSottile.age)" -ForegroundColor Red; return }
+    $keysDir = Join-Path $script:VAULT_DIR 'ssh\keys'
+    $ageFiles = Get-ChildItem -Path $keysDir -Filter '*.age' -File -EA SilentlyContinue
+    $missing = @($ageFiles | Where-Object { -not (Test-Path (Join-Path $sshDir $_.BaseName)) })
+
+    if ($missing.Count -eq 0) {
+        Write-Host "Todas las claves ya estan en ~/.ssh, nada que desencriptar."
+    } else {
+        # age NO lee la passphrase de stdin: la pide SIEMPRE de la consola. Por eso
+        # NO se puede cachear con un Read-Host y pasarla por pipe (age lo ignora y
+        # se cuelga esperando el prompt). Se deja que age pregunte por cada clave.
+        Write-Host "age pedira la passphrase por cada clave nueva ($($missing.Count)):"
+        foreach ($f in $missing) {
+            $dst = Join-Path $sshDir $f.BaseName
+            Write-Host "  $($f.BaseName):"
+            age -d -o $dst $f.FullName
+            if ($LASTEXITCODE -eq 0) { Write-Host "  desencriptada: $($f.BaseName)" }
+            else { Remove-Item -Force -EA SilentlyContinue $dst; Write-Host "  ERROR con $($f.BaseName) (passphrase incorrecta?)" -ForegroundColor Red }
+        }
+    }
+
+    # 4) Copiar las publicas que falten
+    Get-ChildItem -Path $keysDir -Filter '*.pub' -File -EA SilentlyContinue | ForEach-Object {
+        $dst = Join-Path $sshDir $_.Name
+        if (-not (Test-Path $dst)) { Copy-Item $_.FullName $dst -Force }
+    }
+    Write-Host "vault-sync completo."
+}
+
+# ==============================================================================
 # GBROWSER + .ENV LOADER
 # ==============================================================================
 

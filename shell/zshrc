@@ -1164,6 +1164,28 @@ update-all() {
             rm -rf "$_ol_tmp"
         fi
     fi
+    # Aviso de reinicio: si se actualizo kernel/glibc/systemd, los procesos ya
+    # corriendo (gnome-shell, DBus, stack grafico) siguen con las libs viejas en
+    # memoria y aparecen comportamientos erraticos (apps que abren proceso sin
+    # ventana, etc.). needs-restarting -r devuelve 1 cuando hace falta reboot;
+    # si no esta, se compara el kernel corriendo contra el ultimo instalado.
+    echo "==> chequeo de reinicio"
+    if command -v needs-restarting &>/dev/null; then
+        if ! needs-restarting -r &>/dev/null; then
+            echo "   ⚠  Hace falta REINICIAR (kernel/libs base actualizadas). Corre: systemctl reboot"
+        else
+            echo "   no hace falta reiniciar"
+        fi
+    elif command -v uname &>/dev/null && command -v rpm &>/dev/null; then
+        local _krun _klast
+        _krun=$(uname -r)
+        _klast=$(rpm -q --last kernel 2>/dev/null | head -1 | grep -oE 'kernel-[^ ]+' | sed 's/^kernel-//')
+        if [[ -n "$_klast" && "$_krun" != "$_klast" ]]; then
+            echo "   ⚠  Kernel corriendo ($_krun) != ultimo instalado ($_klast). Corre: systemctl reboot"
+        else
+            echo "   kernel al dia"
+        fi
+    fi
     echo "Listo. Nota: lazyssh (binario GitHub) y los instalados por curl"
     echo "(oh-my-posh, zoxide, opencode, claude) se actualizan aparte."
 }

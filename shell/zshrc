@@ -658,6 +658,136 @@ gremote() {
 }
 
 # ==============================================================================
+# SSH KEYS — dar de alta y sincronizar claves del vault (paridad bash/ps1)
+# ------------------------------------------------------------------------------
+# El vault privado versiona las claves SSH encriptadas con age (.age) + su .pub,
+# y un ssh/config con los Host. ssh-newkey da de alta una clave nueva (genera,
+# encripta, la mete al vault); vault-sync trae los cambios a esta maquina (pull,
+# aplica config, desencripta lo que falte). Misma logica que bootstrap.sh.
+# ==============================================================================
+
+VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
+
+# ssh-newkey <nombre> — genera una clave nueva y la deja lista en el vault.
+# Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+ssh-newkey() {
+    local name="$1"
+    if [[ -z "$name" ]]; then
+        echo "Uso: ssh-newkey <nombre>   (ej: ssh-newkey miserver)" >&2
+        return 1
+    fi
+    command -v age &>/dev/null || { echo "Falta 'age' (bootstrap: --tools=age)" >&2; return 1; }
+    command -v ssh-keygen &>/dev/null || { echo "Falta 'ssh-keygen'" >&2; return 1; }
+    [[ -d "$VAULT_DIR/ssh/keys" ]] || { echo "No existe $VAULT_DIR/ssh/keys (falta el vault?)" >&2; return 1; }
+
+    local key="$HOME/.ssh/$name"
+    local age_file="$VAULT_DIR/ssh/keys/$name.age"
+    if [[ -e "$key" || -e "$age_file" ]]; then
+        echo "Ya existe una clave '$name' (en ~/.ssh o en el vault). Elegi otro nombre." >&2
+        return 1
+    fi
+
+    # 1) Generar el par (sin passphrase en la privada: la protege age en el vault)
+    ssh-keygen -t ed25519 -f "$key" -N '' -C "$name-$(hostname)" || return 1
+    chmod 600 "$key"; chmod 644 "$key.pub"
+
+    # 2) Encriptar la privada con age (pide passphrase interactiva — la tipeas vos)
+    echo "Encriptando la clave con age (usa la MISMA passphrase que las otras del vault):"
+    if ! age -p -o "$age_file" "$key"; then
+        echo "Fallo el encriptado con age. Limpiando." >&2
+        rm -f "$key" "$key.pub" "$age_file"
+        return 1
+    fi
+    # 3) Copiar la publica al vault
+    cp "$key.pub" "$VAULT_DIR/ssh/keys/$name.pub"
+
+    # 4) Datos del Host para el ssh/config (opcional)
+    local host hostname user port
+    printf 'Alias/Host para ssh/config [%s] (vacio = no agregar): ' "$name"
+    read -r host
+    if [[ -n "$host" ]]; then
+        printf 'HostName (IP o dominio): ';        read -r hostname
+        printf 'Usuario remoto: ';                 read -r user
+        printf 'Puerto [22]: ';                    read -r port
+        {
+            printf '\n# %s\n' "$name"
+            printf 'Host %s\n'          "$host"
+            printf '    HostName %s\n'  "${hostname:-CAMBIAME}"
+            printf '    User %s\n'      "${user:-CAMBIAME}"
+            [[ -n "$port" && "$port" != "22" ]] && printf '    Port %s\n' "$port"
+            printf '    IdentityFile ~/.ssh/%s\n' "$name"
+            printf '    IdentitiesOnly yes\n'
+        } >> "$VAULT_DIR/ssh/config"
+        # Reflejar en el config activo de esta maquina (bootstrap lo copia, no linkea)
+        cp "$VAULT_DIR/ssh/config" "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"
+        echo "Host '$host' agregado a ssh/config (vault y ~/.ssh)."
+    fi
+
+    # 5) Dejar el git add listo (commit/push manual)
+    git -C "$VAULT_DIR" add "ssh/keys/$name.age" "ssh/keys/$name.pub" ssh/config 2>/dev/null
+    echo ""
+    echo "Clave '$name' lista. Publica (dasela al server / ssh-copy-id):"
+    echo "  $(cat "$key.pub")"
+    echo ""
+    echo "Falta commitear/pushear el vault:"
+    echo "  git -C \"$VAULT_DIR\" commit -m \"feat(ssh): agrego clave $name\" && git -C \"$VAULT_DIR\" push"
+}
+
+# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves.
+# Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
+vault-sync() {
+    [[ -d "$VAULT_DIR/.git" ]] || { echo "No hay repo git en $VAULT_DIR (falta el vault?)" >&2; return 1; }
+
+    # 1) Pull del remoto
+    echo "Actualizando el vault ($VAULT_DIR)..."
+    git -C "$VAULT_DIR" pull --rebase --autostash || { echo "Fallo el git pull del vault." >&2; return 1; }
+
+    mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+
+    # 2) Aplicar ssh/config (copia, no symlink — igual que el bootstrap)
+    if [[ -f "$VAULT_DIR/ssh/config" ]]; then
+        cp "$VAULT_DIR/ssh/config" "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"
+        echo "ssh/config aplicado."
+    fi
+
+    # 3) Desencriptar las .age que falten
+    command -v age &>/dev/null || { echo "Falta 'age' — no puedo desencriptar (bootstrap: --tools=age)" >&2; return 1; }
+    local age_file name dst missing=0
+    # (N) = NULL_GLOB: si no hay .age el patron se expande a nada, sin error de zsh
+    for age_file in "$VAULT_DIR"/ssh/keys/*.age(N); do
+        name="$(basename "$age_file" .age)"
+        [[ -f "$HOME/.ssh/$name" ]] || missing=$((missing + 1))
+    done
+
+    if [[ "$missing" -eq 0 ]]; then
+        echo "Todas las claves ya estan en ~/.ssh, nada que desencriptar."
+    else
+        # age NO lee la passphrase de stdin: la pide SIEMPRE de /dev/tty. Por eso
+        # NO se puede cachear con un solo 'read' y pasarla por pipe (age lo ignora
+        # y se cuelga esperando el tty). Se deja que age pregunte por cada clave.
+        echo "age pedira la passphrase por cada clave nueva ($missing):"
+        for age_file in "$VAULT_DIR"/ssh/keys/*.age(N); do
+            name="$(basename "$age_file" .age)"; dst="$HOME/.ssh/$name"
+            [[ -f "$dst" ]] && continue
+            echo "  $name:"
+            if age -d -o "$dst" "$age_file"; then
+                chmod 600 "$dst"; echo "  desencriptada: $name"
+            else
+                rm -f "$dst"
+                echo "  ERROR con $name (passphrase incorrecta?)" >&2
+            fi
+        done
+    fi
+
+    # 4) Copiar las publicas que falten
+    for age_file in "$VAULT_DIR"/ssh/keys/*.pub(N); do
+        dst="$HOME/.ssh/$(basename "$age_file")"
+        [[ -f "$dst" ]] || { cp "$age_file" "$dst" && chmod 644 "$dst"; }
+    done
+    echo "vault-sync completo."
+}
+
+# ==============================================================================
 # .ENV LOADER — cargar tokens desde ~/.env
 # ==============================================================================
 

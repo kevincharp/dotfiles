@@ -1,0 +1,5 @@
+# Carpeta para capturas de referencia (material de trabajo local, a menudo ajeno:
+# screenshots de otros setups, la cara de terceros, etc.). El repo es PÚBLICO, así
+# que se versiona la carpeta pero NO su contenido: ignoramos todo salvo este .gitignore.
+*
+!.gitignore

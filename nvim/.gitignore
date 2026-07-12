@@ -1,0 +1,13 @@
+# Neovim instala plugins y estado en el data-dir del usuario (~/.local/share/nvim
+# en Linux, %LOCALAPPDATA%\nvim-data en Windows), FUERA de este repo. Aun así,
+# por si alguna herramienta deja archivos acá, ignoramos lo que no debe versionarse.
+#
+# SÍ se versiona: *.lua y lazy-lock.json (fija versiones de plugins → reproducible).
+
+# Estado de sesiones / shada (historial, marcas) si nvim lo escribiera acá.
+*.shada
+*.shada.tmp.*
+
+# Directorios de instalación de plugins (no deberían caer acá, pero por las dudas).
+/lazy/
+/mason/

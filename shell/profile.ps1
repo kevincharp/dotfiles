@@ -969,6 +969,10 @@ if (Test-Path -LiteralPath $_giFile) {
     if ($GitHostAliases) { $script:GitHostAliases = $GitHostAliases }
 }
 
+<#
+.SYNOPSIS (interna) resuelve nombre/email de un perfil git
+.EXAMPLE Resolve-GitIdentity <perfil>
+#>
 function Resolve-GitIdentity {
     param([string]$Perfil)
     if ($script:GitIdentities.Count -eq 0) {
@@ -1150,6 +1154,10 @@ $script:VAULT_DIR = if ($env:VAULT_DIR) { $env:VAULT_DIR } else { Join-Path $HOM
 
 # ssh-newkey <nombre> — genera una clave nueva y la deja lista en el vault.
 # Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+<#
+.SYNOPSIS genera un par de claves SSH nuevo (cifra con age)
+.EXAMPLE ssh-newkey <nombre>
+#>
 function ssh-newkey {
     param([Parameter(Mandatory)][string]$Name)
 
@@ -1206,6 +1214,10 @@ function ssh-newkey {
 
 # vault-sync — trae los cambios del vault a esta maquina: pull + config + claves.
 # Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
+<#
+.SYNOPSIS sincroniza (pull+push) el repo privado del vault
+.EXAMPLE vault-sync
+#>
 function vault-sync {
     if (-not (Test-Path (Join-Path $script:VAULT_DIR '.git'))) { Write-Host "No hay repo git en $script:VAULT_DIR (falta el vault?)" -ForegroundColor Red; return }
 
@@ -1255,6 +1267,10 @@ function vault-sync {
 # GBROWSER + .ENV LOADER
 # ==============================================================================
 
+<#
+.SYNOPSIS (interna) carga variables desde un archivo .env
+.EXAMPLE Load-DotEnv [archivo]
+#>
 function Load-DotEnv {
     param([string]$Path = (Join-Path $HOME ".env"))
     if (-not (Test-Path $Path)) { return @{} }
@@ -1276,6 +1292,10 @@ function Load-DotEnv {
 }
 $__DOTENV = Load-DotEnv
 
+<#
+.SYNOPSIS (interna) obtiene un secreto del .env o del entorno
+.EXAMPLE Get-SecretFromEnv <nombre>
+#>
 function Get-SecretFromEnv {
     param([string]$Name)
     if ($__DOTENV.ContainsKey($Name)) { return $__DOTENV[$Name] }
@@ -1507,28 +1527,59 @@ function claude-smg {
 }
 
 # ==============================================================================
-# SPF — listado de funciones del profile
+# DOTHELP — ayuda ("--help" del repo): lista comandos por categoría
 # ==============================================================================
+# Paridad con bashrc/zshrc. Diferencia clave: en PowerShell la info NO sale de
+# comentarios "# --- [cat] ... ---", sino del comment-based help que ya tiene
+# cada función (.SYNOPSIS = descripción, .EXAMPLE = plantilla de uso). La
+# CATEGORÍA se asigna con el mapa $catMap de abajo (editable a mano).
+#
+# Uso:
+#   dothelp          MENÚ interactivo (fzf): elegís categoría → comando. Al
+#                    aceptar, deja el comando escrito en la línea (PSReadLine).
+#   dothelp git      listado estático filtrado (sin menú)
+#   Sin fzf → listado estático.
+#
+# Categoría 'unix' = emuladores de comandos Linux que solo existen en Windows
+# (cat, grep, find, ll, touch...); en Linux esos son nativos y no aparecen.
 
 if (-not $global:__ProfileFile) {
     $global:__ProfileFile = if (Test-Path $PROFILE.AllUsersAllHosts) { $PROFILE.AllUsersAllHosts } else { $PROFILE }
 }
 
+# Mapa nombre → categoría. Lo que no esté acá cae en 'tools' (cajón por defecto).
+# Orden de salida de las categorías: el de $catOrder más abajo.
+$global:__DotHelpCatMap = @{
+    # git
+    gcl='git'; gs='git'; gst='git'; glo='git'; glg='git'; gcmm='git'; gco='git'
+    gnew='git'; gsw='git'; gbr='git'; gbra='git'; grls='git'; grem='git'; grurl='git'
+    gup='git'; gpsu='git'; gsync='git'; gcleanbranches='git'; gclone='git'
+    'gset-profile'='git'; ginit='git'; gremote='git'; gbrowser='git'; 'Resolve-GitIdentity'='git'
+    # unix (emuladores de Linux, solo Windows)
+    echolf='unix'; lss='unix'; la='unix'; ll='unix'; touch='unix'; export='unix'; unset='unix'
+    grep='unix'; find='unix'; head='unix'; tail='unix'; tailf='unix'; which='unix'
+    cat='unix'; less='unix'; cd='unix'
+    # navegación / archivos
+    'open-here'='nav'; open='nav'; edit='nav'; mkdirp='nav'; rmrf='nav'; y='nav'
+    # sistema / procesos
+    'update-all'='sistema'; port='sistema'; killport='sistema'; killdev='sistema'
+    # ssh
+    'ssh-newkey'='ssh'
+    # herramientas
+    'claude-smg'='tools'; 'Load-DotEnv'='tools'; 'Get-SecretFromEnv'='tools'
+    # dotfiles / config
+    'clear-history'='dotfiles'; 'edit-history'='dotfiles'; 'vault-sync'='dotfiles'
+}
+
 <#
-.SYNOPSIS listar funciones definidas en el profile (el «--help» del repo)
-.EXAMPLE dothelp -Type GIT
-.EXAMPLE dothelp -Filter clone -Scope Todo
+.SYNOPSIS ayuda del repo por categorías, con menú fzf (el «--help» del repo)
+.EXAMPLE dothelp
+.EXAMPLE dothelp git
 #>
 function dothelp {
     [CmdletBinding()]
     param(
-        [string]$Filter = '',
-        [ValidateSet('Nombre','Resumen','Sintaxis','Todo')]
-        [string]$Scope = 'Nombre',
-        [ValidateSet('GIT','Linux')]
-        [string]$Type,
-        [switch]$All,
-        [switch]$IncludeFolder
+        [string]$Filter = ''
     )
 
     $profilePath = $global:__ProfileFile
@@ -1536,125 +1587,105 @@ function dothelp {
         $profilePath = if (Test-Path $PROFILE.AllUsersAllHosts) { $PROFILE.AllUsersAllHosts } else { $PROFILE }
     }
 
-    $files = @($profilePath)
-    if ($IncludeFolder) {
-        $dir = Split-Path -Parent $profilePath
-        if ($dir) { $files += (Get-ChildItem $dir -Filter *.ps1 -Recurse).FullName }
-    }
-    $files = $files | Select-Object -Unique
-
-    $rxCbh  = [regex]'(?ms)<#(.*?)#>\s*(?:\r?\n|\r|\n)*\s*function\s+([A-Za-z0-9_.-]+)\s*(?:\(|\{)'
-    $rxFunc = [regex]'(?m)^\s*function\s+([A-Za-z0-9_.-]+)\s*(?:\(|\{)'
-
-    function Get-ExampleFromCbh($cbhBlock) {
-        if (-not $cbhBlock) { return $null }
-        $m = [regex]::Match($cbhBlock, '(?ms)\.EXAMPLE\s+(.+?)(?:\r?\n\s*\.\w+|$)')
-        if ($m.Success) { return ($m.Groups[1].Value -replace '\s+',' ').Trim() }
-        $m2 = [regex]::Match($cbhBlock, '(?ms)\.SYNTAX\s+(.+?)(?:\r?\n\s*\.\w+|$)')
-        if ($m2.Success) { return ($m2.Groups[1].Value -replace '\s+',' ').Trim() }
-        return $null
+    $catMap   = $global:__DotHelpCatMap
+    $catOrder = @('git','unix','nav','sistema','ssh','tools','dotfiles')
+    $catTitle = @{
+        git='GIT'; unix='COMANDOS UNIX'; nav='NAVEGACIÓN / ARCHIVOS'
+        sistema='SISTEMA / PROCESOS'; ssh='SSH / CLAVES'; tools='HERRAMIENTAS'
+        dotfiles='DOTFILES / CONFIG'
     }
 
-    function BuildSimpleSyntax($name, $text, $funcIdx) {
-        $tail = $text.Substring($funcIdx, [Math]::Min(4000, $text.Length - $funcIdx))
-        $pm = [regex]::Match($tail, '(?ms)\bparam\s*\((.*?)\)')
-        if (-not $pm.Success) { return "$name" }
-        $params = @()
-        foreach ($line in ($pm.Groups[1].Value -split '\r?\n')) {
-            $pname = [regex]::Match($line, '^\s*\[\w.*?\]\s*\$(\w+)').Groups[1].Value
-            if (-not $pname) { $pname = [regex]::Match($line, '\$(\w+)').Groups[1].Value }
-            if ($pname) {
-                $isMandatory = [regex]::IsMatch($line, '\[Parameter\([^\)]*Mandatory\s*=\s*true', 'IgnoreCase')
-                $params += if ($isMandatory) { "<$pname>" } else { "[$pname]" }
-            }
-        }
-        if ($params.Count -eq 0) { return "$name" }
-        return "$name " + ($params -join ' ')
+    # --- Extraer los comandos del profile (usa el comment-based help existente) ---
+    $rxCbh = [regex]'(?ms)<#(.*?)#>\s*(?:\r?\n)*\s*function\s+([A-Za-z0-9_.-]+)\s*(?:\(|\{)'
+    $text  = Get-Content -Raw -LiteralPath $profilePath -ErrorAction SilentlyContinue
+    if (-not $text) { Write-Host "No se pudo leer el profile: $profilePath" -ForegroundColor Red; return }
+
+    # Helpers internos del arranque del profile (no son comandos de usuario).
+    $skip = @('dothelp','_TryImportModule','_Invoke-CachedInit','Ensure-Module')
+
+    $items = [System.Collections.Generic.List[object]]::new()
+    foreach ($m in $rxCbh.Matches($text)) {
+        $cbh  = $m.Groups[1].Value
+        $name = $m.Groups[2].Value
+        if ($name -in $skip) { continue }
+
+        $synopsis = ([regex]::Match($cbh, '(?ms)\.SYNOPSIS\s+(.+?)(?:\r?\n\s*\.\w+|$)').Groups[1].Value -replace '\s+',' ').Trim()
+        $example  = ([regex]::Match($cbh, '(?ms)\.EXAMPLE\s+(.+?)(?:\r?\n\s*\.\w+|$)').Groups[1].Value -replace '\s+',' ').Trim()
+        # La plantilla de uso: primer segmento del .EXAMPLE (sin el comentario '# ...').
+        $uso = ($example -split '\s+#')[0].Trim()
+
+        $cat = if ($catMap.ContainsKey($name)) { $catMap[$name] } else { 'tools' }
+
+        $items.Add([pscustomobject]@{
+            Cat  = $cat
+            Name = $name
+            Desc = if ($synopsis) { $synopsis } else { "función $name" }
+            Uso  = if ($uso) { $uso } else { $name }
+        })
     }
 
-    function InferType($name, $synopsis, $bodySample) {
-        if ($name -match '^(git|g[a-z])' -or $synopsis -match '\bgit\b' -or $bodySample -match '\bgit\s') { 'GIT' }
-        else { 'Linux' }
-    }
+    # --- Filtro explícito (dothelp git) → listado estático, sin menú ---
+    $useMenu = (-not $Filter) -and (Get-Command fzf -ErrorAction SilentlyContinue)
 
-    function GetSpfRange($text) {
-        $m = [regex]::Match($text, '(?ms)^\s*function\s+dothelp\b.*?\{')
-        if (-not $m.Success) { return ,@(-1,-1) }
-        $start = $m.Index; $i = $m.Index + $m.Length; $depth = 1
-        while ($i -lt $text.Length -and $depth -gt 0) {
-            if ($text[$i] -eq '{') { $depth++ } elseif ($text[$i] -eq '}') { $depth-- }
-            $i++
-        }
-        return @($start, $i)
-    }
+    if (-not $useMenu) {
+        $sel = if ($Filter) {
+            $rx = [regex]::new($Filter, 'IgnoreCase')
+            $items | Where-Object { $rx.IsMatch($_.Name) -or $rx.IsMatch($_.Desc) -or $rx.IsMatch($_.Cat) }
+        } else { $items }
 
-    $skipNames = @('BuildSimpleSyntax','Get-ExampleFromCbh','InferType','GetSpfRange')
-    $map = @{}
-
-    foreach ($f in $files) {
-        $text = Get-Content -Raw -LiteralPath $f -ErrorAction SilentlyContinue
-        if (-not $text) { continue }
-
-        $range    = GetSpfRange $text
-        $spfStart = $range[0]
-        $spfEnd   = $range[1]
-
-        foreach ($m in $rxCbh.Matches($text)) {
-            $cbh  = $m.Groups[1].Value
-            $name = $m.Groups[2].Value
-            if ($name -in $skipNames) { continue }
-            if ($spfStart -ge 0 -and $m.Index -ge $spfStart -and $m.Index -lt $spfEnd -and $name -ne 'dothelp') { continue }
-
-            $synopsis   = ([regex]::Match($cbh, '(?ms)\.SYNOPSIS\s+(.+?)(?:\r?\n\s*\.\w+|$)').Groups[1].Value -replace '\s+',' ').Trim()
-            $example    = Get-ExampleFromCbh $cbh
-            if (-not $example) { $example = BuildSimpleSyntax $name $text $m.Index }
-            $bodySample = $text.Substring($m.Index, [Math]::Min(1000, $text.Length - $m.Index))
-            $tipo       = InferType $name $synopsis $bodySample
-
-            $map[$name] = [pscustomobject]@{
-                Nombre  = $name
-                Resumen = ($synopsis ? $synopsis : "function $name")
-                Sintaxis= $example
-                Tipo    = $tipo
-            }
-        }
-
-        foreach ($m in $rxFunc.Matches($text)) {
-            $name = $m.Groups[1].Value
-            if ($name -in $skipNames) { continue }
-            if ($spfStart -ge 0 -and $m.Index -ge $spfStart -and $m.Index -lt $spfEnd -and $name -ne 'dothelp') { continue }
-            if (-not $map.ContainsKey($name)) {
-                $example    = BuildSimpleSyntax $name $text $m.Index
-                $bodySample = $text.Substring($m.Index, [Math]::Min(1000, $text.Length - $m.Index))
-                $tipo       = InferType $name '' $bodySample
-                $map[$name] = [pscustomobject]@{
-                    Nombre  = $name
-                    Resumen = "function $name"
-                    Sintaxis= $example
-                    Tipo    = $tipo
+        foreach ($c in $catOrder) {
+            $grp = $sel | Where-Object { $_.Cat -eq $c }
+            if (-not $grp) { continue }
+            Write-Host ""
+            Write-Host ("❯ " + $catTitle[$c]) -ForegroundColor DarkYellow
+            Write-Host ""
+            foreach ($it in $grp) {
+                Write-Host ("  {0,-18} " -f $it.Name) -ForegroundColor White -NoNewline
+                Write-Host $it.Desc
+                if ($it.Uso -and $it.Uso -ne $it.Name) {
+                    Write-Host ("    ↳ " + $it.Uso) -ForegroundColor DarkGray
                 }
             }
         }
+        Write-Host ""
+        return
     }
 
-    $items = $map.GetEnumerator() | ForEach-Object { $_.Value } | Sort-Object Nombre -Unique
-    if (-not $All)  { $items = $items | Where-Object { $_.Nombre -notmatch '^_' } }
-    if ($Type)      { $items = $items | Where-Object { $_.Tipo -eq $Type } }
+    # --- Menú interactivo (fzf) en DOS pasos: categoría → comando ---
+    # No usamos --preview (en Windows fzf lo corre bajo cmd.exe y complica): la
+    # descripción y el uso van en las columnas visibles del propio fzf.
+    $tab = "`t"
 
-    if ($Filter) {
-        $rx = [regex]::new($Filter, 'IgnoreCase')
-        $items = switch ($Scope) {
-            'Nombre'   { $items | Where-Object { $rx.IsMatch($_.Nombre) } }
-            'Resumen'  { $items | Where-Object { $rx.IsMatch($_.Resumen) } }
-            'Sintaxis' { $items | Where-Object { $rx.IsMatch($_.Sintaxis) } }
-            'Todo'     { $items | Where-Object { $rx.IsMatch($_.Nombre) -or $rx.IsMatch($_.Resumen) -or $rx.IsMatch($_.Sintaxis) } }
+    # Paso 1: categorías con conteo.
+    $menu1 = foreach ($c in $catOrder) {
+        $n = ($items | Where-Object { $_.Cat -eq $c }).Count
+        if ($n -gt 0) { "$c$tab$($catTitle[$c]) ($n)" }
+    }
+    while ($true) {
+        $pick1 = $menu1 | fzf --delimiter=$tab --with-nth=2 `
+            --prompt='categoria> ' --height=50% --border=rounded --layout=reverse `
+            --header='Flechas: categoria | Enter: abre | Esc: cancela'
+        if (-not $pick1) { return }                       # Esc en categorías → salir
+        $cat = ($pick1 -split $tab)[0]
+
+        # Paso 2: comandos de esa categoría. Columnas: name | desc | uso.
+        $menu2 = $items | Where-Object { $_.Cat -eq $cat } | ForEach-Object {
+            "{0}{1}{2}{1}{3}" -f $_.Name, $tab, $_.Desc, $_.Uso
         }
-    }
+        $pick2 = $menu2 | fzf --delimiter=$tab --with-nth='1,2' `
+            --prompt="$cat> " --height=70% --border=rounded --layout=reverse `
+            --header='Flechas: comando | Enter: lo usa | Esc: vuelve a categorias'
+        if (-not $pick2) { continue }                     # Esc en comandos → volver al paso 1
 
-    $items |
-        Select-Object @{l='Comando';e='Nombre'},
-                      @{l='Resumen';e='Resumen'},
-                      @{l='Sintaxis';e='Sintaxis'},
-                      @{l='Tipo';e='Tipo'} |
-        Format-Table -AutoSize
+        $parts = $pick2 -split $tab
+        $cmd   = if ($parts[2]) { $parts[2] } else { $parts[0] }
+        # Dejar el comando escrito en la línea, listo para editar (igual que print -z en zsh).
+        if (Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert($cmd)
+        } else {
+            Write-Host "copiá y ejecutá: " -ForegroundColor DarkGray -NoNewline
+            Write-Host $cmd -ForegroundColor White
+        }
+        return
+    }
 }

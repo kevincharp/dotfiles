@@ -166,7 +166,7 @@ export repos personal work cei_walle
 # UTILIDADES GENERALES
 # ==============================================================================
 
-# --- open: abrir directorio o archivo ---
+# --- [nav] open: abrir directorio o archivo con la app por defecto | uso: open <ruta> ---
 open() {
     local target="${1:-.}"
     if [[ "$IS_WINDOWS" == true ]]; then
@@ -177,7 +177,7 @@ open() {
     fi
 }
 
-# --- edit: abrir archivo en el editor (VSCode si esta, si no nvim) ---
+# --- [nav] edit: abrir archivo en el editor (VSCode si está, si no nvim) | uso: edit <archivo> ---
 # Paridad con la funcion 'edit' de profile.ps1. En Linux preferimos nvim, pero
 # si tenes 'code' instalado lo usamos (util cuando si lo instalaste a mano).
 edit() {
@@ -189,7 +189,7 @@ edit() {
     fi
 }
 
-# --- y: yazi con cd-on-exit ---
+# --- [nav] y: yazi con cd-on-exit (queda en el último dir navegado) | uso: y ---
 # Wrapper oficial de yazi (paridad con profile.ps1 y zshrc). Lanza yazi y, al
 # salir con 'q', deja el shell parado en el ultimo directorio navegado (yazi
 # escribe el cwd en un archivo temporal via --cwd-file). Solo se define si yazi
@@ -345,27 +345,27 @@ alias gnew='git checkout -b'
 # GIT ALIASES — avanzados (funciones)
 # ==============================================================================
 
-# --- gup: set upstream de la rama actual ---
+# --- [git] gup: set upstream (origin) de la rama actual | uso: gup ---
 gup() {
     local branch
     branch="$(git rev-parse --abbrev-ref HEAD)"
     git branch --set-upstream-to="origin/$branch" "$branch"
 }
 
-# --- gpsu: push inicial con tracking ---
+# --- [git] gpsu: push inicial de la rama con tracking a origin | uso: gpsu ---
 gpsu() {
     local branch
     branch="$(git rev-parse --abbrev-ref HEAD)"
     git push -u origin "$branch"
 }
 
-# --- gsync: fetch + pull rebase + autostash ---
+# --- [git] gsync: fetch --all --prune + pull --rebase --autostash | uso: gsync ---
 gsync() {
     git fetch --all --prune
     git pull --rebase --autostash
 }
 
-# --- gsw: smart switch (crea rama si no existe local ni remota) ---
+# --- [git] gsw: smart switch, crea la rama si no existe (local o remota) | uso: gsw <rama> ---
 gsw() {
     local branch="$1"
     if [[ -z "$branch" ]]; then
@@ -383,17 +383,17 @@ gsw() {
     fi
 }
 
-# --- gfixup: commit fixup ---
+# --- [git] gfixup: commit --fixup sobre un commit (HEAD por defecto) | uso: gfixup [commit] ---
 gfixup() {
     git commit --fixup "${1:-HEAD}"
 }
 
-# --- gundo: deshacer ultimo commit (mantiene cambios) ---
+# --- [git] gundo: deshace el último commit y conserva los cambios | uso: gundo ---
 gundo() {
     git reset --soft HEAD~1
 }
 
-# --- gclean: limpiar archivos untracked ---
+# --- [git] gclean: elimina archivos sin trackear (pide confirmación) | uso: gclean ---
 gclean() {
     echo "Archivos que se eliminarian:"
     git clean -fd --dry-run
@@ -401,13 +401,13 @@ gclean() {
     [[ "$confirm" =~ ^[yY]$ ]] && git clean -fd
 }
 
-# --- gprune: limpiar ramas locales mergeadas ---
+# --- [git] gprune: borra ramas locales ya mergeadas | uso: gprune ---
 gprune() {
     git fetch --prune
     git branch --merged | grep -v '\*\|main\|master\|develop' | xargs -r git branch -d
 }
 
-# --- gcleanbranches: borrar ramas locales cuyo remote tracking ya no existe ---
+# --- [git] gcleanbranches: borra ramas cuyo upstream remoto ya no existe | uso: gcleanbranches ---
 gcleanbranches() {
     git fetch --prune
     local gone
@@ -419,7 +419,7 @@ gcleanbranches() {
     echo "$gone" | xargs -r git branch -d
 }
 
-# --- gcoi: checkout interactivo con fzf ---
+# --- [git] gcoi: checkout interactivo de ramas con fzf | uso: gcoi ---
 gcoi() {
     if ! command -v fzf &>/dev/null; then
         echo "fzf no esta instalado"
@@ -430,7 +430,7 @@ gcoi() {
     [[ -n "$branch" ]] && git checkout "$branch"
 }
 
-# --- gwork: ir al directorio de trabajo ---
+# --- [git] gwork: cd al directorio de trabajo ($work o el indicado) | uso: gwork [dir] ---
 gwork() {
     local dir="${1:-$work}"
     cd "$dir" || return 1
@@ -440,7 +440,7 @@ gwork() {
 # PUERTOS (dev workflow)
 # ==============================================================================
 
-# --- port: lista el proceso escuchando en un puerto ---
+# --- [sistema] port: lista el proceso que escucha en un puerto | uso: port <puerto> ---
 port() {
     local p="${1:?Uso: port <numero>}"
     if command -v lsof &>/dev/null; then
@@ -450,7 +450,7 @@ port() {
     fi
 }
 
-# --- killport: mata el proceso que escucha en un puerto ---
+# --- [sistema] killport: mata el proceso que escucha en un puerto | uso: killport <puerto> ---
 killport() {
     local p="${1:?Uso: killport <numero>}"
     local pid
@@ -466,7 +466,7 @@ killport() {
     kill -9 "$pid" && echo "Killed PID $pid (puerto $p)"
 }
 
-# --- killdev: mata procesos en puertos comunes de desarrollo ---
+# --- [sistema] killdev: mata procesos en puertos comunes de desarrollo | uso: killdev ---
 killdev() {
     local devports=(3000 3001 4200 5173 8080 8090 8443)
     for p in "${devports[@]}"; do
@@ -478,6 +478,7 @@ killdev() {
 # Sin args borra TODO; con un patron borra solo las lineas que matcheen
 # (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
 # Espejo del zshrc; en bash se usa 'history -c/-r' (no existe 'fc -p').
+# --- [dotfiles] clear-history: vacía el historial completo, o borra las líneas que matcheen | uso: clear-history [patrón] ---
 clear-history() {
     local hist="${HISTFILE:-$HOME/.bash_history}"
     # Salvaguarda: distinguir "sin args" de "un arg vacio". Si se paso un patron
@@ -509,6 +510,7 @@ clear-history() {
 # Espejo del zshrc/profile.ps1; cada shell guarda el historial en su propio
 # archivo (bash: ~/.bash_history). Ojo: la sesion actual reescribe el archivo
 # al salir, asi que editarlo en vivo puede pisarse con lo que tipees despues.
+# --- [dotfiles] edit-history: abre el archivo de historial en el editor | uso: edit-history ---
 edit-history() {
     edit "${HISTFILE:-$HOME/.bash_history}"
 }
@@ -528,6 +530,7 @@ fi
 
 # Resuelve nombre/email de un perfil en las vars _gi_name/_gi_email.
 # Devuelve 1 si el perfil no existe o el vault no esta cargado.
+# --- [git] _resolve_identity: (interna) resuelve nombre/email de un perfil git | uso: _resolve_identity <perfil> ---
 _resolve_identity() {
     local perfil="$1"
     _gi_name="${GIT_IDENTITIES_NAME[$perfil]:-}"
@@ -548,6 +551,7 @@ _resolve_identity() {
 # Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]
 # Perfiles: cei_walle, work, kevincharp, kevincharp-gl
 # Ejemplo: gclone -p work -u git@gitlab.com-xxx:grupo/repo.git
+# --- [git] gclone: clona un repo aplicando un perfil de identidad git | uso: gclone -u <url> [-p perfil] [dir] ---
 gclone() {
     local perfil="" remote_url="" target_dir=""
 
@@ -613,7 +617,7 @@ gclone() {
     echo "Remote:      $(cd "$clone_dir" && git remote get-url origin 2>/dev/null)"
 }
 
-# --- gset-profile: aplicar perfil git a repo ya existente ---
+# --- [git] gset-profile: aplica un perfil de identidad git a un repo existente | uso: gset-profile <perfil> ---
 # Uso: gset-profile <perfil>
 gset-profile() {
     local perfil="$1"
@@ -639,6 +643,7 @@ gset-profile() {
 
 # Uso: ginit <perfil> [path]
 # Inicia un repo git nuevo y aplica el perfil de identidad indicado.
+# --- [git] ginit: git init aplicando un perfil de identidad git | uso: ginit <perfil> [path] ---
 ginit() {
     local perfil="$1"
     local path="${2:-$PWD}"
@@ -670,6 +675,7 @@ ginit() {
 # Uso: gremote <alias-ssh> <namespace/repo> [nombre-remote]
 # Agrega o actualiza un remote usando un host alias SSH.
 # Ejemplo: gremote gitlab.com-<mi-alias> mi-grupo/proyecto origin
+# --- [git] gremote: agrega un remote usando un alias SSH | uso: gremote <alias-ssh> <namespace/repo> [nombre-remote] ---
 gremote() {
     local alias_host="$1"
     local path_ns="$2"
@@ -703,6 +709,7 @@ VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
 
 # ssh-newkey <nombre> — genera una clave nueva y la deja lista en el vault.
 # Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+# --- [ssh] ssh-newkey: genera un par de claves SSH nuevo (cifra con age) | uso: ssh-newkey <nombre> ---
 ssh-newkey() {
     local name="$1"
     if [[ -z "$name" ]]; then
@@ -768,6 +775,7 @@ ssh-newkey() {
 
 # vault-sync — trae los cambios del vault a esta maquina: pull + config + claves.
 # Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
+# --- [dotfiles] vault-sync: sincroniza (pull+push) el repo privado del vault | uso: vault-sync ---
 vault-sync() {
     [[ -d "$VAULT_DIR/.git" ]] || { echo "No hay repo git en $VAULT_DIR (falta el vault?)" >&2; return 1; }
 
@@ -825,6 +833,7 @@ vault-sync() {
 # .ENV LOADER — cargar tokens desde ~/.env
 # ==============================================================================
 
+# --- [tools] _load_dotenv: (interna) carga variables desde un archivo .env | uso: _load_dotenv [archivo] ---
 _load_dotenv() {
     local env_file="${1:-$HOME/.env}"
     [[ -f "$env_file" ]] || return 0
@@ -855,7 +864,7 @@ _load_dotenv
 # AWS / CLAUDE CODE SMG
 # ==============================================================================
 
-# --- claude-smg: lanzar Claude Code con perfil Bedrock de SMG ---
+# --- [tools] claude-smg: lanza Claude Code con el perfil Bedrock de SMG | uso: claude-smg ---
 claude-smg() {
     # El perfil AWS se toma de $CLAUDE_SMG_AWS_PROFILE (defini en ~/.env); fallback 'default'
     export CLAUDE_CODE_USE_BEDROCK="1"
@@ -893,6 +902,7 @@ ICLOUD_MOUNT="${ICLOUD_MOUNT:-$HOME/icloud}"
 export ICLOUD_REMOTE ICLOUD_MOUNT
 
 # Verifica que rclone este instalado y el remote configurado. Devuelve 1 si no.
+# --- [nube] _icloud_check: (interna) verifica que rclone y el remote existan | uso: _icloud_check ---
 _icloud_check() {
     if ! command -v rclone &>/dev/null; then
         echo "rclone no esta instalado (bootstrap: bash install.sh --tools=rclone)" >&2
@@ -904,7 +914,7 @@ _icloud_check() {
     fi
 }
 
-# --- icloud-mount: montar iCloud Drive en ~/icloud ---
+# --- [nube] icloud-mount: monta iCloud Drive en ~/icloud | uso: icloud-mount ---
 icloud-mount() {
     _icloud_check || return 1
     if mountpoint -q "$ICLOUD_MOUNT" 2>/dev/null; then
@@ -916,7 +926,7 @@ icloud-mount() {
         && echo "iCloud Drive montado en $ICLOUD_MOUNT"
 }
 
-# --- icloud-umount: desmontar iCloud Drive ---
+# --- [nube] icloud-umount: desmonta iCloud Drive | uso: icloud-umount ---
 icloud-umount() {
     if mountpoint -q "$ICLOUD_MOUNT" 2>/dev/null; then
         fusermount3 -u "$ICLOUD_MOUNT" 2>/dev/null || fusermount -u "$ICLOUD_MOUNT"
@@ -926,14 +936,14 @@ icloud-umount() {
     fi
 }
 
-# --- icloud-ls: listar una carpeta de iCloud sin descargar nada ---
+# --- [nube] icloud-ls: lista una carpeta de iCloud sin descargar nada | uso: icloud-ls [carpeta] ---
 # Uso: icloud-ls [carpeta]   (sin argumento lista la raiz)
 icloud-ls() {
     _icloud_check || return 1
     rclone lsf "${ICLOUD_REMOTE}:${1:-}"
 }
 
-# --- icloud-pull: copiar una carpeta de iCloud al destino (incremental) ---
+# --- [nube] icloud-pull: copia una carpeta de iCloud al destino (incremental) | uso: icloud-pull <carpeta-remota> <destino-local> ---
 # Mas rapido que el explorador: descarga en paralelo y sin generar miniaturas.
 # Uso: icloud-pull <carpeta-remota> <destino-local>
 # Ej:  icloud-pull images /run/media/$USER/disco-externo/Fotos
@@ -944,7 +954,7 @@ icloud-pull() {
     rclone copy "${ICLOUD_REMOTE}:${src}" "$dst" -P --transfers 8
 }
 
-# --- icloud-move: mover una carpeta de iCloud al destino (LIBERA espacio) ---
+# --- [nube] icloud-move: mueve una carpeta de iCloud al destino (libera espacio) | uso: icloud-move <carpeta-remota> <destino-local> ---
 # Como icloud-pull, pero BORRA de iCloud cada archivo tras copiarlo con exito.
 # Util cuando iCloud avisa que se quedo sin espacio. Muestra primero un dry-run
 # y pide confirmacion antes de tocar nada (es destructivo del lado de iCloud).
@@ -967,53 +977,147 @@ icloud-move() {
 }
 
 # ==============================================================================
-# SPF — listado de funciones/aliases del bashrc
+# DOTHELP — ayuda ("--help" del repo): lista comandos por categoría
 # ==============================================================================
+# Muestra las funciones/aliases propios agrupados por categoría, con su
+# descripción y una PLANTILLA de uso lista para copiar/pegar. La info sale de un
+# comentario anotado justo encima de cada definición, con este formato:
+#
+#   # --- [categoria] nombre: descripción | uso: nombre <arg> [opcional] ---
+#
+# Convención de la plantilla: <arg> = requerido, [arg] = opcional. La línea de
+# uso solo se muestra cuando el comando lleva argumentos (si no, se ejecuta tal
+# cual y no aporta). Categorías conocidas (orden de salida): git, nav, sistema,
+# ssh, nube, tools, dotfiles. Los ALIASES se detectan solos (sin anotar): g* caen
+# en git, el resto en nav. Paridad con zshrc/profile.ps1.
+#
+# Uso:
+#   dothelp          MENÚ interactivo (fzf): elegís categoría → comando. Al
+#                    aceptar, en zsh deja el comando escrito en la línea; en bash
+#                    lo imprime para copiar (bash no puede escribir la línea).
+#   dothelp git      listado estático filtrado (rápido, sin menú)
+#   Sin fzf o salida a pipe → cae al listado estático.
 
-# Listar funciones y aliases definidos en este bashrc.
-# Uso: spf [filtro]
-# Ejemplo: spf git   (filtra por nombre)
-# Ejemplo: spf       (lista todo)
-spf() {
-    local filter="${1:-}"
-    local bashrc_file="${BASH_SOURCE[0]:-$HOME/.bashrc}"
-
-    echo "=== Funciones ==="
-    echo ""
-
-    # Extraer funciones con su comentario precedente (linea # --- ...)
-    local in_block=false
-    local desc=""
+# Fuente ÚNICA de datos: emite un registro por comando en formato TSV
+#   categoría <tab> nombre <tab> descripción <tab> uso
+# La usan tanto el menú interactivo como el listado estático. Dos pasadas para
+# que las funciones (anotadas con # --- [cat] ... ---) salgan ANTES que los
+# aliases (categoría inferida: g* → git, resto → nav; descripción = qué ejecutan).
+_dothelp_emit() {
+    local line cat name rest desc uso aname aval acat
+    # Pasada 1: funciones anotadas (van primero en cada categoría).
     while IFS= read -r line; do
-        if [[ "$line" =~ ^#\ ---\ (.+)\ ---$ ]]; then
-            desc="${BASH_REMATCH[1]}"
-        elif [[ "$line" =~ ^([a-zA-Z_][a-zA-Z0-9_-]*)\(\) ]]; then
-            local fname="${BASH_REMATCH[1]}"
-            if [[ -z "$filter" ]] || [[ "$fname" == *"$filter"* ]] || [[ "$desc" == *"$filter"* ]]; then
-                printf "  %-16s %s\n" "$fname" "$desc"
-            fi
-            desc=""
+        [[ "$line" =~ ^#\ ---\ \[([a-zA-Z]+)\]\ ([a-zA-Z_][a-zA-Z0-9_-]*):\ (.*)\ ---$ ]] || continue
+        cat="${BASH_REMATCH[1]}"; name="${BASH_REMATCH[2]}"; rest="${BASH_REMATCH[3]}"
+        if [[ "$rest" =~ ^(.*)\ \|\ uso:\ (.*)$ ]]; then
+            desc="${BASH_REMATCH[1]}"; uso="${BASH_REMATCH[2]}"
         else
-            if [[ ! "$line" =~ ^# ]]; then
-                desc=""
-            fi
+            desc="$rest"; uso=""
         fi
-    done < "$bashrc_file"
-
-    echo ""
-    echo "=== Aliases ==="
-    echo ""
-
-    # Extraer aliases
+        printf '%s\t%s\t%s\t%s\n' "$cat" "$name" "$desc" "$uso"
+    done < "$_dh_file"
+    # Pasada 2: aliases (después de las funciones). Categoría inferida.
     while IFS= read -r line; do
-        if [[ "$line" =~ ^alias\ ([a-zA-Z_][a-zA-Z0-9_-]*)=\'(.+)\'$ ]] || [[ "$line" =~ ^alias\ ([a-zA-Z_][a-zA-Z0-9_-]*)=\"(.+)\"$ ]]; then
-            local aname="${BASH_REMATCH[1]}"
-            local aval="${BASH_REMATCH[2]}"
-            if [[ -z "$filter" ]] || [[ "$aname" == *"$filter"* ]] || [[ "$aval" == *"$filter"* ]]; then
-                printf "  %-16s → %s\n" "$aname" "$aval"
+        [[ "$line" =~ ^alias\ ([a-zA-Z_][a-zA-Z0-9_-]*)=\'(.+)\'$ ]] || \
+        [[ "$line" =~ ^alias\ ([a-zA-Z_][a-zA-Z0-9_-]*)=\"(.+)\"$ ]] || continue
+        aname="${BASH_REMATCH[1]}"; aval="${BASH_REMATCH[2]}"
+        if [[ "$aname" == g* ]]; then acat='git'; else acat='nav'; fi
+        printf '%s\t%s\t→ %s\t\n' "$acat" "$aname" "$aval"
+    done < "$_dh_file"
+}
+
+# Listado estático (fallback): agrupa por categoría, con color. Se usa cuando no
+# hay fzf, la salida no es terminal, o se pasó un filtro explícito (dothelp git).
+_dothelp_static() {
+    local filter="$1" data="$2"
+    local -a cats=(git nav sistema ssh nube tools dotfiles)
+    local -A titles=([git]="GIT" [nav]="NAVEGACIÓN / ARCHIVOS" [sistema]="SISTEMA / PROCESOS"
+                     [ssh]="SSH / CLAVES" [nube]="NUBE (iCloud)" [tools]="HERRAMIENTAS" [dotfiles]="DOTFILES / CONFIG")
+    local c cat name desc uso first
+    for c in "${cats[@]}"; do
+        first=1
+        while IFS=$'\t' read -r cat name desc uso; do
+            [[ "$cat" == "$c" ]] || continue
+            if [[ -n "$filter" ]]; then
+                [[ "$name" == *"$filter"* || "$desc" == *"$filter"* || "$cat" == *"$filter"* ]] || continue
             fi
-        fi
-    done < "$bashrc_file"
+            if (( first )); then
+                printf '\n%s❯ %s%s\n\n' "$_dh_cat" "${titles[$c]}" "$_dh_reset"
+                first=0
+            fi
+            printf '  %s%-18s%s %s\n' "$_dh_name" "$name" "$_dh_reset" "$desc"
+            if [[ -n "$uso" && "$uso" != "$name" ]]; then
+                printf '  %s  ↳ %s%s\n' "$_dh_dim" "$uso" "$_dh_reset"
+            fi
+        done <<< "$data"
+    done
+    printf '\n'
+}
+
+# Menú interactivo (fzf) en DOS pasos: 1) elegís categoría → 2) elegís comando
+# (con preview de descripción + uso al costado). En bash no se puede escribir la
+# línea de edición: se imprime el comando elegido para copiar.
+_dothelp_menu() {
+    local data="$1"
+    local -a cats=(git nav sistema ssh nube tools dotfiles)
+    local -A titles=([git]="GIT" [nav]="NAVEGACIÓN / ARCHIVOS" [sistema]="SISTEMA / PROCESOS"
+                     [ssh]="SSH / CLAVES" [nube]="NUBE (iCloud)" [tools]="HERRAMIENTAS" [dotfiles]="DOTFILES / CONFIG")
+    # Menú del paso 1 (categorías con conteo). Se arma una sola vez.
+    local c cnt menu1=""
+    for c in "${cats[@]}"; do
+        cnt=$(printf '%s\n' "$data" | awk -F'\t' -v k="$c" '$1==k{n++} END{print n+0}')
+        (( cnt > 0 )) && menu1+="$c"$'\t'"${titles[$c]} ($cnt)"$'\n'
+    done
+
+    # Bucle de dos niveles: Esc en el paso 2 (comando) VUELVE al paso 1
+    # (categorías); solo se sale del todo con Esc en el paso 1.
+    local pick1 cat pick2 name uso cmd
+    while true; do
+        pick1=$(printf '%s' "$menu1" | fzf --delimiter=$'\t' --with-nth=2 \
+            --prompt='categoría> ' --height=50% --border=rounded --layout=reverse \
+            --header='↑↓ categoría · Enter abre · Esc cancela')
+        [[ -n "$pick1" ]] || return          # Esc en categorías → salir
+        cat="${pick1%%$'\t'*}"
+
+        # Paso 2: elegir comando de esa categoría, con preview.
+        pick2=$(printf '%s\n' "$data" | awk -F'\t' -v k="$cat" '$1==k' | \
+            fzf --delimiter=$'\t' --with-nth=2,3 \
+                --prompt="$cat> " --height=70% --border=rounded --layout=reverse \
+                --header='↑↓ comando · Enter lo elige · Esc vuelve a categorías' \
+                --preview='printf "Comando:\n  %s\n\n%s\n\nUso:\n  %s\n" {2} {3} {4}' \
+                --preview-window=right:45%:wrap)
+        [[ -n "$pick2" ]] || continue        # Esc en comandos → volver al paso 1
+        name=$(printf '%s' "$pick2" | cut -f2)
+        uso=$(printf '%s' "$pick2" | cut -f4)
+        cmd="${uso:-$name}"
+        # bash: no hay 'print -z'; se imprime el comando para copiar (paridad con matices).
+        printf '%scopiá y ejecutá:%s %s%s%s\n' "$_dh_dim" "$_dh_reset" "$_dh_name" "$cmd" "$_dh_reset"
+        return
+    done
+}
+
+dothelp() {
+    local _dh_filter="${1:-}"
+    local _dh_file="${BASH_SOURCE[0]:-$HOME/.bashrc}"
+    # Colores (paleta Claude) solo si la salida es una terminal.
+    local _dh_cat='' _dh_name='' _dh_dim='' _dh_reset=''
+    if [[ -t 1 ]]; then
+        _dh_cat=$'\033[1;38;5;173m'   # naranja (encabezado de categoría)
+        _dh_name=$'\033[38;5;223m'    # crema (nombre del comando)
+        _dh_dim=$'\033[38;5;245m'     # gris (plantilla de uso)
+        _dh_reset=$'\033[0m'
+    fi
+
+    local _dh_data
+    _dh_data="$(_dothelp_emit)"
+
+    # Menú interactivo solo si: hay fzf, es terminal (stdin+stdout) y sin filtro.
+    # Cualquier otro caso (filtro explícito, pipe, sin fzf) → listado estático.
+    if [[ -z "$_dh_filter" && -t 1 && -t 0 ]] && command -v fzf &>/dev/null; then
+        _dothelp_menu "$_dh_data"
+    else
+        _dothelp_static "$_dh_filter" "$_dh_data"
+    fi
 }
 
 # ==============================================================================
@@ -1023,7 +1127,7 @@ spf() {
 # symlinkear como Windows Terminal. Estos helpers vuelcan/restauran el dump
 # versionado en ~/.dotfiles/terminal/ptyxis.dconf.
 
-# --- ptyxis-save: volcar la config actual de Ptyxis al repo ---
+# --- [dotfiles] ptyxis-save: vuelca la config de Ptyxis (dconf) al repo | uso: ptyxis-save ---
 ptyxis-save() {
     local dump="$HOME/.dotfiles/terminal/ptyxis.dconf"
     if ! command -v dconf &>/dev/null; then
@@ -1033,7 +1137,7 @@ ptyxis-save() {
     dconf dump /org/gnome/Ptyxis/ > "$dump" && echo "Ptyxis -> $dump"
 }
 
-# --- ptyxis-load: restaurar la config de Ptyxis desde el repo ---
+# --- [dotfiles] ptyxis-load: restaura la config de Ptyxis (dconf) desde el repo | uso: ptyxis-load ---
 ptyxis-load() {
     local dump="$HOME/.dotfiles/terminal/ptyxis.dconf"
     if ! command -v dconf &>/dev/null; then
@@ -1070,7 +1174,7 @@ _GNOME_DCONF_MAP=(
     "/org/gnome/shell/:shell.dconf"
 )
 
-# --- gnome-save: volcar la config de GNOME al repo (todas las ramas) ---
+# --- [dotfiles] gnome-save: vuelca la config de GNOME (dconf) al repo | uso: gnome-save ---
 gnome-save() {
     local dir="$HOME/.dotfiles/gnome"
     if ! command -v dconf &>/dev/null; then
@@ -1090,7 +1194,7 @@ gnome-save() {
     done
 }
 
-# --- gnome-load: restaurar la config de GNOME desde el repo (todas las ramas) ---
+# --- [dotfiles] gnome-load: restaura la config de GNOME (dconf) desde el repo | uso: gnome-load ---
 gnome-load() {
     local dir="$HOME/.dotfiles/gnome"
     if ! command -v dconf &>/dev/null; then
@@ -1119,7 +1223,7 @@ gnome-load() {
 # La ruta sysfs cuelga del dispositivo VPC2004 (no de BAT0) y la numeracion PCI
 # puede variar, por eso se resuelve con 'find' en vez de hardcodearla.
 
-# --- battery-limit: ver/activar/desactivar el tope de carga -------------------
+# --- [sistema] battery-limit: ver/activar/desactivar el tope de carga (Lenovo) | uso: battery-limit [status|on|off] ---
 # Uso: battery-limit            -> status (alias de 'status')
 #      battery-limit status     -> estado + carga actual
 #      battery-limit on         -> activar tope (~80%), cuida la bateria
@@ -1154,7 +1258,7 @@ battery-limit() {
     esac
 }
 
-# --- update-all: actualizar todo lo que dnf NO cubre, en un solo comando -------
+# --- [sistema] update-all: actualiza todo lo que dnf no cubre | uso: update-all ---
 # dnf solo actualiza sus propios paquetes. Esta funcion recorre los demas
 # gestores presentes (Flatpak, npm) ademas de dnf. Lo instalado por curl
 # (oh-my-posh, zoxide, opencode, claude) suele autoactualizarse aparte.

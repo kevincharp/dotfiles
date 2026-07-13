@@ -1515,11 +1515,11 @@ if (-not $global:__ProfileFile) {
 }
 
 <#
-.SYNOPSIS listar funciones definidas en el profile
-.EXAMPLE spf -Type GIT
-.EXAMPLE spf -Filter clone -Scope Todo
+.SYNOPSIS listar funciones definidas en el profile (el «--help» del repo)
+.EXAMPLE dothelp -Type GIT
+.EXAMPLE dothelp -Filter clone -Scope Todo
 #>
-function spf {
+function dothelp {
     [CmdletBinding()]
     param(
         [string]$Filter = '',
@@ -1578,7 +1578,7 @@ function spf {
     }
 
     function GetSpfRange($text) {
-        $m = [regex]::Match($text, '(?ms)^\s*function\s+spf\b.*?\{')
+        $m = [regex]::Match($text, '(?ms)^\s*function\s+dothelp\b.*?\{')
         if (-not $m.Success) { return ,@(-1,-1) }
         $start = $m.Index; $i = $m.Index + $m.Length; $depth = 1
         while ($i -lt $text.Length -and $depth -gt 0) {
@@ -1603,7 +1603,7 @@ function spf {
             $cbh  = $m.Groups[1].Value
             $name = $m.Groups[2].Value
             if ($name -in $skipNames) { continue }
-            if ($spfStart -ge 0 -and $m.Index -ge $spfStart -and $m.Index -lt $spfEnd -and $name -ne 'spf') { continue }
+            if ($spfStart -ge 0 -and $m.Index -ge $spfStart -and $m.Index -lt $spfEnd -and $name -ne 'dothelp') { continue }
 
             $synopsis   = ([regex]::Match($cbh, '(?ms)\.SYNOPSIS\s+(.+?)(?:\r?\n\s*\.\w+|$)').Groups[1].Value -replace '\s+',' ').Trim()
             $example    = Get-ExampleFromCbh $cbh
@@ -1622,7 +1622,7 @@ function spf {
         foreach ($m in $rxFunc.Matches($text)) {
             $name = $m.Groups[1].Value
             if ($name -in $skipNames) { continue }
-            if ($spfStart -ge 0 -and $m.Index -ge $spfStart -and $m.Index -lt $spfEnd -and $name -ne 'spf') { continue }
+            if ($spfStart -ge 0 -and $m.Index -ge $spfStart -and $m.Index -lt $spfEnd -and $name -ne 'dothelp') { continue }
             if (-not $map.ContainsKey($name)) {
                 $example    = BuildSimpleSyntax $name $text $m.Index
                 $bodySample = $text.Substring($m.Index, [Math]::Min(1000, $text.Length - $m.Index))

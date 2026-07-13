@@ -358,7 +358,8 @@ aplica cada `dconf load`.
 <summary><strong>Shell — funciones y aliases</strong></summary>
 
 Disponibles en PowerShell (`profile.ps1`), Bash (`bashrc`) y Zsh (`zshrc`). Listá
-todas con `spf`.
+todas con `dothelp` (el «--help» del repo): las agrupa por categoría, con su
+descripción y una plantilla de uso lista para copiar. Filtrá con `dothelp git`.
 
 **Atajos estilo Linux** (en PowerShell): `cat`, `grep`, `find`, `head`, `tail`,
 `tailf`, `lss`/`la`/`ll`, `touch`, `mkdirp`, `rmrf`, `which`, `less`, `z` (zoxide).
@@ -381,7 +382,7 @@ todas con `spf`.
 
 | Comando | Descripción |
 |---|---|
-| `spf` / `spf git` | Listar funciones del profile / filtrar |
+| `dothelp` / `dothelp git` | Listar comandos del repo por categoría / filtrar |
 | `claude-smg` | Claude Code con Bedrock de SMG |
 | `edit` / `open` | Abrir en VSCode (o nvim) / en el explorador |
 | `y` | yazi con cd-on-exit (queda en el último directorio navegado) |

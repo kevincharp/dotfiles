@@ -218,9 +218,18 @@ backups y borra los repos:
 
 ## Configuración de AWS SSO (solo laboral)
 
+**Dos formas, y el bootstrap te guía si no configuraste nada:**
+
+1. **Autoguiado (recomendado para un compañero nuevo):** corré el instalador normal.
+   En el paso de AWS te pregunta *"¿Configurar el acceso AWS/Bedrock para claude-smg?"*.
+   Si decís que sí y no tenés los datos en `~/.env`, **te los pide en el momento**
+   (portal SSO, account id, rol, tu usuario) y los **guarda en `~/.env`** para las
+   próximas veces. Cero pasos manuales previos.
+2. **Anticipado (con el flag):** definí las variables en `~/.env` **antes** y corré
+   con `--with-aws` / `-WithAws` para saltear la pregunta.
+
 Los datos de la cuenta (account id, portal SSO, rol) son infra privada y **no se
-versionan**: se leen de `~/.env`. Definí estas variables antes de correr el
-bootstrap con `--with-aws` / `-WithAws`:
+versionan**: viven solo en tu `~/.env`. Las variables:
 
 ```bash
 AWS_SSO_START_URL=https://<tu-org>.awsapps.com/start/#

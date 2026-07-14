@@ -227,13 +227,23 @@ AWS_SSO_START_URL=https://<tu-org>.awsapps.com/start/#
 AWS_SSO_ACCOUNT_ID=<id-de-cuenta>
 AWS_SSO_ROLE_NAME=<rol>          # opcional (default: Bedrock_Access)
 AWS_SSO_REGION=us-east-1         # opcional (default: us-east-1)
+AWS_SSO_PROFILE=<tu-usuario>     # opcional (default: default) — ver abajo
 ```
 
 El bootstrap escribe `~/.aws/config` en formato `sso-session` (flujo PKCE: el login
 abre el navegador y confirma solo, sin código de 6 dígitos).
 
-- Verificar: `aws sts get-caller-identity --profile default`
-- Renovar al expirar: `aws sso login --profile default`
+**`AWS_SSO_PROFILE` — un usuario, un perfil.** Es el nombre del perfil (y de la
+`sso-session`) que el bootstrap escribe en `~/.aws/config`, y **el mismo** que usa
+`claude-smg` y el comando de renovación. Así, si varias personas comparten la misma
+org, cada una pone **solo su usuario** (p.ej. `AWS_SSO_PROFILE=elteruel`) y todo lo
+demás del `.env` es idéntico. Si no lo definís, el perfil se llama `default`.
+
+- Verificar: `aws sts get-caller-identity --profile <tu-usuario>`
+- Renovar al expirar: `aws sso login --profile <tu-usuario>`
+
+> Compat: si venías usando `CLAUDE_SMG_AWS_PROFILE`, sigue funcionando como
+> fallback. `AWS_SSO_PROFILE` tiene prioridad.
 
 ---
 

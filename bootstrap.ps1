@@ -458,7 +458,9 @@ function Select-ToolsInteractive {
 
     # Estado de un grupo: 'all' | 'partial' | 'none' + conteo on/tot
     function Get-GroupState($g) {
-        $gk = @($TOOLS_CATALOG | Where-Object Group -eq $g).Key
+        # @(...).Key sobre un grupo de 1 sola herramienta devuelve un string suelto
+        # (no array); re-envolver en @() para que .Count exista bajo StrictMode.
+        $gk = @(@($TOOLS_CATALOG | Where-Object Group -eq $g).Key)
         $on = @($gk | Where-Object { $marked[$_] }).Count
         $tot = $gk.Count
         $st = if ($on -eq 0) { 'none' } elseif ($on -eq $tot) { 'all' } else { 'partial' }

@@ -1259,9 +1259,19 @@ if ($SkipDotfiles) {
 
 Step-Bar 8 "Configuración AWS SSO"
 
+# Si no vino -WithAws pero es una sesion interactiva, preguntar: así el instalador
+# GUÍA (en vez de exigir conocer el flag). En headless se saltea igual que antes.
+if (-not $WithAws -and (Test-Interactive)) {
+    Suspend-Bar
+    Write-Host ''
+    Write-Host "  $($script:C_SECT)▶ Claude Code con Bedrock (AWS SSO)$($script:C_RESET)"
+    $awsAns = Read-Host "  ¿Configurar el acceso AWS/Bedrock para claude-smg? [s/N]"
+    if ($awsAns -match '^[sSyY]') { $WithAws = $true }
+}
+
 if (-not $WithAws) {
-    Sub-Bar 100 "saltado (usá -WithAws)"
-    Write-Log "Saltando configuración AWS (usá -WithAws para incluirla)" 'SKIP'
+    Sub-Bar 100 "saltado"
+    Write-Log "Saltando configuración AWS (configurable luego con -WithAws)" 'SKIP'
 } elseif (-not (Test-CommandAvailable 'aws')) {
     Suspend-Bar
     Write-Log "AWS CLI no está instalado, saltando configuración SSO" 'WARN'
@@ -1318,6 +1328,32 @@ if (-not $WithAws) {
             if ($_ -match '^\s*AWS_SSO_ROLE_NAME\s*=\s*(.+?)\s*$')  { $ssoRoleName  = $Matches[1].Trim('"').Trim("'") }
             if ($_ -match '^\s*AWS_SSO_REGION\s*=\s*(.+?)\s*$')     { $ssoRegion    = $Matches[1].Trim('"').Trim("'") }
             if ($_ -match '^\s*AWS_SSO_PROFILE\s*=\s*(.+?)\s*$')    { $ssoProfile   = $Matches[1].Trim('"').Trim("'") }
+        }
+    }
+
+    # Faltan datos obligatorios y hay tty -> pedirlos y persistirlos al ~/.env
+    # (así claude-smg y futuras corridas ya los tienen; la org no se versiona).
+    if ((-not $ssoAccountId -or -not $ssoStartUrl) -and (Test-Interactive)) {
+        Write-Log "Faltan datos de AWS SSO en ~/.env — te los pido ahora" 'INFO'
+        if (-not $ssoStartUrl)  { $ssoStartUrl  = Read-Host "  Portal SSO (ej: https://tu-org.awsapps.com/start/#)" }
+        if (-not $ssoAccountId) { $ssoAccountId = Read-Host "  Account ID" }
+        $r = Read-Host "  Rol [$ssoRoleName]";        if ($r) { $ssoRoleName = $r }
+        $p = Read-Host "  Tu usuario/perfil [$ssoProfile]"; if ($p) { $ssoProfile = $p }
+
+        # Persistir solo las claves que aún no estén en ~/.env (evita duplicados).
+        if ($ssoStartUrl -and $ssoAccountId) {
+            if (-not (Test-Path $envFileAws)) { New-Item -ItemType File -Path $envFileAws -Force | Out-Null }
+            $envTxt = Get-Content $envFileAws -Raw -ErrorAction SilentlyContinue
+            $toAdd = [System.Collections.Generic.List[string]]::new()
+            if ($envTxt -notmatch '(?m)^AWS_SSO_START_URL=')  { $toAdd.Add("AWS_SSO_START_URL=$ssoStartUrl") }
+            if ($envTxt -notmatch '(?m)^AWS_SSO_ACCOUNT_ID=') { $toAdd.Add("AWS_SSO_ACCOUNT_ID=$ssoAccountId") }
+            if ($envTxt -notmatch '(?m)^AWS_SSO_ROLE_NAME=')  { $toAdd.Add("AWS_SSO_ROLE_NAME=$ssoRoleName") }
+            if ($envTxt -notmatch '(?m)^AWS_SSO_REGION=')     { $toAdd.Add("AWS_SSO_REGION=$ssoRegion") }
+            if ($envTxt -notmatch '(?m)^AWS_SSO_PROFILE=')    { $toAdd.Add("AWS_SSO_PROFILE=$ssoProfile") }
+            if ($toAdd.Count -gt 0) {
+                Add-Content -Path $envFileAws -Value ("`n# AWS SSO (Bedrock) — agregado por bootstrap`n" + ($toAdd -join "`n"))
+                Write-Log "Datos AWS guardados en ~/.env" 'OK'
+            }
         }
     }
 

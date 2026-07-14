@@ -1722,10 +1722,22 @@ fi
 
 gb_step 6 "Configuración AWS SSO"
 
+# Si no vino --with-aws pero es una sesion interactiva, preguntar: así el
+# instalador GUÍA (en vez de exigir conocer el flag de antemano). En headless
+# o con el flag ausente y sin tty, se saltea igual que antes.
+if [[ "$WITH_AWS" != true ]] && [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
+    gb_pause
+    printf '\n  %b▶ Claude Code con Bedrock (AWS SSO)%b\n' "$C_BAR" "$C_RESET" > /dev/tty
+    printf '  ¿Configurar el acceso AWS/Bedrock para claude-smg? [s/N] ' > /dev/tty
+    _aws_ans=""; read -r _aws_ans < /dev/tty || _aws_ans=""
+    case "$_aws_ans" in [sSyY]*) WITH_AWS=true ;; esac
+    unset _aws_ans
+fi
+
 if [[ "$WITH_AWS" != true ]]; then
-    gb_sub 100 "saltado (usa --with-aws)"
-    log "Saltando configuracion AWS SSO (usa --with-aws para incluirla)" "SKIP"
-    log "  Nota: AWS CLI ya esta instalado para claude-smg, pero SSO requiere --with-aws" "INFO"
+    gb_sub 100 "saltado"
+    log "Saltando configuracion AWS SSO" "SKIP"
+    log "  Podés configurarlo luego con: bootstrap --with-aws" "INFO"
 else
     gb_pause   # el login SSO abre navegador y es interactivo
     # Datos de la org (cuenta, portal SSO, rol) NO se versionan: son infra
@@ -1737,6 +1749,40 @@ else
     # el mismo que consume claude-smg. Cada usuario pone el suyo en ~/.env
     # (AWS_SSO_PROFILE=elteruel); fallback a CLAUDE_SMG_AWS_PROFILE (compat) y 'default'.
     AWS_SSO_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
+
+    # Faltan datos obligatorios y hay tty -> pedirlos y persistirlos al ~/.env
+    # (así claude-smg y futuras corridas ya los tienen; la org no se versiona).
+    if [[ -z "$AWS_SSO_ACCOUNT_ID" || -z "$AWS_SSO_START_URL" ]] \
+       && [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
+        log "Faltan datos de AWS SSO en ~/.env — te los pido ahora" "INFO"
+        if [[ -z "$AWS_SSO_START_URL" ]]; then
+            printf '  Portal SSO (ej: https://tu-org.awsapps.com/start/#): ' > /dev/tty
+            read -r AWS_SSO_START_URL < /dev/tty || true
+        fi
+        if [[ -z "$AWS_SSO_ACCOUNT_ID" ]]; then
+            printf '  Account ID: ' > /dev/tty
+            read -r AWS_SSO_ACCOUNT_ID < /dev/tty || true
+        fi
+        printf '  Rol [%s]: ' "$AWS_SSO_ROLE_NAME" > /dev/tty
+        read -r _r < /dev/tty || true; [[ -n "$_r" ]] && AWS_SSO_ROLE_NAME="$_r"; unset _r
+        printf '  Tu usuario/perfil [%s]: ' "$AWS_SSO_PROFILE" > /dev/tty
+        read -r _p < /dev/tty || true; [[ -n "$_p" ]] && AWS_SSO_PROFILE="$_p"; unset _p
+
+        # Persistir solo las claves que aún no estén en ~/.env (evita duplicados).
+        if [[ -n "$AWS_SSO_START_URL" && -n "$AWS_SSO_ACCOUNT_ID" ]]; then
+            _env="$HOME/.env"; touch "$_env"; _aws_add=""
+            grep -q '^AWS_SSO_START_URL='  "$_env" || _aws_add+="AWS_SSO_START_URL=$AWS_SSO_START_URL"$'\n'
+            grep -q '^AWS_SSO_ACCOUNT_ID=' "$_env" || _aws_add+="AWS_SSO_ACCOUNT_ID=$AWS_SSO_ACCOUNT_ID"$'\n'
+            grep -q '^AWS_SSO_ROLE_NAME='  "$_env" || _aws_add+="AWS_SSO_ROLE_NAME=$AWS_SSO_ROLE_NAME"$'\n'
+            grep -q '^AWS_SSO_REGION='     "$_env" || _aws_add+="AWS_SSO_REGION=$AWS_SSO_REGION"$'\n'
+            grep -q '^AWS_SSO_PROFILE='    "$_env" || _aws_add+="AWS_SSO_PROFILE=$AWS_SSO_PROFILE"$'\n'
+            if [[ -n "$_aws_add" ]]; then
+                printf '\n# AWS SSO (Bedrock) — agregado por bootstrap\n%s' "$_aws_add" >> "$_env"
+                log "Datos AWS guardados en ~/.env" "OK"
+            fi
+            unset _env _aws_add
+        fi
+    fi
 
     if ! has_cmd aws; then
         log "AWS CLI no disponible — error inesperado" "ERROR"

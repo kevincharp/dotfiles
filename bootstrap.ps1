@@ -1304,6 +1304,10 @@ if (-not $WithAws) {
     $ssoAccountId = $env:AWS_SSO_ACCOUNT_ID
     $ssoRoleName  = if ($env:AWS_SSO_ROLE_NAME) { $env:AWS_SSO_ROLE_NAME } else { "Bedrock_Access" }
     $ssoRegion    = if ($env:AWS_SSO_REGION)    { $env:AWS_SSO_REGION }    else { "us-east-1" }
+    # Nombre del perfil (y sso-session) que se escribe en ~/.aws/config; el mismo
+    # que consume claude-smg. Cada usuario pone el suyo en ~/.env
+    # (AWS_SSO_PROFILE=elteruel); fallback a CLAUDE_SMG_AWS_PROFILE (compat) y 'default'.
+    $ssoProfile   = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { "default" }
     $envFileAws   = Join-Path $HOME ".env"
     if (Test-Path $envFileAws) {
         Get-Content $envFileAws | ForEach-Object {
@@ -1311,6 +1315,7 @@ if (-not $WithAws) {
             if ($_ -match '^\s*AWS_SSO_ACCOUNT_ID\s*=\s*(.+?)\s*$') { $ssoAccountId = $Matches[1].Trim('"').Trim("'") }
             if ($_ -match '^\s*AWS_SSO_ROLE_NAME\s*=\s*(.+?)\s*$')  { $ssoRoleName  = $Matches[1].Trim('"').Trim("'") }
             if ($_ -match '^\s*AWS_SSO_REGION\s*=\s*(.+?)\s*$')     { $ssoRegion    = $Matches[1].Trim('"').Trim("'") }
+            if ($_ -match '^\s*AWS_SSO_PROFILE\s*=\s*(.+?)\s*$')    { $ssoProfile   = $Matches[1].Trim('"').Trim("'") }
         }
     }
 
@@ -1321,17 +1326,20 @@ if (-not $WithAws) {
         # Escribo ~/.aws/config con formato sso-session: habilita el flujo PKCE
         # (login por navegador sin codigo de 6 digitos). 'aws configure set' no
         # sabe escribir bloques [sso-session], por eso se escribe el archivo.
-        Invoke-Step "Pre-configurar perfil AWS SSO default (formato sso-session/PKCE)" {
+        Invoke-Step "Pre-configurar perfil AWS SSO '$ssoProfile' (formato sso-session/PKCE)" {
             $awsDir = Join-Path $HOME ".aws"
             New-Item -ItemType Directory -Force -Path $awsDir | Out-Null
+            # AWS nombra distinto el perfil default ([default]) y los nombrados
+            # ([profile X]); la sso-session siempre es [sso-session X].
+            $profileHeader = if ($ssoProfile -eq 'default') { '[default]' } else { "[profile $ssoProfile]" }
             $cfg = @"
-[sso-session default]
+[sso-session $ssoProfile]
 sso_start_url = $ssoStartUrl
 sso_region = $ssoRegion
 sso_registration_scopes = sso:account:access
 
-[default]
-sso_session = default
+$profileHeader
+sso_session = $ssoProfile
 sso_account_id = $ssoAccountId
 sso_role_name = $ssoRoleName
 region = $ssoRegion
@@ -1344,12 +1352,12 @@ output = json
             Write-Log "[DryRun] Saltando aws sso login" 'SKIP'
         } else {
             Write-Log "Iniciando AWS SSO login (se abrirá el navegador)..." 'INFO'
-            aws sso login --profile default
+            aws sso login --profile $ssoProfile
             if ($LASTEXITCODE -eq 0) {
                 Write-Log "AWS SSO login completado exitosamente" 'OK'
             } else {
                 Write-Log "AWS SSO login falló o fue cancelado" 'WARN'
-                $WARNINGS.Add("AWS SSO login incompleto — correr 'aws sso login --profile default'")
+                $WARNINGS.Add("AWS SSO login incompleto — correr 'aws sso login --profile $ssoProfile'")
             }
         }
     }

@@ -1733,6 +1733,10 @@ else
     [[ -f "$HOME/.env" ]] && { set -a; . "$HOME/.env"; set +a; }
     : "${AWS_SSO_START_URL:=}" "${AWS_SSO_ACCOUNT_ID:=}"
     : "${AWS_SSO_ROLE_NAME:=Bedrock_Access}" "${AWS_SSO_REGION:=us-east-1}"
+    # Nombre del perfil (y de la sso-session) que se escribe en ~/.aws/config. Es
+    # el mismo que consume claude-smg. Cada usuario pone el suyo en ~/.env
+    # (AWS_SSO_PROFILE=elteruel); fallback a CLAUDE_SMG_AWS_PROFILE (compat) y 'default'.
+    AWS_SSO_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
 
     if ! has_cmd aws; then
         log "AWS CLI no disponible — error inesperado" "ERROR"
@@ -1744,27 +1748,34 @@ else
         # Escribo ~/.aws/config con formato sso-session: habilita el flujo PKCE
         # (login por navegador sin codigo de 6 digitos). 'aws configure set' no
         # sabe escribir bloques [sso-session], por eso se escribe el archivo.
-        log "Configurando perfil AWS SSO default (formato sso-session/PKCE)..." "INFO"
+        log "Configurando perfil AWS SSO '$AWS_SSO_PROFILE' (formato sso-session/PKCE)..." "INFO"
         mkdir -p "$HOME/.aws"
         [[ -f "$HOME/.aws/config" ]] && cp "$HOME/.aws/config" "$BACKUP_DIR/aws-config.bak" 2>/dev/null
+        # AWS nombra distinto el perfil default ([default]) y los nombrados
+        # ([profile X]); la sso-session siempre es [sso-session X].
+        if [[ "$AWS_SSO_PROFILE" == "default" ]]; then
+            aws_profile_header="[default]"
+        else
+            aws_profile_header="[profile $AWS_SSO_PROFILE]"
+        fi
         if [[ "$DRY_RUN" == true ]]; then
-            log "[DryRun] Escribir ~/.aws/config (sso-session default)" "SKIP"
+            log "[DryRun] Escribir ~/.aws/config (sso-session $AWS_SSO_PROFILE)" "SKIP"
         else
             cat > "$HOME/.aws/config" <<AWSCFG
-[sso-session default]
+[sso-session $AWS_SSO_PROFILE]
 sso_start_url = $AWS_SSO_START_URL
 sso_region = $AWS_SSO_REGION
 sso_registration_scopes = sso:account:access
 
-[default]
-sso_session = default
+$aws_profile_header
+sso_session = $AWS_SSO_PROFILE
 sso_account_id = $AWS_SSO_ACCOUNT_ID
 sso_role_name = $AWS_SSO_ROLE_NAME
 region = $AWS_SSO_REGION
 output = json
 AWSCFG
             chmod 600 "$HOME/.aws/config"
-            log "Perfil default pre-configurado" "OK"
+            log "Perfil '$AWS_SSO_PROFILE' pre-configurado" "OK"
         fi
         log "" "INFO"
         log "Iniciando AWS SSO login (se abrirá el navegador)..." "INFO"
@@ -1773,12 +1784,12 @@ AWSCFG
 
         if [[ "$DRY_RUN" == false ]]; then
             # Intentar login SSO (abre navegador automáticamente)
-            if aws sso login --profile default; then
+            if aws sso login --profile "$AWS_SSO_PROFILE"; then
                 log "AWS SSO login completado exitosamente" "OK"
             else
                 log "AWS SSO login falló o fue cancelado" "WARN"
-                log "Podés completarlo después con: aws sso login --profile default" "WARN"
-                WARNINGS+=("AWS SSO login incompleto — correr 'aws sso login --profile default'")
+                log "Podés completarlo después con: aws sso login --profile $AWS_SSO_PROFILE" "WARN"
+                WARNINGS+=("AWS SSO login incompleto — correr 'aws sso login --profile $AWS_SSO_PROFILE'")
             fi
         else
             log "[DryRun] Saltando aws sso login" "SKIP"

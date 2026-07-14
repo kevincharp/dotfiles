@@ -1311,6 +1311,7 @@ $env:GITLAB_TOKEN_KEVINCHARP = Get-SecretFromEnv 'GITLAB_TOKEN_KEVINCHARP'
 $env:GITHUB_TOKEN_KEVINCHARP = Get-SecretFromEnv 'GITHUB_TOKEN_KEVINCHARP'
 
 # AWS / Claude SMG
+$env:AWS_SSO_PROFILE        = Get-SecretFromEnv 'AWS_SSO_PROFILE'
 $env:CLAUDE_SMG_AWS_PROFILE = Get-SecretFromEnv 'CLAUDE_SMG_AWS_PROFILE'
 $env:CLAUDE_SMG_AWS_REGION  = Get-SecretFromEnv 'CLAUDE_SMG_AWS_REGION'
 $env:CLAUDE_SMG_MODEL       = Get-SecretFromEnv 'CLAUDE_SMG_MODEL'
@@ -1487,9 +1488,11 @@ function gbrowser {
 .EXAMPLE claude-smg
 #>
 function claude-smg {
-    # El perfil AWS se toma de $env:CLAUDE_SMG_AWS_PROFILE (defini en ~/.env); fallback 'default'
+    # El perfil AWS se toma de $env:AWS_SSO_PROFILE (defini en ~/.env); el mismo que
+    # usa el bootstrap al escribir ~/.aws/config. Fallback a CLAUDE_SMG_AWS_PROFILE
+    # (nombre viejo, compat) y luego 'default'.
     $env:CLAUDE_CODE_USE_BEDROCK = "1"
-    $env:AWS_PROFILE             = if ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
+    $env:AWS_PROFILE             = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
     $env:AWS_REGION              = if ($env:CLAUDE_SMG_AWS_REGION)  { $env:CLAUDE_SMG_AWS_REGION }  else { 'us-east-1' }
     # Modelos Bedrock (inference profiles us.*). Overridables desde ~/.env.
     $env:ANTHROPIC_MODEL            = if ($env:CLAUDE_SMG_MODEL)       { $env:CLAUDE_SMG_MODEL }       else { 'us.anthropic.claude-opus-4-8' }

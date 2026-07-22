@@ -496,7 +496,11 @@ function Select-ToolsInteractive {
         $m = $rows.Count
         if ($cur -ge $m) { $cur = $m - 1 }
 
-        if (-not $firstDraw) { Write-Host ("`e[$($drawn)A") -NoNewline }
+        # Subir el cursor al inicio del frame anterior y borrar de ahi hasta el
+        # final de pantalla (\e[0J). Sin el borrado, al COLAPSAR un grupo el frame
+        # nuevo tiene menos lineas y las sobrantes del frame viejo quedan abajo
+        # (efecto "menu duplicado"). PadRight solo limpia el ancho, no lineas de mas.
+        if (-not $firstDraw) { Write-Host ("`e[$($drawn)A`e[0J") -NoNewline }
         $firstDraw = $false
 
         $drawn = 0

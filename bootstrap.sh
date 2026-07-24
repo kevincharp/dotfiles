@@ -1820,6 +1820,35 @@ sso_role_name = $AWS_SSO_ROLE_NAME
 region = $AWS_SSO_REGION
 output = json
 AWSCFG
+            # Perfiles adicionales bajo la MISMA sso-session (reusan el login).
+            # Formato en ~/.env: AWS_EXTRA_PROFILES="perfil:cuenta:rol[:region];..."
+            # Ej: "ecs-pre:562722450811:Control_de_Cambios_e_Imp.;ecs-prod:245109378300:Control_de_Cambios_e_Imp."
+            if [[ -n "${AWS_EXTRA_PROFILES:-}" ]]; then
+                _extra_n=0
+                _oldifs="$IFS"; IFS=';'
+                for _p in $AWS_EXTRA_PROFILES; do
+                    [[ -z "$_p" ]] && continue
+                    IFS=':' read -r _pn _pa _pr _preg <<< "$_p"
+                    [[ -z "$_pn" || -z "$_pa" || -z "$_pr" ]] && {
+                        log "AWS_EXTRA_PROFILES: entrada inválida '$_p' (falta perfil/cuenta/rol) — la salteo" "WARN"
+                        continue
+                    }
+                    [[ -z "$_preg" ]] && _preg="$AWS_SSO_REGION"
+                    {
+                        printf '\n[profile %s]\n' "$_pn"
+                        printf 'sso_session = %s\n' "$AWS_SSO_PROFILE"
+                        printf 'sso_account_id = %s\n' "$_pa"
+                        printf 'sso_role_name = %s\n' "$_pr"
+                        printf 'region = %s\n' "$_preg"
+                        printf 'output = json\n'
+                    } >> "$HOME/.aws/config"
+                    _extra_n=$((_extra_n + 1))
+                done
+                IFS="$_oldifs"
+                unset _p _pn _pa _pr _preg _oldifs
+                [[ "$_extra_n" -gt 0 ]] && log "Perfiles AWS extra pre-configurados: $_extra_n" "OK"
+                unset _extra_n
+            fi
             chmod 600 "$HOME/.aws/config"
             log "Perfil '$AWS_SSO_PROFILE' pre-configurado" "OK"
         fi

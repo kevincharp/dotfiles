@@ -1327,6 +1327,8 @@ if (-not $WithAws) {
     # que consume claude-smg. Cada usuario pone el suyo en ~/.env
     # (AWS_SSO_PROFILE=elteruel); fallback a CLAUDE_SMG_AWS_PROFILE (compat) y 'default'.
     $ssoProfile   = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { "default" }
+    # Perfiles adicionales bajo la misma sso-session (formato ver más abajo).
+    $ssoExtraProfiles = $env:AWS_EXTRA_PROFILES
     $envFileAws   = Join-Path $HOME ".env"
     if (Test-Path $envFileAws) {
         Get-Content $envFileAws | ForEach-Object {
@@ -1335,6 +1337,7 @@ if (-not $WithAws) {
             if ($_ -match '^\s*AWS_SSO_ROLE_NAME\s*=\s*(.+?)\s*$')  { $ssoRoleName  = $Matches[1].Trim('"').Trim("'") }
             if ($_ -match '^\s*AWS_SSO_REGION\s*=\s*(.+?)\s*$')     { $ssoRegion    = $Matches[1].Trim('"').Trim("'") }
             if ($_ -match '^\s*AWS_SSO_PROFILE\s*=\s*(.+?)\s*$')    { $ssoProfile   = $Matches[1].Trim('"').Trim("'") }
+            if ($_ -match '^\s*AWS_EXTRA_PROFILES\s*=\s*(.+?)\s*$') { $ssoExtraProfiles = $Matches[1].Trim('"').Trim("'") }
         }
     }
 
@@ -1390,7 +1393,33 @@ sso_role_name = $ssoRoleName
 region = $ssoRegion
 output = json
 "@
+            # Perfiles adicionales bajo la MISMA sso-session (reusan el login).
+            # Formato en ~/.env: AWS_EXTRA_PROFILES="perfil:cuenta:rol[:region];..."
+            # Ej: "ecs-pre:562722450811:Control_de_Cambios_e_Imp.;ecs-prod:245109378300:Control_de_Cambios_e_Imp."
+            $extraN = 0
+            if ($ssoExtraProfiles) {
+                foreach ($p in ($ssoExtraProfiles -split ';')) {
+                    if (-not $p.Trim()) { continue }
+                    $parts = $p.Trim() -split ':'
+                    if ($parts.Count -lt 3 -or -not $parts[0] -or -not $parts[1] -or -not $parts[2]) {
+                        Write-Log "AWS_EXTRA_PROFILES: entrada inválida '$p' (falta perfil/cuenta/rol) — la salteo" 'WARN'
+                        continue
+                    }
+                    $preg = if ($parts.Count -ge 4 -and $parts[3]) { $parts[3] } else { $ssoRegion }
+                    $cfg += @"
+
+[profile $($parts[0])]
+sso_session = $ssoProfile
+sso_account_id = $($parts[1])
+sso_role_name = $($parts[2])
+region = $preg
+output = json
+"@
+                    $extraN++
+                }
+            }
             Set-Content -Path (Join-Path $awsDir "config") -Value $cfg -Encoding ascii
+            if ($extraN -gt 0) { Write-Log "Perfiles AWS extra pre-configurados: $extraN" 'OK' }
         }
 
         if ($DryRun) {

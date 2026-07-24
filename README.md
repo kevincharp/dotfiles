@@ -254,6 +254,21 @@ demás del `.env` es idéntico. Si no lo definís, el perfil se llama `default`.
 > Compat: si venías usando `CLAUDE_SMG_AWS_PROFILE`, sigue funcionando como
 > fallback. `AWS_SSO_PROFILE` tiene prioridad.
 
+**`AWS_EXTRA_PROFILES` — perfiles adicionales bajo la misma sso-session.** Si además
+del perfil principal (Bedrock) trabajás con otras cuentas/roles de la misma org
+(p.ej. ECS en NoProd y Prod), listalos acá y el bootstrap los escribe en
+`~/.aws/config` **reusando el mismo login SSO** (no hay que loguear de nuevo).
+Formato: `perfil:cuenta:rol[:region]` separados por `;` (la región es opcional,
+default `AWS_SSO_REGION`):
+
+```bash
+AWS_EXTRA_PROFILES="ecs-pre:562722450811:Control_de_Cambios_e_Imp.;ecs-prod:245109378300:Control_de_Cambios_e_Imp."
+```
+
+Con eso, tras el bootstrap tenés `aws ... --profile ecs-pre` y `--profile ecs-prod`
+funcionando en cualquier PC. Como todo vive en `~/.env` (no versionado), los datos
+de cuentas no se filtran al repo. Las entradas mal formadas se saltean con warning.
+
 ---
 
 ## Tokens y secretos (.env)

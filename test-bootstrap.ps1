@@ -135,8 +135,10 @@ foreach ($f in $DOTFILES) {
 
 Write-Section "3. Comandos en PATH"
 
-$REQUIRED_CMDS = @('git', 'nvim', 'node')
-$OPTIONAL_CMDS = @('oh-my-posh', 'zoxide', 'fzf', 'rg', 'lazygit', 'eza', 'age')
+# Solo git es requisito duro (el bootstrap no corre sin el). El resto del
+# catalogo es OPT-IN en el selector: no haberlo marcado no es un fallo.
+$REQUIRED_CMDS = @('git')
+$OPTIONAL_CMDS = @('nvim', 'node', 'oh-my-posh', 'zoxide', 'fzf', 'rg', 'lazygit', 'eza', 'age')
 
 foreach ($cmd in $REQUIRED_CMDS) {
     if (Test-CommandExists $cmd) {

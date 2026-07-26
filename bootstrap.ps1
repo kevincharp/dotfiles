@@ -1229,13 +1229,15 @@ if ($SkipDotfiles) {
     Sub-Bar 70 "claves SSH"
     if ($ageFiles) {
         if (Test-CommandAvailable 'age') {
-            # La passphrase es interaccion: pausar la barra para pedirla limpio.
-            Suspend-Bar
-            Write-Host "  Desencriptando claves SSH (se pide passphrase una sola vez)..."
-            $secPass = Read-Host "  Passphrase para claves SSH" -AsSecureString
-            $agePassphrase = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
-                [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secPass)
-            )
+            # age NO lee la passphrase de stdin: la pide SIEMPRE de la consola
+            # (igual que en Linux, ver vault-sync). Pasarla por pipe no funciona,
+            # asi que se deja que age pregunte por cada clave FALTANTE (normalmente
+            # falta 0-1, no molesta). La interaccion va fuera de la barra.
+            $missingKeys = @($ageFiles | Where-Object { -not (Test-Path "$HOME\.ssh\$($_.BaseName)") })
+            if ($missingKeys.Count -gt 0 -and -not $DryRun) {
+                Suspend-Bar
+                Write-Host "  Desencriptando claves SSH que faltan ($($missingKeys.Count)) — age pide la passphrase por cada una..."
+            }
 
             foreach ($ageFile in $ageFiles) {
                 $keyName = $ageFile.BaseName
@@ -1247,15 +1249,14 @@ if ($SkipDotfiles) {
                     Write-Log "[DryRun] Desencriptar $keyName → ~/.ssh/$keyName" 'SKIP'
                 } else {
                     Invoke-Step "Desencriptar $keyName → ~/.ssh/$keyName" {
-                        $agePassphrase | age -d -o $dstKey $ageFile.FullName 2>$null
-                        if ($LASTEXITCODE -ne 0) { throw "Passphrase incorrecta o error de age" }
+                        age -d -o $dstKey $ageFile.FullName
+                        if ($LASTEXITCODE -ne 0) {
+                            Remove-Item -LiteralPath $dstKey -Force -ErrorAction SilentlyContinue
+                            throw "Passphrase incorrecta o error de age"
+                        }
                     }
                 }
             }
-
-            # Limpiar passphrase de memoria
-            $agePassphrase = $null
-            [System.GC]::Collect()
 
             # Copiar claves publicas
             $pubFiles = Get-ChildItem -Path $sshKeysDir -Filter "*.pub" -File -ErrorAction SilentlyContinue

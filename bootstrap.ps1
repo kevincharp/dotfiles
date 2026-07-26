@@ -551,7 +551,7 @@ function Select-ToolsInteractive {
                     'h' { if ($row.Kind -eq 'G') { $expanded[$row.Group] = $false } }
                     'a' { foreach ($key in $keys) { $marked[$key] = $true } }
                     'n' { foreach ($key in $keys) { $marked[$key] = $false } }
-                    'q' { return @($keys | Where-Object { $marked[$_] }) }
+                    'q' { return @() }   # cancelar: salir sin nada (Enter es confirmar)
                 }
             }
         }
@@ -667,12 +667,12 @@ function Show-Welcome {
 
     $o = $script:C_SECT; $r = $script:C_RESET; $d = $script:C_DIM; $gr = $script:C_OK
     Write-Host ''
-    Write-Host "  $o╭────────────────────────────────────────────────────────────╮$r"
+    Write-Host "  $o╭──────────────────────────────────────────────────────────────╮$r"
     Write-Host "  $o│                                                              │$r"
     Write-Host "  $o│   ●  dotfiles · Setup de entorno                             │$r"
     Write-Host "  $o│      Windows · reproducible en cualquier máquina             │$r"
     Write-Host "  $o│                                                              │$r"
-    Write-Host "  $o╰────────────────────────────────────────────────────────────╯$r"
+    Write-Host "  $o╰──────────────────────────────────────────────────────────────╯$r"
     Write-Host ''
     Write-Host "  ${o}Qué hace$r"
     Write-Host ''
@@ -967,7 +967,7 @@ if ($SkipModules) {
 }
 
 # ==============================================================================
-# 4. CREAR ESTRUCTURA DE CARPETAS
+# 5. CREAR ESTRUCTURA DE CARPETAS
 # ==============================================================================
 
 Step-Bar 5 "Creando carpetas"
@@ -1017,7 +1017,7 @@ if (Test-Path $envFile) {
 }
 
 # ==============================================================================
-# 5. MIGRAR BACKUPS VIEJOS (.bak-*) → BACKUP_DIR
+# 6. MIGRAR BACKUPS VIEJOS (.bak-*) → BACKUP_DIR
 # ==============================================================================
 
 Step-Bar 6 "Migrando backups viejos"
@@ -1072,7 +1072,7 @@ if ($SkipDotfiles) {
 }
 
 # ==============================================================================
-# 6. COPIAR DOTFILES
+# 7. COPIAR DOTFILES
 # ==============================================================================
 
 Step-Bar 7 "Copiando dotfiles"
@@ -1290,7 +1290,7 @@ if ($SkipDotfiles) {
 }
 
 # ==============================================================================
-# 6. CONFIGURAR AWS SSO (OPCIONAL)
+# 8. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================
 
 Step-Bar 8 "Configuración AWS SSO"
@@ -1470,7 +1470,7 @@ output = json
 }
 
 # ==============================================================================
-# 7. CONFIGURAR PROFILE DE POWERSHELL
+# 9. CONFIGURAR PROFILE DE POWERSHELL + VALIDACIONES
 # ==============================================================================
 
 Step-Bar 9 "Perfil de PowerShell y validaciones"

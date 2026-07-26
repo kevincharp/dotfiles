@@ -1494,8 +1494,10 @@ function claude-smg {
     $env:CLAUDE_CODE_USE_BEDROCK = "1"
     $env:AWS_PROFILE             = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
     $env:AWS_REGION              = if ($env:CLAUDE_SMG_AWS_REGION)  { $env:CLAUDE_SMG_AWS_REGION }  else { 'us-east-1' }
-    # Modelos Bedrock (inference profiles us.*). Overridables desde ~/.env.
-    $env:ANTHROPIC_MODEL            = if ($env:CLAUDE_SMG_MODEL)       { $env:CLAUDE_SMG_MODEL }       else { 'us.anthropic.claude-opus-5' }
+    # Modelo Bedrock: por defecto NO se fija, para que Claude Code autodescubra los
+    # modelos de tu cuenta y los ofrezca todos en /model (elegis en caliente, como
+    # en Desktop). Solo se clava uno si defines CLAUDE_SMG_MODEL en el entorno.
+    if ($env:CLAUDE_SMG_MODEL) { $env:ANTHROPIC_MODEL = $env:CLAUDE_SMG_MODEL }
     $env:ANTHROPIC_SMALL_FAST_MODEL = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL } else { 'us.anthropic.claude-haiku-4-5-20251001-v1:0' }
 
     $cleanup = {

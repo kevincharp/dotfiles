@@ -872,8 +872,10 @@ claude-smg() {
     export CLAUDE_CODE_USE_BEDROCK="1"
     export AWS_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
     export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
-    # Modelos Bedrock (inference profiles us.*). Overridables desde ~/.env.
-    export ANTHROPIC_MODEL="${CLAUDE_SMG_MODEL:-us.anthropic.claude-opus-5}"
+    # Modelo Bedrock: por defecto NO se fija, para que Claude Code autodescubra los
+    # modelos de tu cuenta y los ofrezca todos en /model (elegis en caliente, como
+    # en Desktop). Solo se clava uno si defines CLAUDE_SMG_MODEL en ~/.env.
+    [[ -n "${CLAUDE_SMG_MODEL:-}" ]] && export ANTHROPIC_MODEL="$CLAUDE_SMG_MODEL"
     export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 
     if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then

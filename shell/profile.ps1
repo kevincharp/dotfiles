@@ -1497,7 +1497,12 @@ function claude-smg {
     # Modelo Bedrock: por defecto NO se fija, para que Claude Code autodescubra los
     # modelos de tu cuenta y los ofrezca todos en /model (elegis en caliente, como
     # en Desktop). Solo se clava uno si defines CLAUDE_SMG_MODEL en el entorno.
-    if ($env:CLAUDE_SMG_MODEL) { $env:ANTHROPIC_MODEL = $env:CLAUDE_SMG_MODEL }
+    if ($env:CLAUDE_SMG_MODEL) {
+        $env:ANTHROPIC_MODEL = $env:CLAUDE_SMG_MODEL
+    } else {
+        # limpia un pin heredado de una corrida previa
+        Remove-Item Env:ANTHROPIC_MODEL -ErrorAction SilentlyContinue
+    }
     $env:ANTHROPIC_SMALL_FAST_MODEL = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL } else { 'us.anthropic.claude-haiku-4-5-20251001-v1:0' }
 
     $cleanup = {

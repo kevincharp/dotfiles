@@ -875,7 +875,11 @@ claude-smg() {
     # Modelo Bedrock: por defecto NO se fija, para que Claude Code autodescubra los
     # modelos de tu cuenta y los ofrezca todos en /model (elegis en caliente, como
     # en Desktop). Solo se clava uno si defines CLAUDE_SMG_MODEL en ~/.env.
-    [[ -n "${CLAUDE_SMG_MODEL:-}" ]] && export ANTHROPIC_MODEL="$CLAUDE_SMG_MODEL"
+    if [[ -n "${CLAUDE_SMG_MODEL:-}" ]]; then
+        export ANTHROPIC_MODEL="$CLAUDE_SMG_MODEL"
+    else
+        unset ANTHROPIC_MODEL  # limpia un pin heredado de una corrida previa
+    fi
     export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 
     if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then

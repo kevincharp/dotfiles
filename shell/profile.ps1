@@ -1289,6 +1289,7 @@ function Load-DotEnv {
             $_ -split "`n" | ForEach-Object {
                 $line = $_.Trim()
                 if ($line -eq '' -or $line.StartsWith('#')) { return }
+                $line = $line -replace '^export\s+', ''   # tolerar 'export K=V'
                 $kv = $line -split '=', 2
                 if ($kv.Count -eq 2) {
                     $k = $kv[0].Trim()

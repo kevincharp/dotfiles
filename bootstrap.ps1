@@ -1152,6 +1152,34 @@ if ($SkipDotfiles) {
         }
     }
 
+    # --- Neovim: config completa versionada (nvim/) ---
+    # Symlink de DIRECTORIO a %LOCALAPPDATA%\nvim (path de nvim en Windows;
+    # paridad con el link_dir de bootstrap.sh). Si habia config real previa,
+    # se mueve entera al backup centralizado.
+    Sub-Bar 65 "config de nvim"
+    $nvimSrc = Join-Path $REPO_ROOT 'nvim'
+    $nvimDst = Join-Path $env:LOCALAPPDATA 'nvim'
+    if (Test-Path $nvimSrc) {
+        $nvimItem   = if (Test-Path $nvimDst) { Get-Item -LiteralPath $nvimDst -Force } else { $null }
+        $nvimIsLink = $nvimItem -and ($nvimItem.LinkType -eq 'SymbolicLink')
+        if ($nvimIsLink -and $nvimItem.Target -eq $nvimSrc) {
+            Write-Log "Config de nvim ya symlinkeada al repo, saltando" 'SKIP'
+        } elseif ($DryRun) {
+            Write-Log "[DryRun] Symlink nvim → $nvimDst" 'SKIP'
+        } else {
+            if ($nvimItem -and -not $nvimIsLink) {
+                Invoke-Step "Backup $nvimDst → $BACKUP_DIR\nvim" {
+                    Move-Item -LiteralPath $nvimDst -Destination (Join-Path $BACKUP_DIR 'nvim') -Force
+                }
+            } elseif ($nvimIsLink) {
+                Remove-Item -LiteralPath $nvimDst -Force
+            }
+            Invoke-Step "Symlink nvim → $nvimDst" {
+                New-Item -ItemType SymbolicLink -Path $nvimDst -Target $nvimSrc | Out-Null
+            }
+        }
+    }
+
     # --- Tema oh-my-posh (claude-code) ---
     # Estrategia unificada: el repo es la unica fuente de verdad.
     # 1. POSH_THEMES_PATH apunta SIEMPRE a <repo>\shell\themes.

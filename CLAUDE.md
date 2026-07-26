@@ -5,11 +5,9 @@ git y Claude Code, reproducibles en cualquier máquina vía `bootstrap`.
 
 ## Reglas del repo
 
-(Convención de commits: ver el CLAUDE.md global.)
-
-- **Idioma:** comentarios y docs en español.
-- **No pushear ni commitear sin que el usuario lo pida.** En `main`, no crear
-  ramas salvo que se indique.
+(Commits, push, ramas, idioma y secretos: rigen las reglas del CLAUDE.md
+**global** — commits granulares sin pedir permiso, nunca pushear, sin ramas
+salvo pedido.)
 
 ## Reglas de `set -e` (bootstrap/install/uninstall)
 
@@ -78,6 +76,10 @@ Ulauncher tiene tres piezas, versionadas distinto:
 
 Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
 
+- `.claude/CLAUDE.md` → **fuente única de reglas para TODOS los agentes de IA**:
+  symlinkeado a `~/.claude/CLAUDE.md` (Claude Code) y, si están instalados, a
+  `~/.codex/AGENTS.md` (Codex) y `~/.config/opencode/AGENTS.md` (opencode).
+  Editar ese archivo cambia las reglas de los tres.
 - `settings.json` → **symlink** (cambios se versionan al instante).
 - `statusline.sh` → **no se copia**; `settings.json` lo referencia desde el repo.
 - `settings.local.json` → **per-máquina** (permisos con rutas absolutas que

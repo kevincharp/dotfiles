@@ -141,9 +141,11 @@ log "Repositorio publico (dotfiles)..." "SECTION"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
     log "Ya existe en $DOTFILES_DIR — actualizando" "OK"
     cd "$DOTFILES_DIR"
+    # Los cambios locales los maneja --autostash (stashea y REAPLICA al
+    # terminar el rebase). No stashear a mano ademas: ese stash quedaba
+    # huerfano y los cambios "desaparecian" del working tree sin aviso.
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        log "Cambios locales detectados — stash automatico" "WARN"
-        git stash push -m "auto-stash install $(date +%Y%m%d-%H%M%S)" >/dev/null
+        log "Cambios locales detectados — autostash durante el pull" "WARN"
     fi
     git pull --rebase --autostash origin "$BRANCH" || { log "Error al actualizar publico" "ERROR"; exit 1; }
 else

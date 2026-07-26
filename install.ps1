@@ -129,10 +129,12 @@ if (Test-Path (Join-Path $DOTFILES_DIR '.git')) {
     Write-Log "Ya existe en $DOTFILES_DIR - actualizando" 'OK'
     Push-Location $DOTFILES_DIR
     try {
+        # Los cambios locales los maneja --autostash (stashea y REAPLICA al
+        # terminar el rebase). No stashear a mano ademas: ese stash quedaba
+        # huerfano y los cambios "desaparecian" del working tree sin aviso.
         git diff-index --quiet HEAD -- 2>$null
         if ($LASTEXITCODE -ne 0) {
-            Write-Log 'Cambios locales detectados - stash automatico' 'WARN'
-            git stash push -m "auto-stash install $(Get-Date -Format 'yyyyMMdd-HHmmss')" | Out-Null
+            Write-Log 'Cambios locales detectados - autostash durante el pull' 'WARN'
         }
         git pull --rebase --autostash origin $BRANCH
         if ($LASTEXITCODE -ne 0) { Write-Log 'Error al actualizar publico' 'ERROR'; Pop-Location; exit 1 }

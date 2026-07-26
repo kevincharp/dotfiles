@@ -370,10 +370,13 @@ if ($gitMajor -lt 2 -or ($gitMajor -eq 2 -and $gitMinor -lt 36)) {
         }
     }
 
-    if (-not $VaultLoaded -or -not $GitProfileRemotes) {
+    # Get-Variable: si el vault (viejo) no define $GitProfileRemotes, bajo
+    # StrictMode referenciarla directo tira error en vez de caer al WARN.
+    $profileRemotes = Get-Variable GitProfileRemotes -ValueOnly -ErrorAction SilentlyContinue
+    if (-not $VaultLoaded -or -not $profileRemotes) {
         Test-Warn "Resolucion de identidad" "vault no cargado — saltando"
     } else {
-        foreach ($r in $GitProfileRemotes) {
+        foreach ($r in $profileRemotes) {
             Test-GitIdentity $r.url $GitIdentities[$r.profile].name $GitIdentities[$r.profile].email $r.label
         }
     }

@@ -1085,13 +1085,15 @@ if ($SkipDotfiles) {
     foreach ($df in $DOTFILES) {
         $dfIdx++
         Sub-Bar ([int]($dfIdx * 60 / $dfTot)) "$($df.Src)"
-        # Resolver raiz: 'vault' (privado) o repo publico por defecto
-        $root = if ($df.PSObject.Properties['Root'] -and $df.Root -eq 'vault') { $VAULT_DIR } else { $REPO_ROOT }
+        # Resolver raiz: 'vault' (privado) o repo publico por defecto.
+        # OJO: $df es un hashtable — sus claves NO son propiedades PSObject
+        # (PSObject.Properties['Root'] da siempre $null); hay que usar ContainsKey.
+        $root = if ($df.ContainsKey('Root') -and $df.Root -eq 'vault') { $VAULT_DIR } else { $REPO_ROOT }
         $src = Join-Path $root $df.Src
         $dst = $df.Dst
 
         if (-not (Test-Path $src)) {
-            if ($df.PSObject.Properties['Root'] -and $df.Root -eq 'vault') {
+            if ($df.ContainsKey('Root') -and $df.Root -eq 'vault') {
                 $msg = "Vault no disponible: $($df.Src) (falta $VAULT_DIR)"
             } else {
                 $msg = "Origen no encontrado: $src"

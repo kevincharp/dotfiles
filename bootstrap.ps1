@@ -1329,12 +1329,15 @@ if (-not $WithAws) {
             [System.IO.File]::WriteAllBytes("$HOME\netskope-root.cer", $bytes)
             certutil -encode "$HOME\netskope-root.cer" "$HOME\netskope-root.pem" | Out-Null
 
-            # Buscar cacert.pem o descargarlo
+            # Buscar cacert.pem o descargarlo. OJO: descargar justamente un CA
+            # bundle con la verificacion TLS apagada (curl -k) seria lo peor;
+            # Invoke-WebRequest usa el cert store de Windows, que ya confia en
+            # el certificado de Netskope, asi que valida el TLS sin -k.
             $cacert = Get-ChildItem -Path "$HOME\.vscode\extensions" -Recurse -Filter "cacert.pem" `
                         -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
             if (-not $cacert) {
                 Write-Log "cacert.pem no encontrado en VSCode, descargando..." 'WARN'
-                curl.exe -k -s -o "$HOME\cacert.pem" https://curl.se/ca/cacert.pem
+                Invoke-WebRequest -Uri 'https://curl.se/ca/cacert.pem' -OutFile "$HOME\cacert.pem" -UseBasicParsing
                 $cacert = "$HOME\cacert.pem"
             }
 

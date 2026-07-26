@@ -11,6 +11,19 @@ git y Claude Code, reproducibles en cualquier máquina vía `bootstrap`.
 - **No pushear ni commitear sin que el usuario lo pida.** En `main`, no crear
   ramas salvo que se indique.
 
+## Reglas de `set -e` (bootstrap/install/uninstall)
+
+Los scripts corren con `set -euo pipefail`; tres trampas ya nos mordieron y
+están prohibidas:
+
+- **`((x++))`** devuelve exit 1 cuando `x` vale 0 y aborta el script. Usar
+  `x=$((x + 1))`.
+- **`var="$(comando)"`** hereda el exit del comando: si puede fallar
+  legítimamente (p.ej. un test con FAILs), capturar con `|| rc=$?`.
+- **Operadores dentro de variables** (`CMD="algo || true"`) no funcionan al
+  expandir sin comillas: `||` llega como argumento literal. Ejecutar con
+  `bash -c "$CMD"`.
+
 ## Paridad obligatoria
 
 Cualquier función o alias que se toque en un shell **debe replicarse en los otros**:

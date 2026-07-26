@@ -845,14 +845,20 @@ _load_dotenv() {
         # Ignorar lineas vacias y comentarios
         line="${line#"${line%%[![:space:]]*}"}"  # trim leading whitespace
         [[ -z "$line" || "$line" == \#* ]] && continue
+        line="${line#export }"                   # tolerar 'export K=V'
+        [[ "$line" == *=* ]] || continue         # sin '=' no es asignacion
 
         local key="${line%%=*}"
         local val="${line#*=}"
-        # Trim comillas
+        # Tolerar espacios alrededor del '=' y comillas envolventes
+        key="${key%"${key##*[![:space:]]}"}"     # trim trailing ws de la clave
+        val="${val#"${val%%[![:space:]]*}"}"     # trim leading ws del valor
         val="${val%\"}"
         val="${val#\"}"
         val="${val%\'}"
         val="${val#\'}"
+        # Clave invalida (espacios, etc.): saltear en vez de romper el export
+        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
 
         export "$key=$val"
     done < "$env_file"

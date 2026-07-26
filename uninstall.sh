@@ -69,6 +69,8 @@ DOTFILES_TARGETS=(
     "$HOME/.config/openlogi/config.toml"
     "$HOME/.config/yazi/yazi.toml"
     "$HOME/.config/nvim"
+    "$HOME/.codex/AGENTS.md"
+    "$HOME/.config/opencode/AGENTS.md"
     # Copia del vault con el token de iCloud: es un secreto, no debe quedar
     # huerfano tras desinstalar.
     "$HOME/.config/rclone/rclone.conf"

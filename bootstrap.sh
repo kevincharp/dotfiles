@@ -1602,6 +1602,15 @@ copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "lin
 # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
 # que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
 copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
+# El MISMO archivo rige para los otros agentes de IA: Codex y opencode leen
+# AGENTS.md (en ~/.codex y ~/.config/opencode). Fuente unica: editar el
+# CLAUDE.md global es editar las reglas de todos. Solo si el CLI esta instalado.
+if has_cmd codex; then
+    copy_dotfile ".claude/CLAUDE.md"         "$HOME/.codex/AGENTS.md"       "link"
+fi
+if has_cmd opencode; then
+    copy_dotfile ".claude/CLAUDE.md"         "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md"  "link"
+fi
 
 # Tema oh-my-posh claude-code
 _omp_themes_dst="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes"

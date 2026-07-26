@@ -310,6 +310,8 @@ gclone -p work -u git@gitlab.com-<work>:grupo/repo.git                # Bash
 El bootstrap sincroniza la config de Claude Code entre máquinas:
 
 - **`settings.json`** → **symlink** a `~/.claude/` (hooks, `enabledPlugins`, modelo, theme).
+  Ojo: un `/model` en cualquier sesión escribe a través del symlink y deja el
+  repo con diff — revisarlo antes de commitear.
 - **`statusline.sh`** → no se copia; `settings.json` lo referencia desde el repo.
 - **`CLAUDE.md`** → instrucciones globales versionadas.
 - **`settings.local.json`** → per-máquina (permisos con rutas absolutas), **no** se versiona.
@@ -376,15 +378,19 @@ aplica cada `dconf load`.
 │   ├── settings.json             # Windows Terminal (symlink)
 │   └── ptyxis.dconf              # Ptyxis / Fedora (dump dconf)
 ├── gnome/*.dconf                 # Escritorio GNOME (dumps dconf)
+├── nvim/                         # Config de Neovim (symlink de directorio a ~/.config/nvim)
 ├── ulauncher/                    # Launcher Spotlight (solo Linux)
 ├── yazi/yazi.toml                # File manager TUI
 ├── fontconfig/fonts.conf         # Fuerza emoji a color en Chrome (Linux)
 ├── openlogi/config.toml          # Config mouse Logitech MX
+├── screenshots/                  # Capturas del setup (solo referencia)
 └── docs/                         # Guías de tareas puntuales (no parte del bootstrap)
 ```
 
-> Neovim se instala pelado (sin config en el repo). Las identidades git, `ssh/` y
-> `bookmarks/` **no** están acá: viven en el vault privado.
+> La config de Neovim vive versionada en `nvim/` y el bootstrap la enlaza como
+> **symlink de directorio** (`~/.config/nvim` en Linux, `%LOCALAPPDATA%\nvim` en
+> Windows): el `lazy-lock.json` y cualquier ajuste quedan versionados al instante.
+> Las identidades git, `ssh/` y `bookmarks/` **no** están acá: viven en el vault privado.
 
 </details>
 

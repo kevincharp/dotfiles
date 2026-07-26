@@ -1886,8 +1886,11 @@ if [[ -f "$TEST_SCRIPT" ]]; then
     else
         # Anti-choclo: la salida completa (~90 [OK]) va al log. En pantalla solo
         # el resumen (PASS/FAIL/WARN) y, si hay fallos, las lineas [FAIL].
-        _test_out="$(bash "$TEST_SCRIPT" 2>&1)"
-        TEST_EXIT=$?
+        # OJO: el '|| TEST_EXIT=$?' es obligatorio — el test sale con 1 si hay
+        # FAILs y, sin el guard, 'set -e' abortaria el bootstrap ACA mismo,
+        # sin mostrar los fallos ni el resumen final.
+        TEST_EXIT=0
+        _test_out="$(bash "$TEST_SCRIPT" 2>&1)" || TEST_EXIT=$?
         printf '%s\n' "$_test_out" >> "$LOG_FILE" 2>/dev/null || true
         _p="$(printf '%s\n' "$_test_out" | grep -oE 'PASS: *[0-9]+' | grep -oE '[0-9]+' | head -1)"
         _f="$(printf '%s\n' "$_test_out" | grep -oE 'FAIL: *[0-9]+' | grep -oE '[0-9]+' | head -1)"

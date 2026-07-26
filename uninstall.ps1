@@ -39,6 +39,10 @@ $DOTFILES_TARGETS = @(
     "$HOME\.editorconfig"
     "$HOME\.claude\settings.json"
     "$HOME\.claude\settings.local.json"
+    "$HOME\.claude\CLAUDE.md"
+    "$env:APPDATA\yazi\config\yazi.toml"
+    "$env:LOCALAPPDATA\nvim"
+    "$HOME\.local\bin\lazyssh.exe"
 )
 
 # Paquetes winget instalados por el bootstrap (Id winget). Solo con -RemovePackages.
@@ -53,6 +57,11 @@ $WINGET_PACKAGES = @(
     @{ Id='GLab.GLab';               Name='GitLab CLI (glab)' }
     @{ Id='FiloSottile.age';         Name='age' }
     @{ Id='SST.opencode';            Name='opencode' }
+    @{ Id='sxyazi.yazi';             Name='yazi' }
+    @{ Id='GitHub.cli';              Name='GitHub CLI (gh)' }
+    @{ Id='Amazon.AWSCLI';           Name='AWS CLI' }
+    @{ Id='Anthropic.ClaudeCode';    Name='Claude Code' }
+    @{ Id='OpenAI.Codex';            Name='Codex CLI' }
 )
 
 # ==============================================================================

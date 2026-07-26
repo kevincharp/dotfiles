@@ -1625,6 +1625,9 @@ if has_cmd ulauncher; then
     copy_dotfile "ulauncher/settings.json"   "$HOME/.config/ulauncher/settings.json"   "link"
     copy_dotfile "ulauncher/shortcuts.json"  "$HOME/.config/ulauncher/shortcuts.json"  "link"
     copy_dotfile "ulauncher/autostart.desktop" "$HOME/.config/autostart/ulauncher.desktop"
+    # Temas Liquid Glass vendorizados: sin este symlink, el theme-name de
+    # settings.json apunta a un tema inexistente y Ulauncher cae al default.
+    link_dir "ulauncher/user-themes" "$HOME/.config/ulauncher/user-themes"
 fi
 
 # OpenLogi (config del mouse Logitech MX) — solo si esta instalado. El config.toml

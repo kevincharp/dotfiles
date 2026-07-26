@@ -709,15 +709,24 @@ Set-Alias r  rmrf
 Set-Alias rf rmrf
 
 <#
-.SYNOPSIS rm -rf (mata procesos que usen el path antes de borrar)
+.SYNOPSIS rm -rf (mata procesos que corran DESDE el path antes de borrar)
 .EXAMPLE rmrf .\build .\dist
 #>
 function rmrf {
     param([string[]]$p)
 
     foreach ($path in $p) {
-        Get-Process | Where-Object { $_.Path -and $_.Path -like "*$path*" } |
-            Stop-Process -Force -ErrorAction SilentlyContinue | Out-Null
+        # Resolver a ruta ABSOLUTA y matar solo procesos cuyo ejecutable viva
+        # DENTRO de ese directorio. Antes se comparaba con -like "*$path*"
+        # (substring): 'rmrf build' mataba cualquier proceso del sistema con
+        # "build" en su ruta, aunque no tuviera nada que ver.
+        $full = (Resolve-Path -LiteralPath $path -ErrorAction SilentlyContinue).Path
+        if ($full) {
+            $prefix = $full.TrimEnd('\') + '\'
+            Get-Process | Where-Object {
+                $_.Path -and $_.Path.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)
+            } | Stop-Process -Force -ErrorAction SilentlyContinue | Out-Null
+        }
     }
     Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue
 }

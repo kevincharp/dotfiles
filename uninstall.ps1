@@ -40,6 +40,8 @@ $DOTFILES_TARGETS = @(
     "$HOME\.claude\settings.json"
     "$HOME\.claude\settings.local.json"
     "$HOME\.claude\CLAUDE.md"
+    "$HOME\.codex\AGENTS.md"
+    "$HOME\.config\opencode\AGENTS.md"
     "$env:APPDATA\yazi\config\yazi.toml"
     "$env:LOCALAPPDATA\nvim"
     "$HOME\.local\bin\lazyssh.exe"

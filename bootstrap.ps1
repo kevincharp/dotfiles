@@ -1152,6 +1152,32 @@ if ($SkipDotfiles) {
         }
     }
 
+    # --- Reglas globales de agentes IA: AGENTS.md para Codex/opencode ---
+    # El MISMO .claude\CLAUDE.md rige para todos los agentes: Codex y opencode
+    # leen AGENTS.md (fuente unica, paridad con bootstrap.sh). Solo si el CLI
+    # esta instalado.
+    Sub-Bar 62 "reglas de agentes IA"
+    $agentsSrc  = Join-Path $REPO_ROOT '.claude\CLAUDE.md'
+    $agentsDsts = @()
+    if (Test-CommandAvailable 'codex')    { $agentsDsts += (Join-Path $HOME '.codex\AGENTS.md') }
+    if (Test-CommandAvailable 'opencode') { $agentsDsts += (Join-Path $HOME '.config\opencode\AGENTS.md') }
+    foreach ($agDst in $agentsDsts) {
+        $agItem   = if (Test-Path $agDst) { Get-Item -LiteralPath $agDst -Force } else { $null }
+        $agIsLink = $agItem -and ($agItem.LinkType -eq 'SymbolicLink')
+        if ($agIsLink -and $agItem.Target -eq $agentsSrc) {
+            Write-Log "AGENTS.md ya symlinkeado ($agDst), saltando" 'SKIP'
+        } elseif ($DryRun) {
+            Write-Log "[DryRun] Symlink AGENTS.md → $agDst" 'SKIP'
+        } else {
+            $agDir = Split-Path $agDst
+            if (-not (Test-Path $agDir)) { New-Item -ItemType Directory -Path $agDir -Force | Out-Null }
+            Invoke-Step "Symlink AGENTS.md → $agDst" {
+                if (Test-Path $agDst) { Remove-Item -LiteralPath $agDst -Force }
+                New-Item -ItemType SymbolicLink -Path $agDst -Target $agentsSrc | Out-Null
+            }
+        }
+    }
+
     # --- Neovim: config completa versionada (nvim/) ---
     # Symlink de DIRECTORIO a %LOCALAPPDATA%\nvim (path de nvim en Windows;
     # paridad con el link_dir de bootstrap.sh). Si habia config real previa,

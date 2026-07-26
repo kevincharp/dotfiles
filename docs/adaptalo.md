@@ -153,6 +153,26 @@ bootstrap los aplica tal cual. Si preferís los tuyos:
 O directamente borrá los `.dconf` que no quieras aplicar (el bootstrap saltea
 los que no existen).
 
+## Reglas para agentes de IA
+
+`.claude/CLAUDE.md` es la **fuente única de reglas** para los agentes de IA:
+Claude Code lo lee directo y el bootstrap lo symlinkea además como `AGENTS.md`
+para Codex (`~/.codex/`) y opencode (`~/.config/opencode/`), si están
+instalados. Un solo archivo, tres CLIs.
+
+El archivo tiene dos mitades:
+
+- **Base funcional** (commits convencionales, git, proyectos nuevos, secretos,
+  verificación): está formulada contra los mecanismos del repo — `ginit`,
+  perfiles del vault, plantilla de gitignore — así que **sirve tal cual** con
+  tu propio vault y tus propios perfiles.
+- **Preferencias** (idioma de respuestas, comentarios y commits): personal —
+  editá esa sección a tu gusto.
+
+Relacionado: `ginit <perfil>` inicializa proyectos con la identidad correcta
+**y** un `.gitignore` base desde la plantilla `git/gitignore-proyecto`
+(personalizable — es un archivo más del repo).
+
 ## AWS / Bedrock (opcional)
 
 Todo el bloque de AWS SSO existe para `claude-smg` (Claude Code facturado vía

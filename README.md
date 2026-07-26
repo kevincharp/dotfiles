@@ -25,6 +25,10 @@ prompt, mismos atajos, mismas funciones en bash, zsh y PowerShell.
 - **Escritorio versionado (Fedora/GNOME)**: atajos, dock, extensiones y la
   terminal Ptyxis se guardan como volcados dconf y se restauran en una máquina
   nueva.
+- **Reglas para agentes de IA incluidas**: un único archivo de reglas
+  (commits convencionales, manejo de secretos, arranque de proyectos con
+  identidad correcta) compartido entre Claude Code, Codex y opencode vía
+  `CLAUDE.md`/`AGENTS.md` — [cómo personalizarlo](docs/adaptalo.md#reglas-para-agentes-de-ia).
 - **Seguro de usar**: backup automático de todo archivo tuyo que vaya a
   reemplazar, log completo de cada corrida, desinstalador que restaura el
   estado previo, y re-correrlo es siempre idempotente.

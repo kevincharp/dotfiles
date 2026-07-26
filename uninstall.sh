@@ -264,7 +264,9 @@ if [[ -n "$LATEST_BACKUP" && -d "$LATEST_BACKUP" ]]; then
         dest_dir="$(dirname "$dest")"
 
         mkdir -p "$dest_dir"
-        cp "$backup_file" "$dest" && ((restored_count++))
+        # OJO: contador con $((...)) y no ((x++)) — con 'set -e', ((x++)) devuelve
+        # exit 1 cuando x vale 0 y abortaria el script en el PRIMER archivo.
+        cp "$backup_file" "$dest" && restored_count=$((restored_count + 1))
     done < <(find "$LATEST_BACKUP" -type f)
 
     log "Restaurados $restored_count archivos desde backup" "OK"

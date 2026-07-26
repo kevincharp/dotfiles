@@ -47,6 +47,10 @@ $GH_USER      = 'kevincharp'
 $PUBLIC_HTTPS = "https://github.com/$GH_USER/dotfiles.git"
 $PUBLIC_SSH   = "git@github.com:$GH_USER/dotfiles.git"
 $VAULT_SSH    = "git@github.com:$GH_USER/dotfiles-vault.git"
+# Host alias del ssh/config (engancha la clave kevincharp-github con
+# IdentitiesOnly). Se usa como remote del vault tras clonar con gh, asi el
+# proximo 'git pull' usa la clave SSH sin pedir credenciales (paridad install.sh).
+$VAULT_SSH_ALIAS = "git@github.com-${GH_USER}:$GH_USER/dotfiles-vault.git"
 
 $DOTFILES_DIR = if ($env:DOTFILES_DIR) { $env:DOTFILES_DIR } else { Join-Path $HOME '.dotfiles' }
 $VAULT_DIR    = if ($env:VAULT_DIR)    { $env:VAULT_DIR }    else { Join-Path $HOME '.dotfiles-vault' }
@@ -198,7 +202,14 @@ function Invoke-CloneVault {
             if ($LASTEXITCODE -ne 0) { Write-Log 'Login con gh fallo' 'ERROR'; return $false }
         }
         gh repo clone "$GH_USER/dotfiles-vault" $VAULT_DIR
-        if ($LASTEXITCODE -eq 0) { return $true }
+        if ($LASTEXITCODE -eq 0) {
+            # gh clona via HTTPS: en la 2da corrida 'git pull' pediria credenciales
+            # (GitHub ya no acepta password). Lo dejamos en el host alias SSH para
+            # que las actualizaciones futuras usen la clave sin pedir nada. El
+            # alias existe tras aplicar el ssh/config del vault (bootstrap).
+            git -C $VAULT_DIR remote set-url origin $VAULT_SSH_ALIAS
+            return $true
+        }
         Write-Log 'Error clonando vault con gh' 'ERROR'; return $false
     }
 
@@ -215,11 +226,15 @@ $VAULT_OK = $false
 if ($SkipVault) {
     Write-Log '-SkipVault: omitiendo vault privado' 'WARN'
 } elseif (Test-Path (Join-Path $VAULT_DIR '.git')) {
+    # El vault ya esta clonado: su contenido ya esta disponible para el
+    # bootstrap, haya o no conexion. Un pull fallido NO invalida el vault —
+    # solo significa que se usa la version local (paridad con install.sh).
     Write-Log "Vault ya existe en $VAULT_DIR - actualizando" 'OK'
+    $VAULT_OK = $true
     Push-Location $VAULT_DIR
     try {
         git pull --rebase --autostash origin $BRANCH
-        if ($LASTEXITCODE -eq 0) { $VAULT_OK = $true } else { Write-Log 'No se pudo actualizar el vault' 'WARN' }
+        if ($LASTEXITCODE -ne 0) { Write-Log 'No se pudo actualizar el vault - se usa la copia local' 'WARN' }
     } finally {
         Pop-Location
     }

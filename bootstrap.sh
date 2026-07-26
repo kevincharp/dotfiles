@@ -1403,6 +1403,44 @@ copy_dotfile() {
     fi
 }
 
+# link_dir <src-relativo> <dst> — symlink de DIRECTORIO completo (copy_dotfile
+# solo maneja archivos). Idempotente: si ya apunta al repo, no hace nada. Si el
+# destino es un directorio real, se mueve entero a BACKUP_DIR antes de linkear.
+link_dir() {
+    local src="$1" dst="$2"
+    [[ "$src" == /* ]] || src="$REPO_ROOT/$src"
+
+    if [[ ! -d "$src" ]]; then
+        log "Origen no encontrado: $src" "WARN"
+        WARNINGS+=("$src no encontrado")
+        return
+    fi
+    if [[ "$DRY_RUN" == true ]]; then
+        if [[ "$_QUIET_STEPS" == 1 ]]; then
+            echo "[$(date +%H:%M:%S)][SKIP] [DryRun] Symlink dir $1 → $dst" >> "$LOG_FILE" 2>/dev/null || true
+            _QUIET_OK=$((_QUIET_OK + 1))
+        else
+            log "[DryRun] Symlink dir $1 → $dst" "SKIP"
+        fi
+        return
+    fi
+    # Ya apunta al lugar correcto: contar y seguir (al log, no a pantalla).
+    if [[ -L "$dst" && "$(readlink -f "$dst" 2>/dev/null)" == "$(readlink -f "$src")" ]]; then
+        echo "[$(date +%H:%M:%S)][SKIP] $dst ya apunta a $src" >> "$LOG_FILE" 2>/dev/null || true
+        [[ "$_QUIET_STEPS" == 1 ]] && _QUIET_OK=$((_QUIET_OK + 1))
+        return
+    fi
+    # Directorio real preexistente: moverlo entero al backup centralizado.
+    if [[ -d "$dst" && ! -L "$dst" ]]; then
+        local bak="$BACKUP_DIR/${dst#$HOME/}"
+        mkdir -p "$(dirname "$bak")"
+        run_step "Backup $dst → $bak" mv "$dst" "$bak"
+    fi
+    [[ -L "$dst" ]] && rm -f "$dst"
+    mkdir -p "$(dirname "$dst")"
+    run_step "Symlink dir $1 → $dst" ln -s "$src" "$dst"
+}
+
 # Colapsar el ruido: los symlinks/copias van al log; solo se muestra un resumen
 # (y cualquier fallo). Se desactiva antes de las claves SSH (que piden passphrase).
 _QUIET_STEPS=1; _QUIET_OK=0
@@ -1533,6 +1571,11 @@ gb_sub 60 "configs de apps"
 
 # Editorconfig
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
+
+# Neovim: la config completa (kickstart + plugins) vive versionada en nvim/.
+# Symlink de DIRECTORIO: ~/.config/nvim → <repo>/nvim, asi lazy.nvim escribe el
+# lazy-lock.json directo en el repo y cualquier ajuste se versiona al instante.
+link_dir "nvim" "$HOME/.config/nvim"
 
 # yazi (file manager TUI): config en ~/.config/yazi (en Windows va a %APPDATA%,
 # ver bootstrap.ps1). Symlink: editar en el repo se versiona al instante. Solo

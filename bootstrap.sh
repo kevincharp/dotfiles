@@ -19,7 +19,7 @@ SKIP_PACKAGES=false
 ALL_TOOLS=false
 TOOLS_ARG=""
 
-_usage="Uso: bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages] [--all-tools] [--tools=id1,id2,...] [--pace=SEG]"
+_usage="Uso: bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages] [--all-tools] [--tools=id1,id2,...] [--pace=SEG] [--fast]"
 
 # Ritmo de la barra de progreso (dwell por accion, en segundos). Se puede fijar por
 # variable de entorno BOOTSTRAP_PACE o con --pace. 0 = sin pausas (rapido, CI).
@@ -597,7 +597,6 @@ install_tool() {
             run_step "Instalar FiraCode Nerd Font" bash -c '
                 FONT_DIR="$HOME/.local/share/fonts"
                 mkdir -p "$FONT_DIR"
-                NERD_FONTS_VERSION=$(curl -s "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest" | grep -Po "\"tag_name\": \"v\K[^\"]*")
                 curl -Lo /tmp/FiraCode.zip "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip"
                 unzip -qo /tmp/FiraCode.zip -d "$FONT_DIR"
                 rm /tmp/FiraCode.zip
@@ -877,7 +876,9 @@ _select_interactive() {
             a|A)            for ((j = 0; j < n; j++)); do MARK[j]=1; done ;;
             n|N)            for ((j = 0; j < n; j++)); do MARK[j]=0; done ;;
             ''|$'\n')       break ;;
-            q|Q)            break ;;
+            q|Q)            # cancelar: salir sin marcar nada (Enter es confirmar)
+                            for ((j = 0; j < n; j++)); do MARK[j]=0; done
+                            break ;;
         esac
     done
 
@@ -1083,12 +1084,12 @@ welcome_screen() {
     local g j c line
     printf '%b' "$C_SECTION" > /dev/tty
     cat > /dev/tty <<'EOF'
-  ╭────────────────────────────────────────────────────────────╮
+  ╭──────────────────────────────────────────────────────────────╮
   │                                                              │
   │   ●  dotfiles · Setup de entorno                             │
   │      Linux · reproducible en cualquier máquina               │
   │                                                              │
-  ╰────────────────────────────────────────────────────────────╯
+  ╰──────────────────────────────────────────────────────────────╯
 EOF
     printf '%b\n' "$C_RESET" > /dev/tty
     printf '  %b%bQué hace%b\n\n' "$C_SECTION" "$C_BOLD" "$C_RESET" > /dev/tty
@@ -1333,7 +1334,6 @@ BAK_DESTINATIONS=(
 if [[ "$DRY_RUN" == true ]]; then
     log "[DryRun] Migrar backups viejos" "SKIP"
 else
-    found_old=0
     for dst in "${BAK_DESTINATIONS[@]}"; do
         migrate_old_backups "$dst"
     done
@@ -1592,12 +1592,12 @@ fi
 copy_dotfile "fontconfig/fonts.conf"  "$HOME/.config/fontconfig/fonts.conf"  "link"
 
 # Claude Code
-# settings.json va por symlink: editarlo en el repo (o cambios via /config que
-# no sean per-maquina) se versionan al instante. El modelo por defecto es sonnet;
-# los cambios de modelo se hacen en la sesion, no se persisten aca.
+# settings.json va por symlink: editarlo en el repo (o cambios via /config) se
+# versionan al instante. OJO: un '/model' en cualquier sesion tambien escribe a
+# traves del symlink y deja el repo modificado — revisar el diff antes de commitear.
 # settings.local.json NO se toca: es config por-maquina (permisos con rutas
-# absolutas), cada PC mantiene el suyo. statusline.sh tampoco se copia: el
-# settings.json lo referencia directo desde el repo (~/.dotfiles/.claude/statusline.sh).
+# absolutas), no esta trackeado y cada PC mantiene el suyo. statusline.sh tampoco
+# se copia: el settings.json lo referencia directo desde el repo.
 copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
 # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
 # que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
@@ -1834,8 +1834,10 @@ else
     fi
 
     if ! has_cmd aws; then
-        log "AWS CLI no disponible — error inesperado" "ERROR"
-        WARNINGS+=("AWS CLI deberia estar instalado pero no se encuentra")
+        # No es un error raro: 'aws' es opt-in en el selector y puede no haberse
+        # marcado. Avisar como instalarla en vez de reportar "error inesperado".
+        log "AWS CLI no instalada (no se marco 'aws' en el selector) — salteo la config SSO" "WARN"
+        WARNINGS+=("AWS CLI ausente: corre 'bash bootstrap.sh --tools=aws --with-aws' para instalarla y configurar SSO")
     elif [[ -z "$AWS_SSO_ACCOUNT_ID" || -z "$AWS_SSO_START_URL" ]]; then
         log "Faltan AWS_SSO_START_URL / AWS_SSO_ACCOUNT_ID en ~/.env — salteo preconfig SSO" "WARN"
         WARNINGS+=("AWS SSO sin preconfigurar: defini AWS_SSO_START_URL, AWS_SSO_ACCOUNT_ID (y opcional AWS_SSO_ROLE_NAME) en ~/.env")

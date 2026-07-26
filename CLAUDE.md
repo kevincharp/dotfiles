@@ -68,8 +68,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
 - `settings.json` → **symlink** (cambios se versionan al instante).
 - `statusline.sh` → **no se copia**; `settings.json` lo referencia desde el repo.
 - `settings.local.json` → **per-máquina** (permisos con rutas absolutas que
-  difieren Linux/Windows). **No editarlo para resolver conflictos**: en un rebase,
-  quedarse con la versión ya commiteada y descartar lo demás.
+  difieren Linux/Windows). **No está trackeado** (lo cubre el `.gitignore`):
+  cada PC mantiene el suyo y nunca entra en commits ni rebases.
 
 ## Emojis a color en Chrome (`fontconfig/`)
 

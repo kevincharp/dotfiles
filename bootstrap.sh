@@ -1188,8 +1188,11 @@ else
     else
         if [[ "$DRY_RUN" == false ]]; then
             # sudo/update: puede pedir contrasena y escupe su salida -> fuera de la barra.
+            # OJO: PKG_UPDATE lleva '|| true' adentro (dnf check-update sale con 100
+            # cuando HAY updates); expandirlo sin comillas pasaria '||' y 'true' como
+            # argumentos literales a dnf, no como operadores. Por eso va via bash -c.
             printf '  %sActualizando fuentes (puede pedir contraseña sudo)...%s\n' "$C_DIM" "$C_RESET"
-            $PKG_UPDATE 2>&1 | tail -1
+            bash -c "$PKG_UPDATE" 2>&1 | tail -1 || true
         fi
 
         # Dependencias base (curl/wget/unzip): varias herramientas las necesitan

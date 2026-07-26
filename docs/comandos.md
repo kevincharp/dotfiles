@@ -51,7 +51,7 @@ Requieren el [vault](adaptalo.md#el-vault) (ahí viven los nombres/emails).
 |---|---|
 | `gclone -p <perfil> -u <url> [-d dir]` | Clona y aplica la identidad del perfil (nombre, email, autocrlf, rebase) |
 | `gset-profile <perfil>` | Aplica un perfil a un repo ya existente |
-| `ginit <perfil> [path]` | `git init` + perfil |
+| `ginit <perfil> [path]` | `git init` + perfil + `.gitignore` base (plantilla `git/gitignore-proyecto`) |
 | `gremote <alias-ssh> <ns/repo> [nombre]` | Agrega/actualiza un remote usando un host alias SSH |
 
 ## SSH y vault

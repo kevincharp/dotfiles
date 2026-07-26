@@ -617,11 +617,14 @@ gset-profile() {
 }
 
 # Uso: ginit <perfil> [path]
-# Inicia un repo git nuevo y aplica el perfil de identidad indicado.
-# --- [git] ginit: git init aplicando un perfil de identidad git | uso: ginit <perfil> [path] ---
+# Inicia un repo git nuevo, aplica el perfil de identidad indicado y deja un
+# .gitignore base (plantilla git/gitignore-proyecto del repo dotfiles).
+# --- [git] ginit: git init con perfil de identidad + .gitignore base | uso: ginit <perfil> [path] ---
 ginit() {
     local perfil="$1"
-    local path="${2:-$PWD}"
+    # OJO: NO llamar 'path' a esta variable — en zsh 'path' esta ligado a $PATH
+    # y pisarlo deja al shell sin comandos (git incluido) dentro de la funcion.
+    local dir="${2:-$PWD}"
 
     if [[ -z "$perfil" ]]; then
         echo "Uso: ginit <perfil> [path]"
@@ -629,13 +632,13 @@ ginit() {
         return 1
     fi
 
-    if [[ ! -d "$path" ]]; then
-        echo "Error: $path no existe"
+    if [[ ! -d "$dir" ]]; then
+        echo "Error: $dir no existe"
         return 1
     fi
 
     (
-        cd "$path" || exit 1
+        cd "$dir" || exit 1
         if [[ ! -d .git ]]; then
             git init -b main >/dev/null
         fi
@@ -644,6 +647,14 @@ ginit() {
         git config --local --unset-all init.defaultbranch 2>/dev/null
         git config --local --unset-all core.autocrlf      2>/dev/null
         git config --local --unset-all core.editor        2>/dev/null
+        # .gitignore base desde la plantilla versionada. Solo si el repo aun no
+        # tiene uno (nunca pisar el existente).
+        local _tpl="$HOME/.dotfiles/git/gitignore-proyecto"
+        if [[ ! -f .gitignore && -f "$_tpl" ]]; then
+            cp "$_tpl" .gitignore
+            echo ".gitignore base creado (plantilla de dotfiles — suma lo de tu stack)"
+        fi
+        exit 0
     )
 }
 

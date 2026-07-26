@@ -1,0 +1,44 @@
+# ==============================================================================
+# .gitignore base — plantilla de dotfiles (git/gitignore-proyecto)
+# La deja ginit al iniciar un proyecto. Cubre lo universal; sumá lo específico
+# de tu stack (p. ej. target/, *.class, vendor/…).
+# ==============================================================================
+
+# Secretos y configuración local — NUNCA versionar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets*
+
+# Logs y temporales
+*.log
+logs/
+tmp/
+*.tmp
+
+# Builds y artefactos
+dist/
+build/
+out/
+coverage/
+
+# Caches de dependencias y herramientas
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.cache/
+
+# Ruido de SO y editores (por si un colaborador no tiene gitignore global)
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Agentes de IA — estado local por-máquina
+.claude/settings.local.json

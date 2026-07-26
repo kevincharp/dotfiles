@@ -1099,7 +1099,7 @@ function gset-profile {
 }
 
 <#
-.SYNOPSIS git init + aplicar perfil de identidad
+.SYNOPSIS git init + perfil de identidad + .gitignore base
 .EXAMPLE ginit work
 #>
 function ginit {
@@ -1121,6 +1121,13 @@ function ginit {
             git config --local --unset-all init.defaultbranch  2>$null
             git config --local --unset-all core.autocrlf       2>$null
             git config --local --unset-all core.editor         2>$null
+            # .gitignore base desde la plantilla versionada (paridad con
+            # bash/zsh). Solo si el repo aun no tiene uno (nunca pisarlo).
+            $tpl = Join-Path $HOME '.dotfiles\git\gitignore-proyecto'
+            if (-not (Test-Path (Join-Path $p '.gitignore')) -and (Test-Path $tpl)) {
+                Copy-Item -LiteralPath $tpl -Destination (Join-Path $p '.gitignore')
+                Write-Host ".gitignore base creado (plantilla de dotfiles — suma lo de tu stack)" -ForegroundColor DarkGray
+            }
         } finally {
             Pop-Location
         }

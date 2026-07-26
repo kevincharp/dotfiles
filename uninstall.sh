@@ -67,6 +67,11 @@ DOTFILES_TARGETS=(
     "$HOME/.config/ulauncher/user-themes"
     "$HOME/.config/autostart/ulauncher.desktop"
     "$HOME/.config/openlogi/config.toml"
+    "$HOME/.config/yazi/yazi.toml"
+    "$HOME/.config/nvim"
+    # Copia del vault con el token de iCloud: es un secreto, no debe quedar
+    # huerfano tras desinstalar.
+    "$HOME/.config/rclone/rclone.conf"
 )
 
 # Lista de paquetes instalados (solo si --remove-packages)
@@ -90,6 +95,10 @@ PACKAGES=(
     google-chrome-stable
     openlogi
     flameshot
+    yazi
+    remmina
+    rclone
+    lazyssh
 )
 
 # ==============================================================================
@@ -307,6 +316,13 @@ else
                     ;;
                 aws)
                     log "Saltando aws (instalador custom, desinstalar manualmente)" "SKIP"
+                    ;;
+                lazyssh)
+                    # Binario bajado del release de GitHub a ~/.local/bin (no es
+                    # paquete del gestor): se borra directo.
+                    if [[ -f "$HOME/.local/bin/lazyssh" ]]; then
+                        rm -f "$HOME/.local/bin/lazyssh" && log "Removido: lazyssh (~/.local/bin)" "OK"
+                    fi
                     ;;
                 samba)
                     # Servicio: parar y deshabilitar antes de remover el paquete.

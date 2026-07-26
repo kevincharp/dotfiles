@@ -1488,6 +1488,14 @@ function gbrowser {
 .EXAMPLE claude-smg
 #>
 function claude-smg {
+    # Guardar los valores previos para RESTAURARLOS al salir: antes se hacia
+    # Remove-Item a ciegas y un AWS_PROFILE propio del entorno quedaba borrado
+    # despues de usar claude-smg (paridad con el subshell de bash/zsh).
+    $prev = @{}
+    foreach ($n in 'CLAUDE_CODE_USE_BEDROCK','AWS_PROFILE','AWS_REGION','ANTHROPIC_MODEL','ANTHROPIC_SMALL_FAST_MODEL') {
+        $prev[$n] = [Environment]::GetEnvironmentVariable($n, 'Process')
+    }
+
     # El perfil AWS se toma de $env:AWS_SSO_PROFILE (defini en ~/.env); el mismo que
     # usa el bootstrap al escribir ~/.aws/config. Fallback a CLAUDE_SMG_AWS_PROFILE
     # (nombre viejo, compat) y luego 'default'.
@@ -1506,12 +1514,11 @@ function claude-smg {
     $env:ANTHROPIC_SMALL_FAST_MODEL = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL } else { 'us.anthropic.claude-haiku-4-5-20251001-v1:0' }
 
     $cleanup = {
-        Remove-Item Env:CLAUDE_CODE_USE_BEDROCK    -ErrorAction SilentlyContinue
-        Remove-Item Env:AWS_PROFILE                -ErrorAction SilentlyContinue
-        Remove-Item Env:AWS_REGION                 -ErrorAction SilentlyContinue
-        Remove-Item Env:ANTHROPIC_MODEL            -ErrorAction SilentlyContinue
-        Remove-Item Env:ANTHROPIC_SMALL_FAST_MODEL -ErrorAction SilentlyContinue
-    }
+        foreach ($n in $prev.Keys) {
+            if ($null -ne $prev[$n]) { Set-Item "Env:$n" $prev[$n] }
+            else { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
+        }
+    }.GetNewClosure()
 
     aws sts get-caller-identity --profile $env:AWS_PROFILE *> $null
     if ($LASTEXITCODE -ne 0) {

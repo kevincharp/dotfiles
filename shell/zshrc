@@ -841,33 +841,43 @@ _load_dotenv
 
 # --- [tools] claude-smg: lanza Claude Code con el perfil Bedrock de SMG | uso: claude-smg ---
 claude-smg() {
-    # El perfil AWS se toma de $AWS_SSO_PROFILE (defini en ~/.env); el mismo que
-    # usa el bootstrap al escribir ~/.aws/config. Fallback a CLAUDE_SMG_AWS_PROFILE
-    # (nombre viejo, compat) y luego 'default'.
-    export CLAUDE_CODE_USE_BEDROCK="1"
-    export AWS_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
-    export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
-    # Modelo Bedrock: por defecto NO se fija, para que Claude Code autodescubra los
-    # modelos de tu cuenta y los ofrezca todos en /model (elegis en caliente, como
-    # en Desktop). Solo se clava uno si defines CLAUDE_SMG_MODEL en ~/.env.
-    if [[ -n "${CLAUDE_SMG_MODEL:-}" ]]; then
-        export ANTHROPIC_MODEL="$CLAUDE_SMG_MODEL"
-    else
-        unset ANTHROPIC_MODEL  # limpia un pin heredado de una corrida previa
-    fi
-    export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
+    # Todo corre en un SUBSHELL: las variables exportadas mueren con el al salir,
+    # asi no hace falta unset y NO se pisan valores preexistentes del entorno
+    # (antes un AWS_PROFILE propio quedaba borrado despues de usar claude-smg).
+    (
+        # El perfil AWS se toma de $AWS_SSO_PROFILE (defini en ~/.env); el mismo que
+        # usa el bootstrap al escribir ~/.aws/config. Fallback a CLAUDE_SMG_AWS_PROFILE
+        # (nombre viejo, compat) y luego 'default'.
+        export CLAUDE_CODE_USE_BEDROCK="1"
+        export AWS_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
+        export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
+        # Modelo Bedrock: por defecto NO se fija, para que Claude Code autodescubra los
+        # modelos de tu cuenta y los ofrezca todos en /model (elegis en caliente, como
+        # en Desktop). Solo se clava uno si defines CLAUDE_SMG_MODEL en ~/.env.
+        if [[ -n "${CLAUDE_SMG_MODEL:-}" ]]; then
+            export ANTHROPIC_MODEL="$CLAUDE_SMG_MODEL"
+        else
+            unset ANTHROPIC_MODEL  # limpia un pin heredado del entorno
+        fi
+        export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 
-    if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then
-        echo "Sesion SSO caducada o ausente, ejecutando: aws sso login --profile $AWS_PROFILE"
-        aws sso login --profile "$AWS_PROFILE" || {
-            echo "Fallo el login SSO, abortando." >&2
-            unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION ANTHROPIC_MODEL ANTHROPIC_SMALL_FAST_MODEL
-            return 1
-        }
-    fi
+        if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then
+            echo "Sesion SSO caducada o ausente, ejecutando: aws sso login --profile $AWS_PROFILE"
+            aws sso login --profile "$AWS_PROFILE" || {
+                echo "Fallo el login SSO, abortando." >&2
+                exit 1
+            }
+            # Revalidar (paridad con profile.ps1): si el perfil esta incompleto
+            # (falta sso_account_id/sso_role_name), el login anda pero no hay
+            # credenciales y claude arrancaria roto.
+            if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then
+                echo "El login SSO funciono pero el perfil '$AWS_PROFILE' no obtiene credenciales (revisa sso_account_id / sso_role_name con: aws configure sso)." >&2
+                exit 1
+            fi
+        fi
 
-    claude "$@"
-    unset CLAUDE_CODE_USE_BEDROCK AWS_PROFILE AWS_REGION ANTHROPIC_MODEL ANTHROPIC_SMALL_FAST_MODEL
+        exec claude "$@"
+    )
 }
 
 # ==============================================================================

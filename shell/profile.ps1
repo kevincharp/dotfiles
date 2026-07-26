@@ -1294,6 +1294,8 @@ function Load-DotEnv {
                 if ($kv.Count -eq 2) {
                     $k = $kv[0].Trim()
                     $v = $kv[1].Trim().Trim('"').Trim("'")
+                    # Clave invalida (espacios, etc.): saltear (paridad con bash/zsh)
+                    if ($k -notmatch '^[A-Za-z_][A-Za-z0-9_]*$') { return }
                     $map[$k] = $v
                 }
             }

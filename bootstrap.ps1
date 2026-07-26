@@ -167,13 +167,13 @@ $DOTFILES = @(
     # (NO en ~/.config como Linux). Symlink: editar en el repo se ve al instante.
     @{ Src='yazi\yazi.toml';          Dst="$env:APPDATA\yazi\config\yazi.toml"   ; Mode='link' }
     # Claude Code (settings.json por symlink: se versiona al editar en el repo.
-    # Modelo por defecto sonnet; los cambios de modelo se hacen en sesion.
-    # settings.local.json queda copia: es per-maquina.)
+    # OJO: un /model en cualquier sesion escribe a traves del symlink y modifica
+    # el repo. settings.local.json NO se toca: es per-maquina (permisos con rutas
+    # absolutas), no esta trackeado y cada PC mantiene el suyo — paridad con Linux.
     # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
     # que sea portable en cada instalacion (paridad con bootstrap.sh).
     @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link' }
     @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link' }
-    @{ Src='.claude\settings.local.json';   Dst="$HOME\.claude\settings.local.json"   }
 )
 
 # ==============================================================================

@@ -320,9 +320,25 @@ Add-Type -Namespace Win32 -Name NativeConsole -MemberDefinition @'
 
 function Read-Console {
     # Equivalente a 'read -r input < /dev/tty': lee una linea de la consola real.
-    $fs = [System.IO.File]::Open('CONIN$', 'Open', 'Read', 'ReadWrite')
-    $reader = [System.IO.StreamReader]::new($fs)
-    try { return $reader.ReadLine() } finally { $reader.Dispose() }
+    # Nota: [System.IO.File]::Open('CONIN$') funciona en pwsh 7 (.NET moderno)
+    # pero NO en PowerShell 5.1, donde FileStream rechaza abrir dispositivos de
+    # consola. Este script solo corre en pwsh 7, asi que se usa la via directa;
+    # el fallback via CreateFile queda por robustez (y esta en install.ps1, que
+    # SI arranca bajo 5.1).
+    try {
+        $fs = [System.IO.File]::Open('CONIN$', 'Open', 'Read', 'ReadWrite')
+        $reader = [System.IO.StreamReader]::new($fs)
+        try { return $reader.ReadLine() } finally { $reader.Dispose() }
+    } catch {
+        try {
+            $h = [Win32.NativeConsole]::CreateFile('CONIN$', ([uint32]'0x80000000'), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
+            if ($h -eq [IntPtr]::Zero -or $h.ToInt64() -eq -1) { return (Read-Host) }
+            $safe = New-Object Microsoft.Win32.SafeHandles.SafeFileHandle($h, $true)
+            $fs2  = New-Object System.IO.FileStream($safe, [System.IO.FileAccess]::Read)
+            $sr   = New-Object System.IO.StreamReader($fs2)
+            try { return $sr.ReadLine() } finally { $sr.Dispose() }
+        } catch { return (Read-Host) }
+    }
 }
 
 function Write-Log {

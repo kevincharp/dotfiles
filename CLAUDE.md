@@ -22,6 +22,22 @@ están prohibidas:
   expandir sin comillas: `||` llega como argumento literal. Ejecutar con
   `bash -c "$CMD"`.
 
+## `install.ps1` debe ser ASCII puro (lo lee PowerShell 5.1)
+
+`install.ps1` es el **único** script que corre bajo la consola por defecto de
+Windows (5.1), porque su primer trabajo es cortar si no hay pwsh 7. PowerShell
+5.1 lee los `.ps1` como **ANSI (cp1252)**, no UTF-8: un `—` dentro de un string
+se decodifica como 3 bytes donde el último es `’`, que **cierra el string** y
+tira un error de parseo del archivo entero — el gate ni llega a ejecutarse.
+
+- En `install.ps1`: **nada de no-ASCII en strings** (usar `-` en vez de `—`). En
+  comentarios es inofensivo.
+- Los iconos se construyen por código (`[char]0x2713`), no como literales, y
+  caen a ASCII si no hay pwsh 7 + UTF-8.
+- Verificar el gate con `powershell -NoProfile -File install.ps1` (5.1): debe
+  imprimir el mensaje legible y salir 1. `bootstrap.ps1` no tiene la
+  restricción: solo lo invoca pwsh 7.
+
 ## Paridad obligatoria
 
 Cualquier función o alias que se toque en un shell **debe replicarse en los otros**:

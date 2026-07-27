@@ -20,7 +20,7 @@ volvé al [README](../README.md#instalación-rápida).
 
 | Requisito | Notas |
 |---|---|
-| **Windows 10/11 con winget** | winget («App Installer») viene con Windows moderno. Si no está: [aka.ms/getwinget](https://aka.ms/getwinget). |
+| **Windows 10/11** | **winget no hace falta tenerlo**: si falta (Windows LTSC/Server, imágenes corporativas sin Store, Windows Sandbox), el instalador te ofrece instalarlo bajando el paquete oficial de «App Installer». |
 | **PowerShell 7** | **No hace falta tenerlo**: la consola por defecto de Windows es 5.1, y ahí el instalador lo detecta, **te ofrece instalarlo** (`[S/n]`) y se **relanza solo** en pwsh 7 para seguir donde iba. Si decís que no, te deja los dos comandos y sale sin tocar nada. |
 | **Modo de desarrollador** | Configuración → Sistema → Para desarrolladores. Necesario para crear **symlinks sin admin** (el repo los usa para todo). El bootstrap lo detecta y avisa una vez si falta, en lugar de fallar symlink por symlink. |
 | **VSCode** ([System Installer x64](https://code.visualstudio.com/docs/?dv=win64user)) | Manual a propósito: el System Installer agrega `code` al PATH global; el de winget usa el User Installer y puede no quedar en el PATH. |
@@ -197,7 +197,9 @@ confirmación antes de tocar nada.
 | Síntoma | Causa / solución |
 |---|---|
 | *PowerShell bloquea el script* | Execution Policy: `powershell -ExecutionPolicy Bypass -Command "irm …/install.ps1 \| iex"` |
-| *«el instalador necesita PowerShell 7+»* | Estás en la consola por defecto (5.1). Respondé `S` y lo instala solo, relanzándose en pwsh 7. Solo verás un error si además falta winget (instalá [App Installer](https://aka.ms/getwinget)) o si no hay consola interactiva (CI): ahí no instala nada por su cuenta y te deja los comandos. |
+| *«el instalador necesita PowerShell 7+»* | Estás en la consola por defecto (5.1). Respondé `S` y lo instala solo, relanzándose en pwsh 7. Si además falta winget, lo ofrece instalar en la misma pregunta. Sin consola interactiva (CI) no instala nada por su cuenta y te deja los comandos. |
+| *La terminal se cierra sola al correr el one-liner* | Bug ya corregido: bajo `irm \| iex` un `exit` cerraba la sesión entera. Si te pasa, tenés una versión vieja: `git -C ~/.dotfiles pull` o volvé a correr el one-liner (que ya se re-ejecuta como archivo). |
+| *Descargas de «App Installer» bloqueadas* | Proxy corporativo: instalá winget desde la Microsoft Store a mano ([aka.ms/getwinget](https://aka.ms/getwinget)) y reintentá. |
 | *«Modo de desarrollador desactivado»* | Activalo en Configuración → Sistema → Para desarrolladores (o corré la consola como admin) y re-corré el bootstrap. Sin eso, los symlinks de configs no se crean. |
 | *«Instalacion incompleta» al final* | El bootstrap abortó por un requisito faltante; el mensaje trae el código y la ruta del log. El repo ya quedó clonado y re-correr es seguro (idempotente). |
 | *El selector no aparece y no instala nada* | No hay terminal interactiva (pipe/CI): usá `--tools=...` o `--all-tools`. |

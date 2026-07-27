@@ -38,6 +38,24 @@ tira un error de parseo del archivo entero — el gate ni llega a ejecutarse.
   imprimir el mensaje legible y salir 1. `bootstrap.ps1` no tiene la
   restricción: solo lo invoca pwsh 7.
 
+### Bajo `irm | iex`, `exit` CIERRA LA TERMINAL
+
+`iex` ejecuta el script **dentro de la sesión interactiva**, no como script
+propio: ahí `exit` no termina el script sino **la sesión**, así que la ventana
+se cierra y el usuario nunca lee el mensaje de error. Verificado: con `iex`,
+nada de lo que sigue a un `exit` se ejecuta y la consola muere; con `-File` la
+sesión sobrevive.
+
+- **`install.ps1` se re-ejecuta como archivo** al detectar que vino por `iex`
+  (sin `$PSCommandPath`): se escribe a `$env:TEMP` y se relanza con `-File`.
+  Recién ahí los `exit` son seguros.
+- La re-ejecución tiene **guarda anti-recursión** (`DOTFILES_INSTALL_REEXEC` +
+  chequeo de que el texto sea realmente este script). Sin eso, con un `iex`
+  anidado `$MyInvocation` devuelve el script **contenedor** y se relanza
+  infinitamente — pasó, cuelga la máquina y deja procesos y temporales.
+- El temporal se escribe con `-Encoding Default` (cp1252): es lo que 5.1 espera,
+  y el archivo es ASCII puro igual.
+
 ## Paridad obligatoria
 
 Cualquier función o alias que se toque en un shell **debe replicarse en los otros**:

@@ -112,6 +112,7 @@ Requieren configurar el remote una vez con `rclone config` (pide Apple ID + 2FA)
 | Comando | Qué hace |
 |---|---|
 | `dothelp [filtro]` | Esta misma ayuda, en la terminal |
+| `bash ~/.dotfiles/git-profiles.sh` | Asistente de perfiles git + vault propio (ver [adaptalo](adaptalo.md#el-vault)) — en Windows: `pwsh -File ~/.dotfiles/git-profiles.ps1` |
 | `ptyxis-save` / `ptyxis-load` | Vuelca al repo / restaura la config de la terminal Ptyxis (dconf) |
 | `gnome-save` / `gnome-load` | Ídem para GNOME (atajos, dock, extensiones) — ver [arquitectura](arquitectura.md#dconf) |
 

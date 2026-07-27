@@ -202,5 +202,6 @@ confirmación antes de tocar nada.
 | *El selector no aparece y no instala nada* | No hay terminal interactiva (pipe/CI): usá `--tools=...` o `--all-tools`. |
 | *Descargas de GitHub bloqueadas (proxy corporativo)* | Algunas deps (p.ej. previews de yazi en Windows) quedan como WARN; instalalas a mano cuando puedas. |
 | *`age` pide la passphrase varias veces* | Es por diseño: age la lee siempre de la consola, una vez por clave faltante. Normalmente falta 0-1. |
+| *La validación final muestra WARNs de "vault no cargado"* | Esperable si instalaste sin vault: esos checks solo aplican con vault. La instalación está bien; para tener vault propio, corré el [asistente](adaptalo.md#el-vault). |
 | *Prompt sin íconos / cuadrados* | La terminal no está usando una Nerd Font: seleccioná «FiraCode Nerd Font» (la instala el grupo `fonts`). |
 | *Algo quedó a medias* | Todo queda logueado en `~/.local/logs/bootstrap-<timestamp>.log`; los archivos reemplazados están en `~/.local/backups/bootstrap/<timestamp>/`. Re-correr el bootstrap es seguro (es idempotente). |

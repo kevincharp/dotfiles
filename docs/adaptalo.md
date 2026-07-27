@@ -9,8 +9,8 @@ niveles de adopción, del más liviano al más completo.
 
 ## Nivel 0 — Probarlo sin tocar nada
 
-Podés correr el instalador tal cual y elegir **«saltar»** cuando pregunte por el
-vault. Obtenés todo lo público:
+Podés correr el instalador tal cual y elegir **«Saltar»** (la opción por
+defecto) cuando pregunte por el vault. Obtenés todo lo público:
 
 - El catálogo completo de herramientas (elegís qué instalar).
 - Shells configurados (bash/zsh/PowerShell) con prompt, colores, historial
@@ -44,7 +44,7 @@ Para que el one-liner instale **tu** fork y busque **tu** vault:
 
    | Qué | Dónde | Nota |
    |---|---|---|
-   | Perfiles de identidad git | `~/repositorios/{personal,work,cei_walle}` en `bootstrap.sh` (DIRS) y el `ValidateSet` de `gclone`/`gset-profile`/`ginit` en `shell/profile.ps1` | Renombralos a tus contextos (o dejá uno solo) |
+   | Perfiles y carpetas de contexto | Los define **tu vault** (`git-identities` + `GIT_CONTEXT_DIRS`) — el [asistente](#el-vault) lo hace solo | Sin vault, el bootstrap cae a las carpetas históricas del autor |
    | Config del mouse Logitech MX | `openlogi/` + entrada `openlogi` del catálogo | Solo tiene sentido con ese hardware |
    | Dumps de GNOME | `gnome/*.dconf` | Ver la sección de GNOME abajo |
    | Tope de batería Lenovo | `battery-limit` en bashrc/zshrc | Solo hace algo en Lenovo (ideapad/ThinkBook) |
@@ -124,6 +124,13 @@ GIT_SSH_ALIASES[gitlab.com-empresa]="empresa-gitlab"
 GIT_PROFILE_REMOTES=(
     "git@github.com-tuuser:tuuser/un-repo.git|personal|GitHub personal"
 )
+
+# (Opcionales) Carpetas de contexto que crea/verifica el bootstrap bajo
+# ~/repositorios/, y mapa archivo→perfil (~/.gitconfig-<sufijo> pertenece a
+# <perfil>) para los tests. Sin definirlos, se usan los valores históricos.
+GIT_CONTEXT_DIRS=(personal trabajo)
+GIT_IDENTITY_FILES[personal]="personal"
+GIT_IDENTITY_FILES[trabajo]="work"
 ```
 
 `shell/git-identities.ps1` (PowerShell):
@@ -137,6 +144,8 @@ $GitIdentities = @{
 $GitHostAliases = @{
     'github.com-tuuser' = @{ platform='github'; base='https://api.github.com'; tokenEnv='GITHUB_TOKEN_TUUSER' }
 }
+# Espejo de las listas del .sh (mismos datos): $GitSshAliases,
+# $GitProfileRemotes, $GitContextDirs y $GitIdentityFiles.
 ```
 
 ### Cómo funciona la identidad automática

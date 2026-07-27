@@ -21,7 +21,8 @@ prompt, mismos atajos, mismas funciones en bash, zsh y PowerShell.
 - **Secretos fuera del repo**: las claves SSH viven cifradas con
   [age](https://age-encryption.org) en un segundo repo privado («vault»), y las
   identidades de git se aplican solas según el remoto (`includeIf` +
-  `hasconfig`). Este repo puede ser público porque no contiene nada sensible.
+  `hasconfig`). Este repo puede ser público porque no contiene nada sensible —
+  y si no tenés vault, **un asistente te crea el tuyo** en la primera instalación.
 - **Escritorio versionado (Fedora/GNOME)**: atajos, dock, extensiones y la
   terminal Ptyxis se guardan como volcados dconf y se restauran en una máquina
   nueva.

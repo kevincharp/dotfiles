@@ -35,8 +35,21 @@ Cualquier función o alias que se toque en un shell **debe replicarse en los otr
 - **Dos repos:** este es el **público**. Lo sensible (claves SSH, identidades git,
   tokens) vive en `dotfiles-vault` (privado), referenciado vía `$VAULT_DIR`.
 - **`bootstrap.sh`** (Linux) / **`bootstrap.ps1`** (Windows): instalan paquetes y
-  crean los symlinks. `copy_dotfile <src> <dst> [link|copy]` es la primitiva.
+  crean los symlinks. Primitivas: `copy_dotfile <src> <dst> [link|copy]` para
+  archivos y `link_dir <src> <dst>` para directorios (nvim, user-themes).
   Flags: `--dry-run`, `--skip-packages`, `--with-aws`, `--all-tools`.
+- **`git-profiles.sh` / `.ps1`**: asistente que GENERA un vault válido para
+  terceros sin vault (lo invoca install como opción del paso de vault). Testeable
+  sin tty: `GIT_PROFILES_INPUT=<archivo-de-respuestas>`.
+- **Contrato del vault** (`shell/git-identities.sh`/`.ps1`): además de nombres/
+  emails/aliases, dos variables opcionales que bootstrap y tests consumen:
+  `GIT_CONTEXT_DIRS` (carpetas bajo `~/repositorios/`; fallback
+  personal/work/cei_walle) y `GIT_IDENTITY_FILES` (mapa sufijo→perfil de los
+  `~/.gitconfig-<sufijo>`; fallback al mapeo histórico). El vault propio no las
+  define — no agregarlas ahí sin motivo.
+- **Globs de `hasconfig`** (wildmatch): `*` no cruza `/` y `**` solo es especial
+  delimitado por `/`. Para URLs scp (`user/repo`) usar `:*/*` y `:**/**` —
+  nunca `:**` pelado (no matchea).
 
 ## dconf NO es archivo (Ptyxis / GNOME)
 

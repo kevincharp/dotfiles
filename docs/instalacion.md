@@ -21,7 +21,7 @@ volvé al [README](../README.md#instalación-rápida).
 | Requisito | Notas |
 |---|---|
 | **Windows 10/11 con winget** | winget («App Installer») viene con Windows moderno. Si no está: [aka.ms/getwinget](https://aka.ms/getwinget). |
-| **PowerShell 7** | **Obligatorio y verificado al arrancar**: la consola por defecto de Windows es 5.1, y ahí el instalador corta al instante sin tocar nada, indicándote el comando para instalarlo (`winget install Microsoft.PowerShell`) y reintentar desde `pwsh`. |
+| **PowerShell 7** | **No hace falta tenerlo**: la consola por defecto de Windows es 5.1, y ahí el instalador lo detecta, **te ofrece instalarlo** (`[S/n]`) y se **relanza solo** en pwsh 7 para seguir donde iba. Si decís que no, te deja los dos comandos y sale sin tocar nada. |
 | **Modo de desarrollador** | Configuración → Sistema → Para desarrolladores. Necesario para crear **symlinks sin admin** (el repo los usa para todo). El bootstrap lo detecta y avisa una vez si falta, en lugar de fallar symlink por symlink. |
 | **VSCode** ([System Installer x64](https://code.visualstudio.com/docs/?dv=win64user)) | Manual a propósito: el System Installer agrega `code` al PATH global; el de winget usa el User Installer y puede no quedar en el PATH. |
 | **Python** ([instalador oficial amd64](https://www.python.org/downloads/windows/)) | Manual a propósito: el oficial tiene la checkbox «Add Python to PATH» (marcala); el de winget instala `py.exe` en su lugar y rompe la config de Neovim. |
@@ -197,7 +197,7 @@ confirmación antes de tocar nada.
 | Síntoma | Causa / solución |
 |---|---|
 | *PowerShell bloquea el script* | Execution Policy: `powershell -ExecutionPolicy Bypass -Command "irm …/install.ps1 \| iex"` |
-| *«Se requiere PowerShell 7+»* | Estás en la consola por defecto (5.1). `winget install Microsoft.PowerShell -e` y reintentá el one-liner desde `pwsh`. El instalador corta antes de modificar nada, así que no queda nada a medias. |
+| *«el instalador necesita PowerShell 7+»* | Estás en la consola por defecto (5.1). Respondé `S` y lo instala solo, relanzándose en pwsh 7. Solo verás un error si además falta winget (instalá [App Installer](https://aka.ms/getwinget)) o si no hay consola interactiva (CI): ahí no instala nada por su cuenta y te deja los comandos. |
 | *«Modo de desarrollador desactivado»* | Activalo en Configuración → Sistema → Para desarrolladores (o corré la consola como admin) y re-corré el bootstrap. Sin eso, los symlinks de configs no se crean. |
 | *«Instalacion incompleta» al final* | El bootstrap abortó por un requisito faltante; el mensaje trae el código y la ruta del log. El repo ya quedó clonado y re-correr es seguro (idempotente). |
 | *El selector no aparece y no instala nada* | No hay terminal interactiva (pipe/CI): usá `--tools=...` o `--all-tools`. |

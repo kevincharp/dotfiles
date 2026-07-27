@@ -57,29 +57,39 @@ $ErrorActionPreference = 'Continue'
 # se ejecuta por iex ANIDADO dentro de otro script, $MyInvocation devuelve el
 # texto del script CONTENEDOR y se re-lanzaria a si mismo para siempre.
 if (-not $PSCommandPath -and -not $env:DOTFILES_INSTALL_REEXEC) {
-    $self = $MyInvocation.MyCommand.ScriptBlock.ToString()
-    # Verificar que el texto sea REALMENTE este script y no el del contenedor:
-    # si no lo es, se sigue en linea (el 'exit' matara la sesion, pero es mejor
-    # que una recursion infinita).
+    $self = $null
+    try { $self = $MyInvocation.MyCommand.ScriptBlock.ToString() } catch {}
+    # Verificar que el texto sea REALMENTE este script y no el del contenedor
+    # (con un iex anidado $MyInvocation devuelve el script de afuera).
     if ($self -and $self -match 'GH_USER\s*=' -and $self -match 'CLONAR / ACTUALIZAR REPO PUBLICO') {
+        $reexecOk = $false
         $tmpSelf = Join-Path $env:TEMP "dotfiles-install-$PID.ps1"
-        # UTF8 sin BOM no sirve para 5.1 (lee ANSI): se escribe en Default
-        # (cp1252), que es justo como 5.1 espera leerlo. El archivo es ASCII
-        # puro por diseno (ver CLAUDE.md), asi que no hay perdida.
-        Set-Content -LiteralPath $tmpSelf -Value $self -Encoding Default
         try {
-            $exe = (Get-Process -Id $PID).Path
+            # UTF8 sin BOM no sirve para 5.1 (lee ANSI): se escribe en Default
+            # (cp1252), que es justo como 5.1 espera leerlo. El archivo es ASCII
+            # puro por diseno (ver CLAUDE.md), asi que no hay perdida.
+            Set-Content -LiteralPath $tmpSelf -Value $self -Encoding Default -ErrorAction Stop
+            $exe = $null
+            try { $exe = (Get-Process -Id $PID).Path } catch {}
             if (-not $exe) { $exe = 'powershell.exe' }
+            $env:DOTFILES_INSTALL_REEXEC = '1'
+            $reexecOk = $true
             # $LASTEXITCODE queda seteado por esta llamada: el usuario puede
             # consultarlo despues, igual que con cualquier comando.
-            $env:DOTFILES_INSTALL_REEXEC = '1'
             & $exe -NoProfile -ExecutionPolicy Bypass -File $tmpSelf
+        } catch {
+            Write-Host "  No se pudo re-ejecutar como archivo: $($_.Exception.Message)" -ForegroundColor DarkYellow
         } finally {
             Remove-Item -LiteralPath $tmpSelf -Force -ErrorAction SilentlyContinue
             Remove-Item Env:\DOTFILES_INSTALL_REEXEC -ErrorAction SilentlyContinue
         }
         # 'return' y no 'exit': aca seguimos dentro de la sesion del usuario.
-        return
+        if ($reexecOk) { return }
+        # Si la re-ejecucion fallo se sigue en linea, pero marcando que los
+        # 'exit' son peligrosos (cerrarian la terminal): ver Stop-Install.
+        $script:DOTFILES_INLINE_MODE = $true
+    } else {
+        $script:DOTFILES_INLINE_MODE = $true
     }
 }
 
@@ -138,15 +148,64 @@ function Test-CommandAvailable {
     return [bool](Get-Command $Cmd -ErrorAction SilentlyContinue)
 }
 
-function Read-ConsoleLine {
-    # Lee del teclado real (CONIN$, el equivalente a /dev/tty). Imprescindible
-    # bajo 'irm | iex': ahi stdin es el pipe y Read-Host no ve al usuario.
-    # Devuelve $null si no hay consola (CI/headless) -> el caller usa su default.
+function Stop-Install {
+    # Termina el instalador SIN cerrarle la terminal al usuario.
+    # Bajo 'irm | iex' un 'exit' pelado mata la sesion (cierra la ventana). Lo
+    # normal es que la re-ejecucion como archivo ya nos haya puesto a salvo; si
+    # no se pudo (DOTFILES_INLINE_MODE), se lanza una excepcion que corta el
+    # script y deja la consola viva.
+    param([int]$Code = 1)
+    if ($script:DOTFILES_INLINE_MODE) {
+        Write-Host ''
+        Write-Host '  (instalacion interrumpida)' -ForegroundColor DarkGray
+        throw [System.OperationCanceledException]::new('dotfiles-install-abort')
+    }
+    exit $Code
+}
+
+# Acceso a la consola fisica (CONIN$) — el equivalente a /dev/tty en Linux.
+# OJO: [System.IO.File]::Open('CONIN$') NO SIRVE. FileStream rechaza abrir
+# dispositivos de consola ("se solicito a FileStream que abriera un dispositivo
+# que no era un archivo"), asi que fallaba SIEMPRE y Read-ConsoleLine devolvia
+# $null: el instalador creia que no habia humano, se iba por la rama "sin consola"
+# y hacia exit -> bajo 'irm | iex' eso CIERRA LA TERMINAL sin dejar contestar.
+# La forma que si funciona es pedir el handle por CreateFileW y envolverlo.
+Add-Type -Namespace Win32 -Name InstallConsole -MemberDefinition @'
+    [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
+    public static extern System.IntPtr CreateFileW(
+        string lpFileName, uint dwDesiredAccess, uint dwShareMode,
+        System.IntPtr lpSecurityAttributes, uint dwCreationDisposition,
+        uint dwFlagsAndAttributes, System.IntPtr hTemplateFile);
+'@ -ErrorAction SilentlyContinue
+
+function Test-ConsolePresent {
+    # $true si hay una consola fisica adjunta (un humano), aunque stdin venga por
+    # pipe (que es el caso de 'irm | iex').
     try {
-        $fs = [System.IO.File]::Open('CONIN$', 'Open', 'Read', 'ReadWrite')
-        $reader = [System.IO.StreamReader]::new($fs)
-        try { return $reader.ReadLine() } finally { $reader.Dispose() }
-    } catch { return $null }
+        # 0x80000000 (GENERIC_READ) se castea a [uint32]: PowerShell lo toma como
+        # Int32 negativo y la llamada falla al convertir el argumento.
+        $h = [Win32.InstallConsole]::CreateFileW('CONIN$', ([uint32]'0x80000000'), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
+        return ($h -ne [IntPtr]::Zero -and $h.ToInt64() -ne -1)
+    } catch { return $false }
+}
+
+function Read-ConsoleLine {
+    # Lee una linea del teclado REAL, no de stdin. Imprescindible bajo
+    # 'irm | iex': ahi stdin es el pipe con el texto del script y Read-Host no
+    # ve al usuario. Devuelve $null solo si de verdad no hay consola (CI).
+    try {
+        $h = [Win32.InstallConsole]::CreateFileW('CONIN$', ([uint32]'0x80000000'), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
+        if ($h -eq [IntPtr]::Zero -or $h.ToInt64() -eq -1) { return $null }
+        $safe = New-Object Microsoft.Win32.SafeHandles.SafeFileHandle($h, $true)
+        $fs   = New-Object System.IO.FileStream($safe, [System.IO.FileAccess]::Read)
+        $sr   = New-Object System.IO.StreamReader($fs)
+        try { return $sr.ReadLine() } finally { $sr.Dispose() }
+    } catch {
+        # Si hay consola pero la lectura fallo, NO se puede asumir "no hay
+        # humano": se cae a Read-Host, que al menos funciona cuando el script
+        # corre como archivo (que es el caso tras la re-ejecucion).
+        try { return Read-Host } catch { return $null }
+    }
 }
 
 function Find-Pwsh7 {
@@ -295,12 +354,12 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             # Sin consola (CI/headless): no instalar por sorpresa.
             Write-Log 'Sin consola interactiva - no instalo nada por mi cuenta.' 'WARN'
             foreach ($m in $manual) { Write-Log $m 'INFO' }
-            exit 1
+            Stop-Install 1
         }
         if ($answer.Trim() -match '^[nN]') {
             Write-Log 'Entendido, no instalo nada. Cuando quieras:' 'INFO'
             foreach ($m in $manual) { Write-Log $m 'INFO' }
-            exit 1
+            Stop-Install 1
         }
 
         if ($needWinget) {
@@ -309,7 +368,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
                 Write-Log 'Opciones: instalar "App Installer" desde la Microsoft Store' 'WARN'
                 Write-Log '(https://aka.ms/getwinget), o PowerShell 7 a mano (https://aka.ms/powershell)' 'WARN'
                 Write-Log 'y volver a correr el one-liner desde pwsh.' 'WARN'
-                exit 1
+                Stop-Install 1
             }
         }
 
@@ -324,7 +383,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             Write-Log 'PowerShell 7 se instalo pero no lo encuentro en esta sesion.' 'ERROR'
             Write-Log 'Cerra y reabri la terminal, y corre el one-liner desde pwsh:' 'WARN'
             Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
-            exit 1
+            Stop-Install 1
         }
         Write-Log 'PowerShell 7 instalado' 'OK'
     } else {
@@ -346,7 +405,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
         # Este camino no lleva parametros porque el one-liner tampoco los acepta.
         & $pwshPath -NoProfile -Command $oneLiner
     }
-    exit $LASTEXITCODE
+    Stop-Install $LASTEXITCODE
 }
 
 # ==============================================================================
@@ -376,12 +435,12 @@ if (-not (Test-CommandAvailable 'git')) {
             else { Write-Log 'Entendido, no instalo nada.' 'INFO' }
             Write-Log '  Instala "App Installer" desde la Microsoft Store (https://aka.ms/getwinget)' 'INFO'
             Write-Log '  o Git a mano (https://gitforwindows.org/), y reintenta.' 'INFO'
-            exit 1
+            Stop-Install 1
         }
         if (-not (Install-Winget)) {
             Write-Log 'Sin winget no puedo instalar git. Instalalo a mano y reintenta:' 'ERROR'
             Write-Log '  https://aka.ms/getwinget  (o git: https://gitforwindows.org/)' 'INFO'
-            exit 1
+            Stop-Install 1
         }
     }
     Write-Log 'Instalando git via winget...' 'INFO'
@@ -393,7 +452,7 @@ if (-not (Test-CommandAvailable 'git')) {
     if (-not (Test-CommandAvailable 'git')) {
         Write-Log 'Git se instalo pero no quedo en el PATH de esta sesion.' 'ERROR'
         Write-Log 'Cerra y reabri la terminal, y volve a correr install.ps1.' 'WARN'
-        exit 1
+        Stop-Install 1
     }
 }
 $gitVersion = (git --version) -replace 'git version ', ''
@@ -559,7 +618,7 @@ if ($SkipVault) {
 
 if ($UpdateOnly) {
     Write-Log '-UpdateOnly: repos actualizados, no ejecuto bootstrap' 'OK'
-    exit 0
+    Stop-Install 0
 }
 
 Write-Log 'Ejecutando bootstrap...' 'SECTION'
@@ -589,7 +648,7 @@ if ($bootstrapRc -and $bootstrapRc -ne 0) {
     Write-Log "El bootstrap termino con error (codigo $bootstrapRc) - no se aplico todo." 'ERROR'
     Write-Log "El repo quedo clonado en $DOTFILES_DIR (re-correr es seguro, es idempotente)." 'INFO'
     Write-Log "Revisa el detalle en el log: $HOME\.local\logs\" 'INFO'
-    exit $bootstrapRc
+    Stop-Install $bootstrapRc
 }
 
 # ==============================================================================

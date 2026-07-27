@@ -59,6 +59,7 @@ has_cmd() {
 # Si el vault no esta, las secciones que dependen de el se saltean.
 _GI_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
 declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
+GIT_CONTEXT_DIRS=()
 [[ -f "$_GI_FILE" ]] && . "$_GI_FILE"
 VAULT_LOADED=$([[ ${#GIT_IDENTITIES_EMAIL[@]} -gt 0 ]] && echo true || echo false)
 
@@ -75,10 +76,14 @@ DIRS=(
     "$HOME/.local/logs"
     "$HOME/.cache"
     "$HOME/.ssh"
-    "$HOME/repositorios/personal"
-    "$HOME/repositorios/work"
-    "$HOME/repositorios/cei_walle"
 )
+# Carpetas de contexto: las del vault (GIT_CONTEXT_DIRS, si el asistente
+# git-profiles las definio) o las historicas (mismo criterio que bootstrap.sh).
+if [[ ${#GIT_CONTEXT_DIRS[@]} -gt 0 ]]; then
+    for _c in "${GIT_CONTEXT_DIRS[@]}"; do DIRS+=("$HOME/repositorios/$_c"); done
+else
+    DIRS+=("$HOME/repositorios/personal" "$HOME/repositorios/work" "$HOME/repositorios/cei_walle")
+fi
 
 for dir in "${DIRS[@]}"; do
     if [[ -d "$dir" ]]; then

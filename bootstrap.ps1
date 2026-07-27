@@ -55,10 +55,18 @@ $DIRS = @(
     "$HOME\.local\logs"
     "$HOME\.cache"
     "$HOME\.ssh"
-    "$HOME\repositorios\personal"
-    "$HOME\repositorios\work"
-    "$HOME\repositorios\cei_walle"
 )
+# Carpetas de contexto de repos: si el vault define $GitContextDirs en
+# git-identities.ps1 (lo escribe el asistente git-profiles), se usan esas;
+# si no, las historicas (mismo criterio que bootstrap.sh).
+$ctxDirs = @('personal', 'work', 'cei_walle')
+$giVault = Join-Path $VAULT_DIR 'shell\git-identities.ps1'
+if (Test-Path $giVault) {
+    $GitContextDirs = $null
+    . $giVault
+    if ($GitContextDirs) { $ctxDirs = @($GitContextDirs) }
+}
+foreach ($c in $ctxDirs) { $DIRS += (Join-Path $HOME "repositorios\$c") }
 
 # Paquetes winget — catalogo enriquecido (espejo del TOOLS_CATALOG de Linux)
 # Formato: @{ Id='...'; Name='...'; Optional=$false; Key='...'; Group='...' }

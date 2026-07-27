@@ -59,9 +59,16 @@ has_cmd() {
 # Si el vault no esta, las secciones que dependen de el se saltean.
 _GI_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
 declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
+# OJO: inicializado con =() — declarado sin asignar, ${#...[@]} rompe con set -u.
+declare -gA GIT_IDENTITY_FILES=()
 GIT_CONTEXT_DIRS=()
 [[ -f "$_GI_FILE" ]] && . "$_GI_FILE"
 VAULT_LOADED=$([[ ${#GIT_IDENTITIES_EMAIL[@]} -gt 0 ]] && echo true || echo false)
+# Mapa archivo→perfil (~/.gitconfig-<sufijo> pertenece a <perfil>). Si el vault
+# no lo define (vaults previos al asistente), fallback al mapeo historico.
+if [[ "$VAULT_LOADED" == true && ${#GIT_IDENTITY_FILES[@]} -eq 0 ]]; then
+    GIT_IDENTITY_FILES=([personal]=kevincharp [work]=work [cei_walle]=cei_walle)
+fi
 
 # ==============================================================================
 # 1. DIRECTORIOS REQUERIDOS
@@ -107,14 +114,15 @@ DOTFILES=(
     "$HOME/.editorconfig"
 )
 # Del vault: solo exigibles si el vault esta cargado. Sin vault (tercero que
-# instalo solo lo publico) su ausencia es esperable — WARN, no FAIL.
+# instalo solo lo publico) su ausencia es esperable — WARN, no FAIL. Los
+# ~/.gitconfig-<sufijo> salen del mapa GIT_IDENTITY_FILES (no hardcodeados).
 VAULT_DOTFILES=(
     "$HOME/.gitconfig"
-    "$HOME/.gitconfig-personal"
-    "$HOME/.gitconfig-work"
-    "$HOME/.gitconfig-cei_walle"
     "$HOME/.ssh/config"
 )
+for _sfx in "${!GIT_IDENTITY_FILES[@]}"; do
+    VAULT_DOTFILES+=("$HOME/.gitconfig-$_sfx")
+done
 
 for f in "${DOTFILES[@]}"; do
     if [[ -f "$f" && -s "$f" ]]; then
@@ -288,21 +296,17 @@ fi
 
 section "8. Identity configs — user.name y user.email"
 
-# Valores esperados desde el vault (cargado al inicio del script).
+# Valores esperados desde el vault (cargado al inicio del script). Los archivos
+# y su perfil salen del mapa GIT_IDENTITY_FILES (no hardcodeados).
 if [[ "$VAULT_LOADED" != true ]]; then
     test_warn "Identity configs" "vault no cargado ($_GI_FILE) — saltando"
 else
-declare -A ID_NAME=(
-    ["$HOME/.gitconfig-personal"]="${GIT_IDENTITIES_NAME[kevincharp]}"
-    ["$HOME/.gitconfig-work"]="${GIT_IDENTITIES_NAME[work]}"
-    ["$HOME/.gitconfig-cei_walle"]="${GIT_IDENTITIES_NAME[cei_walle]}"
-)
-
-declare -A ID_EMAIL=(
-    ["$HOME/.gitconfig-personal"]="${GIT_IDENTITIES_EMAIL[kevincharp]}"
-    ["$HOME/.gitconfig-work"]="${GIT_IDENTITIES_EMAIL[work]}"
-    ["$HOME/.gitconfig-cei_walle"]="${GIT_IDENTITIES_EMAIL[cei_walle]}"
-)
+declare -A ID_NAME=() ID_EMAIL=()
+for _sfx in "${!GIT_IDENTITY_FILES[@]}"; do
+    _prof="${GIT_IDENTITY_FILES[$_sfx]}"
+    ID_NAME["$HOME/.gitconfig-$_sfx"]="${GIT_IDENTITIES_NAME[$_prof]:-}"
+    ID_EMAIL["$HOME/.gitconfig-$_sfx"]="${GIT_IDENTITIES_EMAIL[$_prof]:-}"
+done
 
 for cfg in "${!ID_NAME[@]}"; do
     label="$(basename "$cfg")"

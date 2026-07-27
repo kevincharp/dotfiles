@@ -1001,7 +1001,6 @@ function gclone {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory=$true)]
-        [ValidateSet("cei_walle","work","kevincharp","kevincharp-gl")]
         [string]$perfil,
         [Parameter(Mandatory=$true)]
         [string]$remoteUrl,
@@ -1066,7 +1065,7 @@ function gclone {
 function gset-profile {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory)][ValidateSet('cei_walle','work','kevincharp','kevincharp-gl')] [string]$Perfil,
+        [Parameter(Mandatory)][string]$Perfil,
         [string]$Path = (Get-Location),
         [switch]$Sign,
         [switch]$SetSsh
@@ -1105,7 +1104,7 @@ function gset-profile {
 function ginit {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory)][ValidateSet('cei_walle','work','kevincharp','kevincharp-gl')] [string]$Perfil,
+        [Parameter(Mandatory)][string]$Perfil,
         [string]$Path = (Get-Location),
         [switch]$Sign,
         [switch]$SetSsh

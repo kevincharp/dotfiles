@@ -538,7 +538,7 @@ gclone() {
             -d|--dir)     target_dir="$2"; shift 2 ;;
             *)
                 echo "Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]"
-                echo "Perfiles: cei_walle, work, kevincharp, kevincharp-gl"
+                echo "Perfiles: ${(k)GIT_IDENTITIES_EMAIL:-(vault no cargado)}"
                 return 1
                 ;;
         esac
@@ -598,7 +598,7 @@ gset-profile() {
     local perfil="$1"
     if [[ -z "$perfil" ]]; then
         echo "Uso: gset-profile <perfil>"
-        echo "Perfiles: cei_walle, work, kevincharp, kevincharp-gl"
+        echo "Perfiles: ${(k)GIT_IDENTITIES_EMAIL:-(vault no cargado)}"
         return 1
     fi
 
@@ -628,7 +628,7 @@ ginit() {
 
     if [[ -z "$perfil" ]]; then
         echo "Uso: ginit <perfil> [path]"
-        echo "Perfiles: cei_walle, work, kevincharp, kevincharp-gl"
+        echo "Perfiles: ${(k)GIT_IDENTITIES_EMAIL:-(vault no cargado)}"
         return 1
     fi
 

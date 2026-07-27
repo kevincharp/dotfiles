@@ -384,6 +384,21 @@ function Test-CommandAvailable {
     return [bool](Get-Command $Cmd -ErrorAction SilentlyContinue)
 }
 
+function Test-DeveloperMode {
+    # $true si se pueden crear symlinks sin admin: Modo de desarrollador activado
+    # (flag AllowDevelopmentWithoutDevLicense) o proceso ya elevado.
+    try {
+        $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+        if (([Security.Principal.WindowsPrincipal]$id).IsInRole(
+                [Security.Principal.WindowsBuiltInRole]::Administrator)) { return $true }
+    } catch {}
+    try {
+        $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+        $val = Get-ItemPropertyValue -Path $key -Name 'AllowDevelopmentWithoutDevLicense' -ErrorAction Stop
+        return ($val -eq 1)
+    } catch { return $false }
+}
+
 function Install-WingetPackage {
     param(
         [string]$Id,
@@ -757,8 +772,21 @@ if (-not (Test-WingetAvailable)) {
     Write-Log "winget no está disponible. Instalalo desde: https://aka.ms/getwinget" 'ERROR'
     exit 1
 }
-Sub-Bar 100 "winget disponible"
+Sub-Bar 80 "winget disponible"
 Write-Log "winget disponible" 'OK'
+
+# Modo de desarrollador: sin el, crear symlinks requiere admin y CADA symlink
+# de configs falla por separado (una docena de ERRORs en el resumen, con la causa
+# real invisible). Se avisa una sola vez y claro, antes de intentarlo.
+if (-not (Test-DeveloperMode)) {
+    Write-Log "Modo de desarrollador desactivado — los symlinks de configs van a fallar" 'WARN'
+    Write-Log "  Activalo en: Configuración → Sistema → Para desarrolladores → Modo de desarrollador" 'WARN'
+    Write-Log "  (o corré esta consola como administrador). Despues re-corré el bootstrap." 'WARN'
+    $WARNINGS.Add("Modo de desarrollador desactivado: los symlinks pueden no crearse")
+} else {
+    Write-Log "Modo de desarrollador activado (symlinks sin admin)" 'OK'
+}
+Sub-Bar 100 "requisitos verificados"
 
 # ==============================================================================
 # 2. INSTALAR PAQUETES WINGET

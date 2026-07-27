@@ -14,7 +14,9 @@ bootstrap por dentro, contribuir, o copiarte ideas para tus propios dotfiles.
 
 La regla es simple: **nada sensible en el repo público, nunca**. El bootstrap
 combina ambos y funciona igual si el vault no está (saltea esos pasos con un
-aviso). Detalle de la estructura del vault: [Adaptalo](adaptalo.md#el-vault).
+aviso). Quien no tiene vault puede generarse uno con el **asistente**
+(`git-profiles.sh`/`.ps1`), que produce exactamente la estructura esperada.
+Detalle: [Adaptalo](adaptalo.md#el-vault).
 
 ## Symlink vs copia
 
@@ -115,6 +117,7 @@ mapa:
 .dotfiles/
 ├── install.sh / install.ps1      # Instalador interactivo (público + vault)
 ├── bootstrap.sh / bootstrap.ps1  # Setup: paquetes + symlinks + dconf
+├── git-profiles.sh / .ps1        # Asistente de perfiles git + vault propio
 ├── uninstall.sh / uninstall.ps1  # Desinstalador (restaura backups)
 ├── update.sh                     # Atajo: pull de repos + re-bootstrap
 ├── test-bootstrap.sh / .ps1      # Validación post-install + paridad de shells
@@ -123,7 +126,10 @@ mapa:
 ├── terminal/                     # Windows Terminal (symlink) · Ptyxis (dconf)
 ├── gnome/*.dconf                 # Atajos, dock, extensiones (dumps dconf)
 ├── ulauncher/                    # Launcher + temas Liquid Glass (Linux)
-├── yazi/ · fontconfig/ · openlogi/ · git/   # Configs puntuales
-├── .claude/                      # Config de Claude Code (settings, statusline)
+├── git/                          # gitignore global + plantilla para proyectos (ginit)
+├── yazi/ · fontconfig/ · openlogi/          # Configs puntuales
+├── .claude/                      # Config de Claude Code + reglas de agentes IA
+│                                 #   (CLAUDE.md → symlink también como AGENTS.md
+│                                 #    de Codex y opencode)
 └── docs/                         # Esta documentación
 ```

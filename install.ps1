@@ -40,6 +40,50 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
 # ==============================================================================
+# RE-EJECUCION COMO ARCHIVO (imprescindible bajo 'irm | iex')
+# ------------------------------------------------------------------------------
+# Bajo 'irm ... | iex' el script corre DENTRO de la sesion interactiva, no como
+# script propio. Ahi 'exit' no termina el script: termina LA SESION, o sea que
+# CIERRA LA VENTANA DE LA TERMINAL — el usuario ni llega a leer el mensaje de
+# error (verificado: con iex, todo lo que sigue a un 'exit' no se ejecuta y la
+# consola muere; con -File la sesion sobrevive).
+#
+# Solucion: si venimos por iex (no hay $PSCommandPath), nos escribimos a un
+# archivo temporal y nos re-ejecutamos con -File en el MISMO PowerShell. Ahi
+# 'exit' es seguro y todos los mensajes se leen. Se conserva el exit code.
+# ==============================================================================
+
+# DOTFILES_INSTALL_REEXEC es la guarda anti-recursion. Sin ella, si este script
+# se ejecuta por iex ANIDADO dentro de otro script, $MyInvocation devuelve el
+# texto del script CONTENEDOR y se re-lanzaria a si mismo para siempre.
+if (-not $PSCommandPath -and -not $env:DOTFILES_INSTALL_REEXEC) {
+    $self = $MyInvocation.MyCommand.ScriptBlock.ToString()
+    # Verificar que el texto sea REALMENTE este script y no el del contenedor:
+    # si no lo es, se sigue en linea (el 'exit' matara la sesion, pero es mejor
+    # que una recursion infinita).
+    if ($self -and $self -match 'GH_USER\s*=' -and $self -match 'CLONAR / ACTUALIZAR REPO PUBLICO') {
+        $tmpSelf = Join-Path $env:TEMP "dotfiles-install-$PID.ps1"
+        # UTF8 sin BOM no sirve para 5.1 (lee ANSI): se escribe en Default
+        # (cp1252), que es justo como 5.1 espera leerlo. El archivo es ASCII
+        # puro por diseno (ver CLAUDE.md), asi que no hay perdida.
+        Set-Content -LiteralPath $tmpSelf -Value $self -Encoding Default
+        try {
+            $exe = (Get-Process -Id $PID).Path
+            if (-not $exe) { $exe = 'powershell.exe' }
+            # $LASTEXITCODE queda seteado por esta llamada: el usuario puede
+            # consultarlo despues, igual que con cualquier comando.
+            $env:DOTFILES_INSTALL_REEXEC = '1'
+            & $exe -NoProfile -ExecutionPolicy Bypass -File $tmpSelf
+        } finally {
+            Remove-Item -LiteralPath $tmpSelf -Force -ErrorAction SilentlyContinue
+            Remove-Item Env:\DOTFILES_INSTALL_REEXEC -ErrorAction SilentlyContinue
+        }
+        # 'return' y no 'exit': aca seguimos dentro de la sesion del usuario.
+        return
+    }
+}
+
+# ==============================================================================
 # CONFIGURACION
 # ==============================================================================
 
@@ -120,6 +164,84 @@ function Find-Pwsh7 {
     return $null
 }
 
+function Install-Winget {
+    # Instala winget (App Installer) descargando el paquete oficial de GitHub.
+    # No se puede asumir que winget exista: falta en Windows LTSC/Server, en
+    # imagenes corporativas sin Microsoft Store y en Windows Sandbox. Es la
+    # unica dependencia sin la cual no podemos instalar NADA mas.
+    # Devuelve $true si al terminar winget esta disponible.
+    #
+    # Ojo: se instala con Add-AppxPackage (por usuario), no requiere admin.
+    # VCLibs y UI.Xaml son dependencias del .msixbundle; si ya estan, el
+    # Add-AppxPackage falla con "ya instalado" y se ignora.
+    Write-Log 'Instalando winget (App Installer)...' 'INFO'
+
+    # PowerShell 5.1 negocia TLS 1.0 por defecto y GitHub/aka.ms lo rechazan.
+    try {
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    } catch {}
+
+    $tmp = Join-Path $env:TEMP "winget-setup-$PID"
+    New-Item -ItemType Directory -Path $tmp -Force -ErrorAction SilentlyContinue | Out-Null
+
+    # El orden importa: las dependencias van antes del bundle.
+    $pkgs = @(
+        @{ Name = 'VCLibs';  File = 'VCLibs.appx'
+           Url  = 'https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx'; Required = $false }
+        @{ Name = 'UI.Xaml'; File = 'UIXaml.appx'
+           Url  = 'https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx'; Required = $false }
+        @{ Name = 'App Installer (winget)'; File = 'winget.msixbundle'
+           Url  = 'https://aka.ms/getwinget'; Required = $true }
+    )
+
+    foreach ($p in $pkgs) {
+        $out = Join-Path $tmp $p.File
+        try {
+            # -UseBasicParsing: 5.1 sin IE configurado falla sin esto.
+            Invoke-WebRequest -Uri $p.Url -OutFile $out -UseBasicParsing -ErrorAction Stop
+        } catch {
+            if ($p.Required) {
+                Write-Log "No se pudo descargar $($p.Name): $($_.Exception.Message)" 'ERROR'
+                Write-Log 'Si es un error de certificado, puede ser un proxy corporativo.' 'INFO'
+                return $false
+            }
+            Write-Log "No se pudo bajar $($p.Name) (dependencia opcional, sigo)" 'WARN'
+            continue
+        }
+        try {
+            Add-AppxPackage -Path $out -ErrorAction Stop
+        } catch {
+            # Si ya estaba instalada (caso comun) no es un problema.
+            if ($p.Required) {
+                Write-Log "No se pudo instalar $($p.Name): $($_.Exception.Message)" 'WARN'
+            }
+        }
+    }
+
+    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+
+    # Refrescar el PATH: winget queda en WindowsApps, que esta en el PATH de
+    # usuario pero esta sesion no lo releyo.
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+                [Environment]::GetEnvironmentVariable('Path', 'User')
+
+    if (Test-CommandAvailable 'winget') {
+        Write-Log 'winget instalado' 'OK'
+        return $true
+    }
+
+    # Recien instalado por Appx, a veces no aparece como comando hasta reabrir
+    # la consola: se busca el ejecutable directo antes de darlo por perdido.
+    $appx = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
+    if (Test-Path $appx) {
+        Write-Log 'winget instalado (hace falta reabrir la terminal para usarlo)' 'WARN'
+        return $false
+    }
+    Write-Log 'winget no quedo disponible tras la instalacion' 'ERROR'
+    return $false
+}
+
 # ==============================================================================
 # 0. VERIFICAR (Y OFRECER INSTALAR) POWERSHELL 7 — antes de tocar NADA
 # ------------------------------------------------------------------------------
@@ -143,34 +265,52 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     $pwshPath = Find-Pwsh7
 
     if (-not $pwshPath) {
-        # No esta: ofrecer instalarlo.
-        if (-not (Test-CommandAvailable 'winget')) {
-            Write-Log 'Tampoco esta winget, que es lo que usariamos para instalarlo.' 'ERROR'
-            Write-Log 'Instala "App Installer" desde la Microsoft Store (https://aka.ms/getwinget)' 'WARN'
-            Write-Log 'o PowerShell 7 a mano (https://aka.ms/powershell), y reintenta.' 'WARN'
-            Write-Log 'No se modifico nada en el sistema.' 'INFO'
-            exit 1
-        }
+        # No esta: ofrecer instalarlo. Si winget tampoco esta, se ofrece instalar
+        # LOS DOS en el mismo paso (una sola pregunta, no dos seguidas).
+        $needWinget = -not (Test-CommandAvailable 'winget')
 
         Write-Log 'PowerShell 7 es parte del entorno que instala este repo (grupo core).' 'INFO'
+        if ($needWinget) {
+            Write-Log 'Tampoco esta winget (App Installer), que es el gestor de paquetes' 'WARN'
+            Write-Log 'de Windows y lo que este instalador usa para todo lo demas.' 'WARN'
+        }
         Write-Host ''
         # Sin '¿' a proposito: este texto lo imprime PowerShell 5.1, que lee el
         # archivo como cp1252 y lo mostraria como mojibake (ver CLAUDE.md).
-        Write-Host '  Lo instalo ahora y sigo con la instalacion? [S/n]: ' -NoNewline
+        $prompt = if ($needWinget) {
+            '  Instalo winget + PowerShell 7 y sigo con la instalacion? [S/n]: '
+        } else {
+            '  Lo instalo ahora y sigo con la instalacion? [S/n]: '
+        }
+        Write-Host $prompt -NoNewline
         $answer = Read-ConsoleLine
+
+        # Comandos que se sugieren si el usuario dice no (o no hay consola).
+        $manual = @()
+        if ($needWinget) { $manual += '  Instala "App Installer" desde la Microsoft Store (https://aka.ms/getwinget)' }
+        $manual += '  winget install --id Microsoft.PowerShell -e'
+        $manual += "  pwsh -NoProfile -Command `"$oneLiner`""
 
         if ($null -eq $answer) {
             # Sin consola (CI/headless): no instalar por sorpresa.
             Write-Log 'Sin consola interactiva - no instalo nada por mi cuenta.' 'WARN'
-            Write-Log '  winget install --id Microsoft.PowerShell -e' 'INFO'
-            Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+            foreach ($m in $manual) { Write-Log $m 'INFO' }
             exit 1
         }
         if ($answer.Trim() -match '^[nN]') {
             Write-Log 'Entendido, no instalo nada. Cuando quieras:' 'INFO'
-            Write-Log '  winget install --id Microsoft.PowerShell -e' 'INFO'
-            Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+            foreach ($m in $manual) { Write-Log $m 'INFO' }
             exit 1
+        }
+
+        if ($needWinget) {
+            if (-not (Install-Winget)) {
+                Write-Log 'Sin winget no puedo seguir instalando.' 'ERROR'
+                Write-Log 'Opciones: instalar "App Installer" desde la Microsoft Store' 'WARN'
+                Write-Log '(https://aka.ms/getwinget), o PowerShell 7 a mano (https://aka.ms/powershell)' 'WARN'
+                Write-Log 'y volver a correr el one-liner desde pwsh.' 'WARN'
+                exit 1
+            }
         }
 
         Write-Log 'Instalando PowerShell 7 via winget...' 'INFO'
@@ -215,18 +355,36 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 # Git hace falta ANTES que nada: este script clona el repo con 'git clone'. Como
 # ya no lo instalamos manual (las opciones del wizard las cubre el .gitconfig del
 # vault: core.editor=nvim, core.autocrlf=input), lo auto-instalamos por winget si
-# falta. winget viene con Windows moderno, asi no queda ningun prerequisito manual.
+# falta — y si winget tampoco esta, se ofrece instalarlo (no se puede asumir:
+# falta en LTSC/Server, imagenes corporativas sin Store y Windows Sandbox).
+#
+# Este bloque tambien cubre a quien YA tenia pwsh 7 pero no winget: en ese caso
+# el gate de arriba no corrio y esta es la primera vez que se necesita winget.
 # ==============================================================================
 
 Write-Log 'Verificando requisitos...' 'SECTION'
 
 if (-not (Test-CommandAvailable 'git')) {
-    Write-Log 'Git no esta instalado - instalando via winget...' 'WARN'
+    Write-Log 'Git no esta instalado.' 'WARN'
     if (-not (Test-CommandAvailable 'winget')) {
-        Write-Log 'winget tampoco esta disponible. Instala "App Installer" desde' 'ERROR'
-        Write-Log 'la Microsoft Store (o Git manual: https://gitforwindows.org/) y reintenta.' 'ERROR'
-        exit 1
+        Write-Log 'Tampoco esta winget, que es lo que se usa para instalarlo.' 'WARN'
+        Write-Host ''
+        Write-Host '  Instalo winget (App Installer) y sigo? [S/n]: ' -NoNewline
+        $ans = Read-ConsoleLine
+        if ($null -eq $ans -or $ans.Trim() -match '^[nN]') {
+            if ($null -eq $ans) { Write-Log 'Sin consola interactiva - no instalo nada por mi cuenta.' 'WARN' }
+            else { Write-Log 'Entendido, no instalo nada.' 'INFO' }
+            Write-Log '  Instala "App Installer" desde la Microsoft Store (https://aka.ms/getwinget)' 'INFO'
+            Write-Log '  o Git a mano (https://gitforwindows.org/), y reintenta.' 'INFO'
+            exit 1
+        }
+        if (-not (Install-Winget)) {
+            Write-Log 'Sin winget no puedo instalar git. Instalalo a mano y reintenta:' 'ERROR'
+            Write-Log '  https://aka.ms/getwinget  (o git: https://gitforwindows.org/)' 'INFO'
+            exit 1
+        }
     }
+    Write-Log 'Instalando git via winget...' 'INFO'
     winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements
     # Refrescar el PATH del proceso actual: winget deja git en Program Files pero
     # esta sesion no lo ve hasta recargar el PATH de Machine + User.

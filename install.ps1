@@ -94,33 +94,119 @@ function Test-CommandAvailable {
     return [bool](Get-Command $Cmd -ErrorAction SilentlyContinue)
 }
 
+function Read-ConsoleLine {
+    # Lee del teclado real (CONIN$, el equivalente a /dev/tty). Imprescindible
+    # bajo 'irm | iex': ahi stdin es el pipe y Read-Host no ve al usuario.
+    # Devuelve $null si no hay consola (CI/headless) -> el caller usa su default.
+    try {
+        $fs = [System.IO.File]::Open('CONIN$', 'Open', 'Read', 'ReadWrite')
+        $reader = [System.IO.StreamReader]::new($fs)
+        try { return $reader.ReadLine() } finally { $reader.Dispose() }
+    } catch { return $null }
+}
+
+function Find-Pwsh7 {
+    # Ubica pwsh.exe. Tras instalarlo por winget NO esta en el PATH de esta
+    # sesion, asi que se buscan tambien las rutas fijas del instalador.
+    $cmd = Get-Command pwsh -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    foreach ($p in @(
+        "$env:ProgramFiles\PowerShell\7\pwsh.exe",
+        "${env:ProgramFiles(x86)}\PowerShell\7\pwsh.exe",
+        "$env:LOCALAPPDATA\Microsoft\WindowsApps\pwsh.exe"
+    )) {
+        if ($p -and (Test-Path $p)) { return $p }
+    }
+    return $null
+}
+
 # ==============================================================================
-# 0. VERIFICAR POWERSHELL 7 (antes de tocar NADA)
+# 0. VERIFICAR (Y OFRECER INSTALAR) POWERSHELL 7 — antes de tocar NADA
 # ------------------------------------------------------------------------------
 # La consola por defecto de Windows es PowerShell 5.1, asi que el one-liner
 # 'irm | iex' arranca ahi por default. El bootstrap exige pwsh 7 y aborta — si
 # ese chequeo llegara recien al final, el usuario ya habria instalado git,
-# clonado el repo y contestado dos preguntas para nada. Se corta aca, antes de
-# modificar el sistema.
+# clonado el repo y contestado dos preguntas para nada.
+#
+# En vez de mandarlo a copiar comandos: se le ofrece instalar pwsh 7 y el script
+# se RELANZA solo en pwsh, asi el one-liner sigue siendo un unico paso. pwsh 7
+# ademas ya esta en el catalogo del bootstrap (grupo core), asi que instalarlo
+# aca no agrega nada que no fuera a instalarse igual.
 # ==============================================================================
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     $oneLiner = 'irm https://raw.githubusercontent.com/' + $GH_USER + '/dotfiles/main/install.ps1 | iex'
+
     Write-Log 'Requisitos' 'SECTION'
-    Write-Log "Estas en PowerShell $($PSVersionTable.PSVersion) - el instalador necesita PowerShell 7+." 'ERROR'
-    if (Test-CommandAvailable 'pwsh') {
-        Write-Log 'pwsh 7 ya esta instalado: volve a correr el one-liner desde ahi.' 'WARN'
-        Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
-    } elseif (Test-CommandAvailable 'winget') {
-        Write-Log 'Instalalo y reintenta desde pwsh (dos comandos):' 'WARN'
-        Write-Log '  winget install --id Microsoft.PowerShell -e' 'INFO'
-        Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+    Write-Log "Estas en PowerShell $($PSVersionTable.PSVersion) - el instalador necesita PowerShell 7+." 'WARN'
+
+    $pwshPath = Find-Pwsh7
+
+    if (-not $pwshPath) {
+        # No esta: ofrecer instalarlo.
+        if (-not (Test-CommandAvailable 'winget')) {
+            Write-Log 'Tampoco esta winget, que es lo que usariamos para instalarlo.' 'ERROR'
+            Write-Log 'Instala "App Installer" desde la Microsoft Store (https://aka.ms/getwinget)' 'WARN'
+            Write-Log 'o PowerShell 7 a mano (https://aka.ms/powershell), y reintenta.' 'WARN'
+            Write-Log 'No se modifico nada en el sistema.' 'INFO'
+            exit 1
+        }
+
+        Write-Log 'PowerShell 7 es parte del entorno que instala este repo (grupo core).' 'INFO'
+        Write-Host ''
+        # Sin '¿' a proposito: este texto lo imprime PowerShell 5.1, que lee el
+        # archivo como cp1252 y lo mostraria como mojibake (ver CLAUDE.md).
+        Write-Host '  Lo instalo ahora y sigo con la instalacion? [S/n]: ' -NoNewline
+        $answer = Read-ConsoleLine
+
+        if ($null -eq $answer) {
+            # Sin consola (CI/headless): no instalar por sorpresa.
+            Write-Log 'Sin consola interactiva - no instalo nada por mi cuenta.' 'WARN'
+            Write-Log '  winget install --id Microsoft.PowerShell -e' 'INFO'
+            Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+            exit 1
+        }
+        if ($answer.Trim() -match '^[nN]') {
+            Write-Log 'Entendido, no instalo nada. Cuando quieras:' 'INFO'
+            Write-Log '  winget install --id Microsoft.PowerShell -e' 'INFO'
+            Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+            exit 1
+        }
+
+        Write-Log 'Instalando PowerShell 7 via winget...' 'INFO'
+        winget install --id Microsoft.PowerShell -e --accept-package-agreements --accept-source-agreements
+        # Refrescar el PATH del proceso: winget deja pwsh en Program Files pero
+        # esta sesion no lo ve hasta recargar el PATH de Machine + User.
+        $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+                    [Environment]::GetEnvironmentVariable('Path', 'User')
+        $pwshPath = Find-Pwsh7
+        if (-not $pwshPath) {
+            Write-Log 'PowerShell 7 se instalo pero no lo encuentro en esta sesion.' 'ERROR'
+            Write-Log 'Cerra y reabri la terminal, y corre el one-liner desde pwsh:' 'WARN'
+            Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+            exit 1
+        }
+        Write-Log 'PowerShell 7 instalado' 'OK'
     } else {
-        Write-Log 'Falta winget y pwsh: instala "App Installer" desde la Microsoft Store' 'WARN'
-        Write-Log '(https://aka.ms/getwinget) y despues PowerShell 7, y reintenta.' 'WARN'
+        Write-Log "PowerShell 7 ya esta instalado ($pwshPath)" 'OK'
     }
-    Write-Log 'No se modifico nada en el sistema.' 'INFO'
-    exit 1
+
+    # Relanzar en pwsh 7 y salir con SU codigo: el usuario ve una sola corrida.
+    Write-Log 'Continuando en PowerShell 7...' 'INFO'
+    if ($PSCommandPath) {
+        # Corriendo desde archivo: se reenvian los parametros tal como vinieron.
+        $fwd = @()
+        foreach ($kv in $PSBoundParameters.GetEnumerator()) {
+            if ($kv.Value -is [switch]) { if ($kv.Value.IsPresent) { $fwd += "-$($kv.Key)" } }
+            else { $fwd += @("-$($kv.Key)", [string]$kv.Value) }
+        }
+        & $pwshPath -NoProfile -File $PSCommandPath @fwd
+    } else {
+        # Vino por 'irm | iex' (no hay archivo): se rebaja el script en pwsh.
+        # Este camino no lleva parametros porque el one-liner tampoco los acepta.
+        & $pwshPath -NoProfile -Command $oneLiner
+    }
+    exit $LASTEXITCODE
 }
 
 # ==============================================================================

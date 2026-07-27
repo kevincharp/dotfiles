@@ -234,12 +234,20 @@ function Install-Winget {
     # VCLibs y UI.Xaml son dependencias del .msixbundle; si ya estan, el
     # Add-AppxPackage falla con "ya instalado" y se ignora.
     Write-Log 'Instalando winget (App Installer)...' 'INFO'
+    Write-Log 'Son 3 descargas (~100 MB), puede tardar un rato.' 'INFO'
 
     # PowerShell 5.1 negocia TLS 1.0 por defecto y GitHub/aka.ms lo rechazan.
     try {
         [Net.ServicePointManager]::SecurityProtocol =
             [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     } catch {}
+
+    # Silenciar las barras de progreso de Invoke-WebRequest y Add-AppxPackage:
+    # en 5.1 se dibujan sobre la pantalla y pisan el texto ya impreso (queda todo
+    # desordenado), y ademas hacen la descarga MUCHO mas lenta. Se restaura al
+    # salir de la funcion.
+    $prevProgress = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
 
     $tmp = Join-Path $env:TEMP "winget-setup-$PID"
     New-Item -ItemType Directory -Path $tmp -Force -ErrorAction SilentlyContinue | Out-Null
@@ -254,8 +262,11 @@ function Install-Winget {
            Url  = 'https://aka.ms/getwinget'; Required = $true }
     )
 
+    $n = 0
     foreach ($p in $pkgs) {
+        $n = $n + 1
         $out = Join-Path $tmp $p.File
+        Write-Log "[$n/$($pkgs.Count)] bajando $($p.Name)..." 'INFO'
         try {
             # -UseBasicParsing: 5.1 sin IE configurado falla sin esto.
             Invoke-WebRequest -Uri $p.Url -OutFile $out -UseBasicParsing -ErrorAction Stop
@@ -263,6 +274,7 @@ function Install-Winget {
             if ($p.Required) {
                 Write-Log "No se pudo descargar $($p.Name): $($_.Exception.Message)" 'ERROR'
                 Write-Log 'Si es un error de certificado, puede ser un proxy corporativo.' 'INFO'
+                $ProgressPreference = $prevProgress
                 return $false
             }
             Write-Log "No se pudo bajar $($p.Name) (dependencia opcional, sigo)" 'WARN'
@@ -270,6 +282,7 @@ function Install-Winget {
         }
         try {
             Add-AppxPackage -Path $out -ErrorAction Stop
+            Write-Log "$($p.Name) instalado" 'OK'
         } catch {
             # Si ya estaba instalada (caso comun) no es un problema.
             if ($p.Required) {
@@ -279,6 +292,7 @@ function Install-Winget {
     }
 
     Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    $ProgressPreference = $prevProgress
 
     # Refrescar el PATH: winget queda en WindowsApps, que esta en el PATH de
     # usuario pero esta sesion no lo releyo.
@@ -290,11 +304,18 @@ function Install-Winget {
         return $true
     }
 
-    # Recien instalado por Appx, a veces no aparece como comando hasta reabrir
-    # la consola: se busca el ejecutable directo antes de darlo por perdido.
-    $appx = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
-    if (Test-Path $appx) {
-        Write-Log 'winget instalado (hace falta reabrir la terminal para usarlo)' 'WARN'
+    # Recien instalado por Appx, a veces no aparece en el PATH heredado: se
+    # agrega WindowsApps a mano (ahi vive el alias de ejecucion de winget) para
+    # no obligar al usuario a reabrir la terminal.
+    $wa = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
+    if (Test-Path (Join-Path $wa 'winget.exe')) {
+        $env:Path = "$env:Path;$wa"
+        if (Test-CommandAvailable 'winget') {
+            Write-Log 'winget instalado' 'OK'
+            return $true
+        }
+        Write-Log 'winget se instalo pero no responde en esta sesion.' 'WARN'
+        Write-Log 'Cerra y reabri la terminal, y volve a correr el one-liner.' 'WARN'
         return $false
     }
     Write-Log 'winget no quedo disponible tras la instalacion' 'ERROR'

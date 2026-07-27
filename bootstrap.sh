@@ -1244,10 +1244,24 @@ DIRS=(
     "$HOME/.local/logs"
     "$HOME/.cache"
     "$HOME/.ssh"
-    "$HOME/repositorios/personal"
-    "$HOME/repositorios/work"
-    "$HOME/repositorios/cei_walle"
 )
+
+# Carpetas de contexto de repos (~/repositorios/<contexto>): si el vault define
+# GIT_CONTEXT_DIRS en git-identities.sh (lo escribe el asistente git-profiles),
+# se usan esas; si no, las historicas. Se lee en un bash aparte para no
+# contaminar el entorno del bootstrap con las variables del vault.
+_ctx_dirs=(personal work cei_walle)
+if [[ -f "$VAULT_DIR/shell/git-identities.sh" ]]; then
+    _ctx_from_vault="$(bash -c '
+        declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
+        GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
+        source "$1" >/dev/null 2>&1 || true
+        echo "${GIT_CONTEXT_DIRS[@]:-}"
+    ' _ "$VAULT_DIR/shell/git-identities.sh" 2>/dev/null)" || _ctx_from_vault=""
+    [[ -n "$_ctx_from_vault" ]] && read -ra _ctx_dirs <<< "$_ctx_from_vault"
+fi
+for _c in "${_ctx_dirs[@]}"; do DIRS+=("$HOME/repositorios/$_c"); done
+unset _c _ctx_from_vault
 
 # La barra global avanza por carpeta; abajo se ve que hace (crear/validar).
 # El "ya existe" va al log; solo se cuentan. Fallos se muestran (gb_note vía log).

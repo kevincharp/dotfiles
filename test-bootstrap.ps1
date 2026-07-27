@@ -51,8 +51,9 @@ function Test-CommandExists($Cmd) {
 }
 
 # Identidades y aliases esperados (desde el vault, misma fuente que el shell).
-$GitIdentities  = @{}
-$GitSshAliases  = @{}
+$GitIdentities   = @{}
+$GitSshAliases   = @{}
+$GitContextDirs  = @()
 $giFile = Join-Path ($env:XDG_CONFIG_HOME ?? (Join-Path $HOME '.config')) 'git-identities.ps1'
 if (Test-Path -LiteralPath $giFile) { . $giFile }
 $VaultLoaded = ($GitIdentities.Count -gt 0)
@@ -71,10 +72,12 @@ $DIRS = @(
     "$HOME\.local\logs"
     "$HOME\.cache"
     "$HOME\.ssh"
-    "$HOME\repositorios\personal"
-    "$HOME\repositorios\work"
-    "$HOME\repositorios\cei_walle"
 )
+# Carpetas de contexto: las del vault (GitContextDirs, si el asistente
+# git-profiles las definio) o las historicas (mismo criterio que bootstrap.ps1).
+$ctxDirs = if ($GitContextDirs -and @($GitContextDirs).Count -gt 0) { @($GitContextDirs) }
+           else { @('personal', 'work', 'cei_walle') }
+foreach ($c in $ctxDirs) { $DIRS += (Join-Path $HOME "repositorios\$c") }
 
 foreach ($dir in $DIRS) {
     if (Test-Path $dir) {

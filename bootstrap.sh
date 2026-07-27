@@ -1463,7 +1463,7 @@ if [[ -d "$VAULT_DIR/git" ]]; then
     copy_dotfile "$VAULT_DIR/git/config-cei_walle" "$HOME/.gitconfig-cei_walle"  "link"
 else
     log "Vault no encontrado en $VAULT_DIR — saltando git config e identidades" "WARN"
-    WARNINGS+=("~/.gitconfig e identidades no aplicados — falta el vault")
+    WARNINGS+=("~/.gitconfig e identidades no aplicados — sin vault (crear el tuyo: docs/adaptalo.md)")
 fi
 
 # Identidades para el shell bash (gclone/gset-profile) — desde el vault
@@ -1477,7 +1477,7 @@ if [[ -f "$VAULT_DIR/ssh/config" ]]; then
     run_step "Permisos ~/.ssh/config" chmod 600 "$HOME/.ssh/config"
 else
     log "Vault no encontrado — saltando ssh/config" "WARN"
-    WARNINGS+=("~/.ssh/config no aplicado — falta el vault")
+    WARNINGS+=("~/.ssh/config no aplicado — sin vault (crear el tuyo: docs/adaptalo.md)")
 fi
 
 # rclone.conf (vault privado): contiene el token de iCloud Drive.

@@ -167,11 +167,12 @@ clone_vault() {
     # Decide metodo de auth: flag, o pregunta interactiva.
     local method="$VAULT_AUTH"
     if [[ -z "$method" ]]; then
-        log "El vault privado (dotfiles-vault) contiene tus claves SSH e identidades." "INFO"
-        log "Como queres autenticarte para clonarlo?" "INFO"
-        echo "    1) gh (GitHub CLI, login por navegador)  [recomendado]"
-        echo "    2) SSH (si ya tenes una clave cargada)"
-        echo "    3) Saltar por ahora (instalo solo lo publico)"
+        log "Vault privado: un 2do repo (dotfiles-vault) con TUS claves SSH e identidades git." "INFO"
+        log "Solo aplica si ya tenes uno propio (o forkeaste con el tuyo)." "INFO"
+        echo "    1) Tengo mi vault — clonar con gh (login por navegador)"
+        echo "    2) Tengo mi vault — clonar por SSH (clave ya cargada)"
+        echo "    3) No tengo vault / saltar — instala igual todo lo publico  [default]"
+        echo "       (para crear el tuyo despues: docs/adaptalo.md)"
         local choice
         choice="$(ask 'Opcion [1/2/3]: ' '3')"
         case "$choice" in
@@ -182,7 +183,9 @@ clone_vault() {
     fi
 
     if [[ "$method" == "skip" ]]; then
-        log "Vault saltado. Lo podes aplicar luego con: bash $DOTFILES_DIR/install.sh" "WARN"
+        log "Sin vault: se instala todo lo publico igual (shells, herramientas, configs)." "INFO"
+        log "Tu git y tu SSH quedan como estan. Para crear un vault propio: docs/adaptalo.md" "INFO"
+        log "Con vault listo, aplicalo con: bash $DOTFILES_DIR/install.sh" "INFO"
         return 1
     fi
 
@@ -210,12 +213,17 @@ clone_vault() {
             ( cd "$VAULT_DIR" && git remote set-url origin "$VAULT_SSH_ALIAS" )
             return 0
         fi
-        log "Error clonando vault con gh" "ERROR"; return 1
+        log "Error clonando vault con gh" "ERROR"
+        log "  Si NO es tu vault (estas probando el repo de otra persona), es esperable:" "INFO"
+        log "  tu cuenta no tiene acceso. El resto se instala igual; ver docs/adaptalo.md" "INFO"
+        return 1
     fi
 
     if [[ "$method" == "ssh" ]]; then
         git clone "$VAULT_SSH" "$VAULT_DIR" && return 0
-        log "Error clonando vault via SSH (tenes la clave cargada?)" "ERROR"; return 1
+        log "Error clonando vault via SSH (tenes la clave cargada?)" "ERROR"
+        log "  Si NO es tu vault, es esperable. El resto se instala igual; ver docs/adaptalo.md" "INFO"
+        return 1
     fi
 }
 
@@ -269,8 +277,9 @@ log "Publico: $DOTFILES_DIR" "OK"
 if [[ "$VAULT_OK" == true ]]; then
     log "Vault:   $VAULT_DIR" "OK"
 else
-    log "Vault:   NO clonado — claves SSH e identidades git pendientes" "WARN"
-    log "Para aplicarlo luego: bash $DOTFILES_DIR/install.sh" "INFO"
+    log "Vault:   sin aplicar — tu git/SSH quedan como estaban" "WARN"
+    log "Para crear tu vault (identidades git + claves): docs/adaptalo.md" "INFO"
+    log "Con vault listo, aplicalo con: bash $DOTFILES_DIR/install.sh" "INFO"
 fi
 
 log "Proximos pasos" "SECTION"

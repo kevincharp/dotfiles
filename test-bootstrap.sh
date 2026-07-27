@@ -94,16 +94,21 @@ done
 
 section "2. Dotfiles copiados"
 
+# Publicos: siempre exigibles (los aplica el bootstrap sin depender del vault).
 DOTFILES=(
     "$HOME/.bashrc"
     "$HOME/.bash_profile"
+    "$HOME/.config/git/ignore"
+    "$HOME/.editorconfig"
+)
+# Del vault: solo exigibles si el vault esta cargado. Sin vault (tercero que
+# instalo solo lo publico) su ausencia es esperable — WARN, no FAIL.
+VAULT_DOTFILES=(
     "$HOME/.gitconfig"
     "$HOME/.gitconfig-personal"
     "$HOME/.gitconfig-work"
     "$HOME/.gitconfig-cei_walle"
-    "$HOME/.config/git/ignore"
     "$HOME/.ssh/config"
-    "$HOME/.editorconfig"
 )
 
 for f in "${DOTFILES[@]}"; do
@@ -115,6 +120,20 @@ for f in "${DOTFILES[@]}"; do
         test_fail "$(basename "$f")" "no encontrado en $f"
     fi
 done
+
+if [[ "$VAULT_LOADED" == true ]]; then
+    for f in "${VAULT_DOTFILES[@]}"; do
+        if [[ -f "$f" && -s "$f" ]]; then
+            test_ok "$(basename "$f") presente y no vacio"
+        elif [[ -f "$f" ]]; then
+            test_fail "$(basename "$f")" "existe pero esta vacio"
+        else
+            test_fail "$(basename "$f")" "no encontrado en $f"
+        fi
+    done
+else
+    test_warn "gitconfigs + ssh/config" "vault no cargado — saltando (ver docs/adaptalo.md)"
+fi
 
 # Dotfiles de zsh: solo se exigen si zsh esta instalado (es opcional por maquina).
 if has_cmd zsh; then
@@ -235,7 +254,11 @@ section "7. Git config — useConfigOnly + includeIf"
 
 GITCONFIG="$HOME/.gitconfig"
 
-if [[ -f "$GITCONFIG" ]]; then
+# La convencion useConfigOnly+includeIf viene DEL VAULT: sin vault, el
+# ~/.gitconfig (si existe) es el propio del usuario y no se le exige nada.
+if [[ "$VAULT_LOADED" != true ]]; then
+    test_warn "Git config (useConfigOnly/includeIf)" "vault no cargado — saltando"
+elif [[ -f "$GITCONFIG" ]]; then
     val=$(git config --file "$GITCONFIG" --get user.useConfigOnly 2>/dev/null)
     if [[ "$val" == "true" ]]; then
         test_ok "user.useConfigOnly = true"
@@ -243,19 +266,15 @@ if [[ -f "$GITCONFIG" ]]; then
         test_fail "user.useConfigOnly" "valor: '$val', esperado: 'true'"
     fi
 
-    if [[ "$VAULT_LOADED" != true ]]; then
-        test_warn "includeIf patterns" "vault no cargado — saltando"
-    else
-        for host_alias in "${!GIT_SSH_ALIASES[@]}"; do
-            if grep -q "git@$host_alias" "$GITCONFIG"; then
-                test_ok "includeIf para git@$host_alias presente"
-            else
-                test_fail "includeIf git@$host_alias" "no encontrado en .gitconfig"
-            fi
-        done
-    fi
+    for host_alias in "${!GIT_SSH_ALIASES[@]}"; do
+        if grep -q "git@$host_alias" "$GITCONFIG"; then
+            test_ok "includeIf para git@$host_alias presente"
+        else
+            test_fail "includeIf git@$host_alias" "no encontrado en .gitconfig"
+        fi
+    done
 else
-    test_fail ".gitconfig" "no existe"
+    test_fail ".gitconfig" "no existe (el vault esta cargado pero no se aplico)"
 fi
 
 # ==============================================================================

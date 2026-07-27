@@ -35,9 +35,11 @@ El mismo comando **instala y actualiza** (si el repo ya existe hace `git pull`).
 trabajo. La secuencia:
 
 1. **Verifica/instala git** y clona el repo público en `~/.dotfiles`.
-2. **Pregunta cómo autenticarte para el vault privado** (si tenés uno — ver
-   [Adaptalo](adaptalo.md)): `gh` por navegador, SSH, o **saltar** (instala solo
-   lo público; podés aplicar el vault después re-corriendo el instalador).
+2. **Pregunta por el vault privado**: si tenés uno, lo clona (`gh` por
+   navegador o SSH); si **no** tenés, podés elegir **«crear mis perfiles de git
+   ahora»** — un asistente por consola que arma tu propio vault (identidades,
+   claves SSH, carpetas de contexto; ver [Adaptalo](adaptalo.md#el-vault)) — o
+   **saltar** (instala solo lo público).
 3. **Pantalla de bienvenida + selector de herramientas**: un menú por grupos,
    colapsable, que arranca **sin nada marcado** (opt-in — nada se instala por
    sorpresa). Elegís y confirmás con Enter; `q` cancela.

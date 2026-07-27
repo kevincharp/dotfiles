@@ -58,8 +58,9 @@ irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
 El mismo comando **instala y actualiza** (detecta si el repo ya existe). Qué va
 a pasar cuando lo corras:
 
-1. Clona el repo en `~/.dotfiles` y pregunta cómo autenticarte para el **vault
-   privado** — si no tenés uno, elegí **«saltar»** y sigue con todo lo público.
+1. Clona el repo en `~/.dotfiles` y pregunta por el **vault privado** — si no
+   tenés uno, un **asistente te crea tus perfiles de git ahí mismo** (nombre,
+   email y clave SSH por contexto), o elegí «saltar» y sigue solo con lo público.
 2. Te muestra el **selector de herramientas** (nada pre-marcado; `espacio`
    marca, `Enter` confirma, `q` cancela).
 3. En Linux pregunta el **shell por defecto** (bash/zsh) si elegiste zsh.
@@ -83,7 +84,7 @@ El repo es personal pero está pensado para adoptarse. Tres niveles:
 |---|---|---|
 | **Probarlo** | Correr el instalador y «saltar» el vault | Todo lo público: herramientas, shells, configs |
 | **Fork** | Forkear y cambiar `GH_USER` en los installers | El one-liner instala *tu* copia |
-| **Vault propio** | Crear tu `dotfiles-vault` privado | Claves SSH e identidades git portables entre máquinas |
+| **Vault propio** | Elegir «crear mis perfiles ahora» en el instalador (o `bash ~/.dotfiles/git-profiles.sh`) | Identidades git automáticas por remoto + claves SSH, portables entre máquinas |
 
 La guía paso a paso (incluida la estructura exacta del vault):
 **[docs/adaptalo.md](docs/adaptalo.md)**.

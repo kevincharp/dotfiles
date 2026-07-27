@@ -21,8 +21,8 @@ volvé al [README](../README.md#instalación-rápida).
 | Requisito | Notas |
 |---|---|
 | **Windows 10/11 con winget** | winget («App Installer») viene con Windows moderno. Si no está: [aka.ms/getwinget](https://aka.ms/getwinget). |
-| **PowerShell 7** | El bootstrap lo exige (y lo instala el catálogo, pero para la *primera* corrida conviene tenerlo: `winget install Microsoft.PowerShell`). |
-| **Modo de desarrollador** | Configuración → Sistema → Para desarrolladores. Necesario para crear **symlinks sin admin** (el repo los usa para todo). |
+| **PowerShell 7** | **Obligatorio y verificado al arrancar**: la consola por defecto de Windows es 5.1, y ahí el instalador corta al instante sin tocar nada, indicándote el comando para instalarlo (`winget install Microsoft.PowerShell`) y reintentar desde `pwsh`. |
+| **Modo de desarrollador** | Configuración → Sistema → Para desarrolladores. Necesario para crear **symlinks sin admin** (el repo los usa para todo). El bootstrap lo detecta y avisa una vez si falta, en lugar de fallar symlink por symlink. |
 | **VSCode** ([System Installer x64](https://code.visualstudio.com/docs/?dv=win64user)) | Manual a propósito: el System Installer agrega `code` al PATH global; el de winget usa el User Installer y puede no quedar en el PATH. |
 | **Python** ([instalador oficial amd64](https://www.python.org/downloads/windows/)) | Manual a propósito: el oficial tiene la checkbox «Add Python to PATH» (marcala); el de winget instala `py.exe` en su lugar y rompe la config de Neovim. |
 
@@ -197,8 +197,9 @@ confirmación antes de tocar nada.
 | Síntoma | Causa / solución |
 |---|---|
 | *PowerShell bloquea el script* | Execution Policy: `powershell -ExecutionPolicy Bypass -Command "irm …/install.ps1 \| iex"` |
-| *«Se requiere PowerShell 7+»* | El bootstrap corre solo en pwsh 7: `winget install Microsoft.PowerShell` y reintentá desde `pwsh`. |
-| *Symlinks fallan en Windows* | Falta el Modo de desarrollador (o correr como admin una vez). |
+| *«Se requiere PowerShell 7+»* | Estás en la consola por defecto (5.1). `winget install Microsoft.PowerShell -e` y reintentá el one-liner desde `pwsh`. El instalador corta antes de modificar nada, así que no queda nada a medias. |
+| *«Modo de desarrollador desactivado»* | Activalo en Configuración → Sistema → Para desarrolladores (o corré la consola como admin) y re-corré el bootstrap. Sin eso, los symlinks de configs no se crean. |
+| *«Instalacion incompleta» al final* | El bootstrap abortó por un requisito faltante; el mensaje trae el código y la ruta del log. El repo ya quedó clonado y re-correr es seguro (idempotente). |
 | *El selector no aparece y no instala nada* | No hay terminal interactiva (pipe/CI): usá `--tools=...` o `--all-tools`. |
 | *Descargas de GitHub bloqueadas (proxy corporativo)* | Algunas deps (p.ej. previews de yazi en Windows) quedan como WARN; instalalas a mano cuando puedas. |
 | *`age` pide la passphrase varias veces* | Es por diseño: age la lee siempre de la consola, una vez por clave faltante. Normalmente falta 0-1. |

@@ -172,14 +172,29 @@ function Invoke-CloneVault {
         Write-Log 'Solo aplica si ya tenes uno propio (o forkeaste con el tuyo).' 'INFO'
         Write-Host '    1) Tengo mi vault - clonar con gh (login por navegador)'
         Write-Host '    2) Tengo mi vault - clonar por SSH (clave ya cargada)'
-        Write-Host '    3) No tengo vault / saltar - instala igual todo lo publico  [default]'
-        Write-Host '       (para crear el tuyo despues: docs/adaptalo.md)'
-        $choice = Read-Host 'Opcion [1/2/3]'
+        Write-Host '    3) No tengo vault - crear mis perfiles de git AHORA (asistente guiado)'
+        Write-Host '    4) Saltar - instala solo lo publico  [default]'
+        Write-Host '       (asistente y vault propio, cuando quieras: docs/adaptalo.md)'
+        $choice = Read-Host 'Opcion [1/2/3/4]'
         switch ($choice) {
             '1'     { $method = 'gh' }
             '2'     { $method = 'ssh' }
+            '3'     { $method = 'wizard' }
             default { $method = 'skip' }
         }
+    }
+
+    if ($method -eq 'wizard') {
+        # El asistente pregunta perfiles/claves y deja un vault local valido en
+        # VAULT_DIR: el bootstrap despues lo aplica por el camino normal. Corre
+        # como proceso aparte (usa 'exit' internamente).
+        $wiz = Join-Path $DOTFILES_DIR 'git-profiles.ps1'
+        $shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
+        & $shell -ExecutionPolicy Bypass -File $wiz
+        if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $VAULT_DIR 'git\config'))) { return $true }
+        Write-Log 'El asistente no completo - sigo sin vault' 'WARN'
+        Write-Log "  Podes correrlo cuando quieras: pwsh -File $DOTFILES_DIR\git-profiles.ps1" 'INFO'
+        return $false
     }
 
     if ($method -eq 'skip') {

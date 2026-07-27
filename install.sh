@@ -171,15 +171,28 @@ clone_vault() {
         log "Solo aplica si ya tenes uno propio (o forkeaste con el tuyo)." "INFO"
         echo "    1) Tengo mi vault — clonar con gh (login por navegador)"
         echo "    2) Tengo mi vault — clonar por SSH (clave ya cargada)"
-        echo "    3) No tengo vault / saltar — instala igual todo lo publico  [default]"
-        echo "       (para crear el tuyo despues: docs/adaptalo.md)"
+        echo "    3) No tengo vault — crear mis perfiles de git AHORA (asistente guiado)"
+        echo "    4) Saltar — instala solo lo publico  [default]"
+        echo "       (asistente y vault propio, cuando quieras: docs/adaptalo.md)"
         local choice
-        choice="$(ask 'Opcion [1/2/3]: ' '3')"
+        choice="$(ask 'Opcion [1/2/3/4]: ' '4')"
         case "$choice" in
             1) method="gh" ;;
             2) method="ssh" ;;
+            3) method="wizard" ;;
             *) method="skip" ;;
         esac
+    fi
+
+    if [[ "$method" == "wizard" ]]; then
+        # El asistente pregunta perfiles/claves y deja un vault local valido en
+        # VAULT_DIR: el bootstrap despues lo aplica por el camino normal.
+        if bash "$DOTFILES_DIR/git-profiles.sh" && [[ -f "$VAULT_DIR/git/config" ]]; then
+            return 0
+        fi
+        log "El asistente no completo — sigo sin vault" "WARN"
+        log "  Podes correrlo cuando quieras: bash $DOTFILES_DIR/git-profiles.sh" "INFO"
+        return 1
     fi
 
     if [[ "$method" == "skip" ]]; then

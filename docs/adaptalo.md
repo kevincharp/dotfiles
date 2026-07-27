@@ -66,7 +66,26 @@ público: claves SSH (cifradas), identidades git con emails, tokens de servicios
 El bootstrap combina ambos: aplica lo público y desencripta lo del vault.
 Así el repo principal puede compartirse sin exponer nada.
 
-Creá un repo privado llamado **`dotfiles-vault`** con esta estructura:
+### El camino fácil: el asistente
+
+No hace falta armar nada a mano — corré:
+
+```bash
+bash ~/.dotfiles/git-profiles.sh        # Windows: pwsh -File ~/.dotfiles/git-profiles.ps1
+```
+
+(o elegí **«No tengo vault — crear mis perfiles de git ahora»** cuando el
+instalador pregunte). Es un asistente por consola: te pide tus contextos
+(perfil, nombre, email, plataforma, usuario) y **genera y aplica** todo lo que
+describe esta sección — el `.gitconfig` con identidad automática, los perfiles,
+las identidades para los shells, claves SSH con su alias (opcionales), las
+carpetas de contexto — y al final ofrece crear el repo privado en GitHub vía
+`gh`. Lo que sigue explica **qué** genera, por si querés armarlo o ajustarlo a
+mano.
+
+### La estructura, por dentro
+
+Un repo privado llamado **`dotfiles-vault`** con esta forma:
 
 ```
 dotfiles-vault/

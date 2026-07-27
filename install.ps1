@@ -234,7 +234,7 @@ function Install-Winget {
     # VCLibs y UI.Xaml son dependencias del .msixbundle; si ya estan, el
     # Add-AppxPackage falla con "ya instalado" y se ignora.
     Write-Log 'Instalando winget (App Installer)...' 'INFO'
-    Write-Log 'Son 3 descargas (~100 MB), puede tardar un rato.' 'INFO'
+    Write-Log 'Son 3 descargas (~60 MB en total): VCLibs, UI.Xaml y el bundle.' 'INFO'
 
     # PowerShell 5.1 negocia TLS 1.0 por defecto y GitHub/aka.ms lo rechazan.
     try {
@@ -393,7 +393,10 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             }
         }
 
-        Write-Log 'Instalando PowerShell 7 via winget...' 'INFO'
+        Write-Log 'Instalando PowerShell 7 via winget (~100 MB, es la parte mas larga)...' 'INFO'
+        # La primera corrida de winget ademas sincroniza sus indices de fuentes,
+        # lo que suma bastante: se avisa para que no parezca colgado.
+        if ($needWinget) { Write-Log 'winget recien instalado: la primera vez sincroniza sus fuentes.' 'INFO' }
         winget install --id Microsoft.PowerShell -e --accept-package-agreements --accept-source-agreements
         # Refrescar el PATH del proceso: winget deja pwsh en Program Files pero
         # esta sesion no lo ve hasta recargar el PATH de Machine + User.

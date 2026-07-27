@@ -62,9 +62,12 @@ $BRANCH       = if ($env:DOTFILES_BRANCH) { $env:DOTFILES_BRANCH } else { 'main'
 
 # Forzar UTF-8 en la consola para que los iconos se vean (no rompe si ya lo esta)
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
-# Iconos: UTF-8 si la consola lo soporta, si no ASCII
-$script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001) {
-    @{ Section='▶'; Ok='✓'; Warn='⚠'; Err='✗'; Skip='⊘' }
+# Iconos: UTF-8 si la consola lo soporta, si no ASCII.
+# Se construyen por CODIGO de caracter, no como literales del archivo: PowerShell
+# 5.1 lee este .ps1 como ANSI (cp1252) y los literales multibyte saldrian como
+# mojibake justo en el mensaje del gate de pwsh 7, que es lo unico que ve 5.1.
+$script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001 -and $PSVersionTable.PSVersion.Major -ge 7) {
+    @{ Section=[char]0x25B6; Ok=[char]0x2713; Warn=[char]0x26A0; Err=[char]0x2717; Skip=[char]0x2298 }
 } else {
     @{ Section='>'; Ok='[OK]'; Warn='[!]'; Err='[X]'; Skip='[-]' }
 }
@@ -89,6 +92,35 @@ function Write-Log {
 function Test-CommandAvailable {
     param([string]$Cmd)
     return [bool](Get-Command $Cmd -ErrorAction SilentlyContinue)
+}
+
+# ==============================================================================
+# 0. VERIFICAR POWERSHELL 7 (antes de tocar NADA)
+# ------------------------------------------------------------------------------
+# La consola por defecto de Windows es PowerShell 5.1, asi que el one-liner
+# 'irm | iex' arranca ahi por default. El bootstrap exige pwsh 7 y aborta — si
+# ese chequeo llegara recien al final, el usuario ya habria instalado git,
+# clonado el repo y contestado dos preguntas para nada. Se corta aca, antes de
+# modificar el sistema.
+# ==============================================================================
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    $oneLiner = 'irm https://raw.githubusercontent.com/' + $GH_USER + '/dotfiles/main/install.ps1 | iex'
+    Write-Log 'Requisitos' 'SECTION'
+    Write-Log "Estas en PowerShell $($PSVersionTable.PSVersion) - el instalador necesita PowerShell 7+." 'ERROR'
+    if (Test-CommandAvailable 'pwsh') {
+        Write-Log 'pwsh 7 ya esta instalado: volve a correr el one-liner desde ahi.' 'WARN'
+        Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+    } elseif (Test-CommandAvailable 'winget') {
+        Write-Log 'Instalalo y reintenta desde pwsh (dos comandos):' 'WARN'
+        Write-Log '  winget install --id Microsoft.PowerShell -e' 'INFO'
+        Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
+    } else {
+        Write-Log 'Falta winget y pwsh: instala "App Installer" desde la Microsoft Store' 'WARN'
+        Write-Log '(https://aka.ms/getwinget) y despues PowerShell 7, y reintenta.' 'WARN'
+    }
+    Write-Log 'No se modifico nada en el sistema.' 'INFO'
+    exit 1
 }
 
 # ==============================================================================
@@ -147,7 +179,18 @@ if (Test-Path (Join-Path $DOTFILES_DIR '.git')) {
     }
 } else {
     # Repo PUBLICO: HTTPS funciona sin credenciales. SSH si esta disponible.
-    git clone $PUBLIC_SSH $DOTFILES_DIR 2>$null
+    # BatchMode=yes es imprescindible: en una maquina nueva sin known_hosts, ssh
+    # pregunta por la huella del host y espera respuesta — con stderr redirigido
+    # a $null esa pregunta es INVISIBLE y el instalador parece colgado. Con
+    # BatchMode falla al instante y cae a HTTPS.
+    $prevSshCmd = $env:GIT_SSH_COMMAND
+    $env:GIT_SSH_COMMAND = 'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new'
+    try {
+        git clone $PUBLIC_SSH $DOTFILES_DIR 2>$null
+    } finally {
+        if ($null -eq $prevSshCmd) { Remove-Item Env:\GIT_SSH_COMMAND -ErrorAction SilentlyContinue }
+        else { $env:GIT_SSH_COMMAND = $prevSshCmd }
+    }
     if ($LASTEXITCODE -eq 0) {
         Write-Log 'Clonado publico via SSH' 'OK'
     } else {
@@ -293,6 +336,17 @@ if ($Tools)        { $bootstrapArgs['Tools']      = $Tools }
 # Exporto VAULT_DIR para que bootstrap.ps1 encuentre lo sensible
 $env:VAULT_DIR = $VAULT_DIR
 & $bootstrapScript @bootstrapArgs
+$bootstrapRc = $LASTEXITCODE
+
+# Si el bootstrap aborto (requisito faltante, cancelado), NO imprimir el resumen
+# de exito: decia "Instalacion completada" sobre una instalacion que no paso.
+if ($bootstrapRc -and $bootstrapRc -ne 0) {
+    Write-Log 'Instalacion incompleta' 'SECTION'
+    Write-Log "El bootstrap termino con error (codigo $bootstrapRc) - no se aplico todo." 'ERROR'
+    Write-Log "El repo quedo clonado en $DOTFILES_DIR (re-correr es seguro, es idempotente)." 'INFO'
+    Write-Log "Revisa el detalle en el log: $HOME\.local\logs\" 'INFO'
+    exit $bootstrapRc
+}
 
 # ==============================================================================
 # RESUMEN
@@ -310,5 +364,13 @@ if ($VAULT_OK) {
 
 Write-Log 'Proximos pasos' 'SECTION'
 Write-Log '1. Abri una terminal nueva para recargar el profile' 'INFO'
-Write-Log '2. Si clonaste por HTTPS, cambia a SSH para no pedir credenciales:' 'INFO'
-Write-Log "   cd $DOTFILES_DIR; git remote set-url origin $PUBLIC_SSH" 'INFO'
+Write-Log '2. Proba dothelp para ver los comandos disponibles' 'INFO'
+
+# El consejo de pasar el remote a SSH solo aplica si el repo es TUYO (o forkeaste
+# y cambiaste GH_USER). Si estas probando el repo de otra persona, ese remote
+# apunta a donde no podes pushear: mejor no sugerirlo.
+$originUrl = git -C $DOTFILES_DIR remote get-url origin 2>$null
+if ($LASTEXITCODE -eq 0 -and $originUrl -like 'https://*') {
+    Write-Log '3. Si es TU repo (o tu fork) y queres pushear sin credenciales, pasa el remote a SSH:' 'INFO'
+    Write-Log "   cd $DOTFILES_DIR; git remote set-url origin $PUBLIC_SSH" 'INFO'
+}

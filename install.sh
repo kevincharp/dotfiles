@@ -150,7 +150,12 @@ if [[ -d "$DOTFILES_DIR/.git" ]]; then
     git pull --rebase --autostash origin "$BRANCH" || { log "Error al actualizar publico" "ERROR"; exit 1; }
 else
     # Repo PUBLICO: HTTPS funciona sin credenciales. SSH si esta disponible.
-    if git clone "$PUBLIC_SSH" "$DOTFILES_DIR" 2>/dev/null; then
+    # BatchMode=yes es imprescindible: en una maquina nueva sin known_hosts, ssh
+    # pregunta por la huella del host y espera respuesta — con stderr a /dev/null
+    # esa pregunta es INVISIBLE y el instalador parece colgado. Con BatchMode
+    # falla al instante y cae a HTTPS.
+    if GIT_SSH_COMMAND='ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new' \
+        git clone "$PUBLIC_SSH" "$DOTFILES_DIR" 2>/dev/null; then
         log "Clonado publico via SSH" "OK"
     elif git clone "$PUBLIC_HTTPS" "$DOTFILES_DIR"; then
         log "Clonado publico via HTTPS" "OK"
@@ -275,10 +280,23 @@ BOOTSTRAP_ARGS=()
 [[ -n "$TOOLS_ARG" ]]           && BOOTSTRAP_ARGS+=("--tools=$TOOLS_ARG")
 
 if [[ -f "$DOTFILES_DIR/bootstrap.sh" ]]; then
-    # Exporto VAULT_DIR para que bootstrap.sh encuentre lo sensible
-    VAULT_DIR="$VAULT_DIR" bash "$DOTFILES_DIR/bootstrap.sh" "${BOOTSTRAP_ARGS[@]}"
+    # Exporto VAULT_DIR para que bootstrap.sh encuentre lo sensible.
+    # El exit se captura (no aborta por set -e) para poder distinguir el resumen
+    # de exito del de instalacion incompleta.
+    BOOTSTRAP_RC=0
+    VAULT_DIR="$VAULT_DIR" bash "$DOTFILES_DIR/bootstrap.sh" "${BOOTSTRAP_ARGS[@]}" || BOOTSTRAP_RC=$?
 else
     log "bootstrap.sh no encontrado en $DOTFILES_DIR" "ERROR"; exit 1
+fi
+
+# Si el bootstrap aborto, NO imprimir el resumen de exito: decia "Instalacion
+# completada" sobre una instalacion que no paso (paridad con install.ps1).
+if [[ "$BOOTSTRAP_RC" -ne 0 ]]; then
+    log "Instalacion incompleta" "SECTION"
+    log "El bootstrap termino con error (codigo $BOOTSTRAP_RC) — no se aplico todo." "ERROR"
+    log "El repo quedo clonado en $DOTFILES_DIR (re-correr es seguro, es idempotente)." "INFO"
+    log "Revisa el detalle en el log: ~/.local/logs/" "INFO"
+    exit "$BOOTSTRAP_RC"
 fi
 
 # ==============================================================================
@@ -297,5 +315,13 @@ fi
 
 log "Proximos pasos" "SECTION"
 log "1. Abri una terminal nueva para recargar el profile" "INFO"
-log "2. Si clonaste por HTTPS, cambia a SSH para no pedir credenciales:" "INFO"
-log "   cd $DOTFILES_DIR && git remote set-url origin $PUBLIC_SSH" "INFO"
+log "2. Proba dothelp para ver los comandos disponibles" "INFO"
+
+# El consejo de pasar el remote a SSH solo aplica si el repo es TUYO (o forkeaste
+# y cambiaste GH_USER). Si estas probando el repo de otra persona, ese remote
+# apunta a donde no podes pushear: mejor no sugerirlo.
+ORIGIN_URL="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
+if [[ "$ORIGIN_URL" == https://* ]]; then
+    log "3. Si es TU repo (o tu fork) y queres pushear sin credenciales, pasa el remote a SSH:" "INFO"
+    log "   cd $DOTFILES_DIR && git remote set-url origin $PUBLIC_SSH" "INFO"
+fi

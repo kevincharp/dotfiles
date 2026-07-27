@@ -90,19 +90,28 @@ foreach ($dir in $DIRS) {
 
 Write-Section "2. Dotfiles copiados"
 
+# Publicos: siempre exigibles. Los del vault van aparte: sin vault (tercero
+# que instalo solo lo publico) su ausencia es esperable — WARN, no FAIL.
 $DOTFILES = @(
     "$HOME\.config\powershell\profile.ps1"
     "$HOME\.bashrc"
     "$HOME\.bash_profile"
+    "$HOME\.config\git\ignore"
+    "$HOME\.editorconfig"
+    "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+)
+$VAULT_DOTFILES = @(
     "$HOME\.gitconfig"
     "$HOME\.gitconfig-personal"
     "$HOME\.gitconfig-work"
     "$HOME\.gitconfig-cei_walle"
-    "$HOME\.config\git\ignore"
     "$HOME\.ssh\config"
-    "$HOME\.editorconfig"
-    "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
 )
+if ($VaultLoaded) {
+    $DOTFILES = $DOTFILES + $VAULT_DOTFILES
+} else {
+    Test-Warn "gitconfigs + ssh/config" "vault no cargado — saltando (ver docs/adaptalo.md)"
+}
 
 foreach ($f in $DOTFILES) {
     $name = Split-Path $f -Leaf
@@ -249,7 +258,11 @@ Write-Section "7. Git config — useConfigOnly + includeIf"
 
 $gitConfig = "$HOME\.gitconfig"
 
-if (Test-Path $gitConfig) {
+# La convencion useConfigOnly+includeIf viene DEL VAULT: sin vault, el
+# ~/.gitconfig (si existe) es el propio del usuario y no se le exige nada.
+if (-not $VaultLoaded) {
+    Test-Warn "Git config (useConfigOnly/includeIf)" "vault no cargado — saltando"
+} elseif (Test-Path $gitConfig) {
     $val = git config --file $gitConfig --get user.useConfigOnly 2>$null
     if ($val -eq 'true') {
         Test-OK "user.useConfigOnly = true"
@@ -258,12 +271,7 @@ if (Test-Path $gitConfig) {
     }
 
     $gcContent = Get-Content $gitConfig -Raw
-    $INCLUDE_PATTERNS = if ($VaultLoaded) { $GitSshAliases.Keys | ForEach-Object { "git@$_" } } else { @() }
-
-    if (-not $VaultLoaded) {
-        Test-Warn "includeIf patterns" "vault no cargado — saltando"
-    }
-    foreach ($pattern in $INCLUDE_PATTERNS) {
+    foreach ($pattern in ($GitSshAliases.Keys | ForEach-Object { "git@$_" })) {
         if ($gcContent -match [regex]::Escape($pattern)) {
             Test-OK "includeIf para $pattern presente"
         } else {
@@ -271,7 +279,7 @@ if (Test-Path $gitConfig) {
         }
     }
 } else {
-    Test-Fail ".gitconfig" "no existe"
+    Test-Fail ".gitconfig" "no existe (el vault esta cargado pero no se aplico)"
 }
 
 # ==============================================================================

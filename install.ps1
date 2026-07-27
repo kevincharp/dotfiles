@@ -168,11 +168,12 @@ function Invoke-CloneVault {
     # Decide metodo de auth: parametro, o pregunta interactiva.
     $method = $VaultAuth
     if (-not $method) {
-        Write-Log 'El vault privado (dotfiles-vault) contiene tus claves SSH e identidades.' 'INFO'
-        Write-Log 'Como queres autenticarte para clonarlo?' 'INFO'
-        Write-Host '    1) gh (GitHub CLI, login por navegador)  [recomendado]'
-        Write-Host '    2) SSH (si ya tenes una clave cargada)'
-        Write-Host '    3) Saltar por ahora (instalo solo lo publico)'
+        Write-Log 'Vault privado: un 2do repo (dotfiles-vault) con TUS claves SSH e identidades git.' 'INFO'
+        Write-Log 'Solo aplica si ya tenes uno propio (o forkeaste con el tuyo).' 'INFO'
+        Write-Host '    1) Tengo mi vault - clonar con gh (login por navegador)'
+        Write-Host '    2) Tengo mi vault - clonar por SSH (clave ya cargada)'
+        Write-Host '    3) No tengo vault / saltar - instala igual todo lo publico  [default]'
+        Write-Host '       (para crear el tuyo despues: docs/adaptalo.md)'
         $choice = Read-Host 'Opcion [1/2/3]'
         switch ($choice) {
             '1'     { $method = 'gh' }
@@ -182,7 +183,9 @@ function Invoke-CloneVault {
     }
 
     if ($method -eq 'skip') {
-        Write-Log "Vault saltado. Lo podes aplicar luego con: pwsh -File $DOTFILES_DIR\install.ps1" 'WARN'
+        Write-Log 'Sin vault: se instala todo lo publico igual (shells, herramientas, configs).' 'INFO'
+        Write-Log 'Tu git y tu SSH quedan como estan. Para crear un vault propio: docs/adaptalo.md' 'INFO'
+        Write-Log "Con vault listo, aplicalo con: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
         return $false
     }
 
@@ -202,21 +205,26 @@ function Invoke-CloneVault {
             if ($LASTEXITCODE -ne 0) { Write-Log 'Login con gh fallo' 'ERROR'; return $false }
         }
         gh repo clone "$GH_USER/dotfiles-vault" $VAULT_DIR
-        if ($LASTEXITCODE -eq 0) {
-            # gh clona via HTTPS: en la 2da corrida 'git pull' pediria credenciales
-            # (GitHub ya no acepta password). Lo dejamos en el host alias SSH para
-            # que las actualizaciones futuras usen la clave sin pedir nada. El
-            # alias existe tras aplicar el ssh/config del vault (bootstrap).
-            git -C $VAULT_DIR remote set-url origin $VAULT_SSH_ALIAS
-            return $true
+        if ($LASTEXITCODE -ne 0) {
+            Write-Log 'Error clonando vault con gh' 'ERROR'
+            Write-Log '  Si NO es tu vault (estas probando el repo de otra persona), es esperable:' 'INFO'
+            Write-Log '  tu cuenta no tiene acceso. El resto se instala igual; ver docs/adaptalo.md' 'INFO'
+            return $false
         }
-        Write-Log 'Error clonando vault con gh' 'ERROR'; return $false
+        # gh clona via HTTPS: en la 2da corrida 'git pull' pediria credenciales
+        # (GitHub ya no acepta password). Lo dejamos en el host alias SSH para
+        # que las actualizaciones futuras usen la clave sin pedir nada. El
+        # alias existe tras aplicar el ssh/config del vault (bootstrap).
+        git -C $VAULT_DIR remote set-url origin $VAULT_SSH_ALIAS
+        return $true
     }
 
     if ($method -eq 'ssh') {
         git clone $VAULT_SSH $VAULT_DIR
         if ($LASTEXITCODE -eq 0) { return $true }
-        Write-Log 'Error clonando vault via SSH (tenes la clave cargada?)' 'ERROR'; return $false
+        Write-Log 'Error clonando vault via SSH (tenes la clave cargada?)' 'ERROR'
+        Write-Log '  Si NO es tu vault, es esperable. El resto se instala igual; ver docs/adaptalo.md' 'INFO'
+        return $false
     }
 
     return $false
@@ -280,8 +288,9 @@ Write-Log "Publico: $DOTFILES_DIR" 'OK'
 if ($VAULT_OK) {
     Write-Log "Vault:   $VAULT_DIR" 'OK'
 } else {
-    Write-Log 'Vault:   NO aplicado - claves SSH e identidades git pendientes' 'WARN'
-    Write-Log "Para aplicarlo luego: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
+    Write-Log 'Vault:   sin aplicar - tu git/SSH quedan como estaban' 'WARN'
+    Write-Log 'Para crear tu vault (identidades git + claves): docs/adaptalo.md' 'INFO'
+    Write-Log "Con vault listo, aplicalo con: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
 }
 
 Write-Log 'Proximos pasos' 'SECTION'

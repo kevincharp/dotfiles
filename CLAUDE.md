@@ -55,6 +55,28 @@ sesión sobrevive.
   infinitamente — pasó, cuelga la máquina y deja procesos y temporales.
 - El temporal se escribe con `-Encoding Default` (cp1252): es lo que 5.1 espera,
   y el archivo es ASCII puro igual.
+- Los `exit` del script pasan por **`Stop-Install`**: si la re-ejecución no pudo
+  hacerse, lanza excepción en vez de `exit` para no matar la sesión.
+
+### `[System.IO.File]::Open('CONIN$')` NO funciona en PowerShell 5.1
+
+Para leer el teclado bajo `irm | iex` (stdin es el pipe, `Read-Host` no ve al
+usuario) hay que abrir la consola física. Pero `FileStream` **rechaza abrir
+dispositivos de consola** en .NET Framework: *"se solicitó a FileStream que
+abriera un dispositivo que no era un archivo"*. En **pwsh 7 (.NET moderno) sí
+funciona** — por eso `bootstrap.ps1` nunca falló, solo corre en pwsh 7.
+
+Esto causó el bug más difícil de la instalación en Windows limpio: la lectura
+fallaba siempre, `Read-ConsoleLine` devolvía `$null`, el instalador concluía
+«no hay consola interactiva» y hacía `exit` → **la terminal se cerraba sin
+dejar contestar** la pregunta de instalar pwsh 7/winget.
+
+- La forma que **sí** funciona en 5.1: pedir el handle con **`CreateFileW`** y
+  envolverlo en `SafeFileHandle` + `FileStream` + `StreamReader`.
+- `GENERIC_READ` (`0x80000000`) debe castearse a **`[uint32]`**: PowerShell lo
+  toma como `Int32` negativo y la llamada falla al convertir el argumento.
+- Verificar con stdin redirigido (`< /dev/null` o un pipe): `IsInputRedirected`
+  da `True` y aun así el handle de `CONIN$` debe ser válido.
 
 ## Paridad obligatoria
 

@@ -198,7 +198,7 @@ confirmación antes de tocar nada.
 |---|---|
 | *PowerShell bloquea el script* | Execution Policy: `powershell -ExecutionPolicy Bypass -Command "irm …/install.ps1 \| iex"` |
 | *«el instalador necesita PowerShell 7+»* | Estás en la consola por defecto (5.1). Respondé `S` y lo instala solo, relanzándose en pwsh 7. Si además falta winget, lo ofrece instalar en la misma pregunta. Sin consola interactiva (CI) no instala nada por su cuenta y te deja los comandos. |
-| *La terminal se cierra sola al correr el one-liner* | Bug ya corregido: bajo `irm \| iex` un `exit` cerraba la sesión entera. Si te pasa, tenés una versión vieja: `git -C ~/.dotfiles pull` o volvé a correr el one-liner (que ya se re-ejecuta como archivo). |
+| *La terminal se cierra sola al correr el one-liner* | Bug ya corregido (dos causas: `exit` bajo `irm \| iex` mataba la sesión, y en PowerShell 5.1 no se podía leer el teclado, así que el instalador creía que no había nadie y abortaba antes de dejarte contestar). Si te sigue pasando, estás corriendo una versión vieja. |
 | *Descargas de «App Installer» bloqueadas* | Proxy corporativo: instalá winget desde la Microsoft Store a mano ([aka.ms/getwinget](https://aka.ms/getwinget)) y reintentá. |
 | *«Modo de desarrollador desactivado»* | Activalo en Configuración → Sistema → Para desarrolladores (o corré la consola como admin) y re-corré el bootstrap. Sin eso, los symlinks de configs no se crean. |
 | *«Instalacion incompleta» al final* | El bootstrap abortó por un requisito faltante; el mensaje trae el código y la ruta del log. El repo ya quedó clonado y re-correr es seguro (idempotente). |

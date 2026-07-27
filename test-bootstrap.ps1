@@ -51,12 +51,18 @@ function Test-CommandExists($Cmd) {
 }
 
 # Identidades y aliases esperados (desde el vault, misma fuente que el shell).
-$GitIdentities   = @{}
-$GitSshAliases   = @{}
-$GitContextDirs  = @()
+$GitIdentities    = @{}
+$GitSshAliases    = @{}
+$GitContextDirs   = @()
+$GitIdentityFiles = @{}
 $giFile = Join-Path ($env:XDG_CONFIG_HOME ?? (Join-Path $HOME '.config')) 'git-identities.ps1'
 if (Test-Path -LiteralPath $giFile) { . $giFile }
 $VaultLoaded = ($GitIdentities.Count -gt 0)
+# Mapa archivo→perfil (~/.gitconfig-<sufijo> pertenece a <perfil>). Si el vault
+# no lo define (vaults previos al asistente), fallback al mapeo historico.
+if ($VaultLoaded -and $GitIdentityFiles.Count -eq 0) {
+    $GitIdentityFiles = @{ personal = 'kevincharp'; work = 'work'; cei_walle = 'cei_walle' }
+}
 
 # ==============================================================================
 # 1. DIRECTORIOS REQUERIDOS
@@ -103,13 +109,14 @@ $DOTFILES = @(
     "$HOME\.editorconfig"
     "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
 )
+# Los ~/.gitconfig-<sufijo> salen del mapa GitIdentityFiles (no hardcodeados).
 $VAULT_DOTFILES = @(
     "$HOME\.gitconfig"
-    "$HOME\.gitconfig-personal"
-    "$HOME\.gitconfig-work"
-    "$HOME\.gitconfig-cei_walle"
     "$HOME\.ssh\config"
 )
+foreach ($sfx in $GitIdentityFiles.Keys) {
+    $VAULT_DOTFILES += "$HOME\.gitconfig-$sfx"
+}
 if ($VaultLoaded) {
     $DOTFILES = $DOTFILES + $VAULT_DOTFILES
 } else {
@@ -291,16 +298,18 @@ if (-not $VaultLoaded) {
 
 Write-Section "8. Identity configs — user.name y user.email"
 
-# Valores esperados desde el vault (cargado al inicio del script).
+# Valores esperados desde el vault (cargado al inicio del script). Los archivos
+# y su perfil salen del mapa GitIdentityFiles (no hardcodeados).
 if (-not $VaultLoaded) {
     Test-Warn "Identity configs" "vault no cargado ($giFile) — saltando"
     $IDENTITIES = @()
 } else {
-    $IDENTITIES = @(
-        @{ File="$HOME\.gitconfig-personal";  Name=$GitIdentities['kevincharp'].name; Email=$GitIdentities['kevincharp'].email }
-        @{ File="$HOME\.gitconfig-work";      Name=$GitIdentities['work'].name;       Email=$GitIdentities['work'].email }
-        @{ File="$HOME\.gitconfig-cei_walle"; Name=$GitIdentities['cei_walle'].name;  Email=$GitIdentities['cei_walle'].email }
-    )
+    $IDENTITIES = @(foreach ($sfx in $GitIdentityFiles.Keys) {
+        $prof = $GitIdentityFiles[$sfx]
+        @{ File = "$HOME\.gitconfig-$sfx"
+           Name = $GitIdentities[$prof].name
+           Email = $GitIdentities[$prof].email }
+    })
 }
 
 foreach ($id in $IDENTITIES) {

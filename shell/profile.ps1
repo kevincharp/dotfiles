@@ -1,5 +1,5 @@
 # ==============================================================================
-#   profile.ps1 — Perfil unificado Kevin Charpentier (pwsh 7)
+#   profile.ps1 — Perfil de shell unificado (pwsh 7)
 #   Portable: Windows personal / Windows laboral / cualquier máquina nueva
 # ==============================================================================
 
@@ -308,10 +308,11 @@ if ($IsWindows -and -not $env:YAZI_FILE_ONE) {
 # RUTAS BASE
 # ==============================================================================
 
+# Atajos a las carpetas de contexto (las que definen la identidad git). Si tu
+# vault usa otros nombres, agregalos aca igual: son solo variables para 'cd'.
 $repos     = Join-Path $HOME 'repositorios'
 $personal  = Join-Path $repos 'personal'
 $work      = Join-Path $repos 'work'
-$cei_walle = Join-Path $repos 'cei_walle'
 
 # ==============================================================================
 # UTILIDADES GENERALES
@@ -1323,10 +1324,16 @@ function Get-SecretFromEnv {
     return $t
 }
 
-$env:GITLAB_TOKEN_KECHARPEN  = Get-SecretFromEnv 'GITLAB_TOKEN_KECHARPEN'
-$env:GITLAB_TOKEN_CEI_WALLE  = Get-SecretFromEnv 'GITLAB_TOKEN_CEI_WALLE'
-$env:GITLAB_TOKEN_KEVINCHARP = Get-SecretFromEnv 'GITLAB_TOKEN_KEVINCHARP'
-$env:GITHUB_TOKEN_KEVINCHARP = Get-SecretFromEnv 'GITHUB_TOKEN_KEVINCHARP'
+# Tokens de git (GITLAB_TOKEN_<perfil> / GITHUB_TOKEN_<perfil>): se exportan
+# todos los que haya en ~/.env, sin listarlos por nombre — paridad con
+# _load_dotenv de bash/zsh, y asi los perfiles de cualquier vault funcionan.
+# gbrowser igual los resuelve por su cuenta via el tokenEnv del vault.
+foreach ($__k in $__DOTENV.Keys) {
+    if ($__k -match '^(GITLAB|GITHUB)_TOKEN_') {
+        Set-Item -Path "env:$__k" -Value $__DOTENV[$__k]
+    }
+}
+Remove-Variable __k -ErrorAction SilentlyContinue
 
 # AWS / Claude SMG
 $env:AWS_SSO_PROFILE        = Get-SecretFromEnv 'AWS_SSO_PROFILE'

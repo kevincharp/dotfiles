@@ -1,5 +1,5 @@
 # ==============================================================================
-#   bashrc — Perfil unificado Kevin Charpentier (bash)
+#   bashrc — Perfil de shell unificado (bash)
 #   Portable: Git Bash (Windows) / Linux nativo
 # ==============================================================================
 
@@ -155,12 +155,13 @@ fi
 # RUTAS BASE
 # ==============================================================================
 
+# Atajos a las carpetas de contexto (las que definen la identidad git). Si tu
+# vault usa otros nombres, agregalos aca igual: son solo variables para 'cd'.
 repos="$HOME/repositorios"
 personal="$repos/personal"
 work="$repos/work"
-cei_walle="$repos/cei_walle"
 
-export repos personal work cei_walle
+export repos personal work
 
 # ==============================================================================
 # UTILIDADES GENERALES
@@ -557,7 +558,7 @@ _resolve_identity() {
 
 # Clonar repo y configurar identidad local automaticamente.
 # Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]
-# Perfiles: cei_walle, work, kevincharp, kevincharp-gl
+# Los perfiles disponibles son los que define tu vault (ver: gset-profile sin args).
 # Ejemplo: gclone -p work -u git@gitlab.com-xxx:grupo/repo.git
 # --- [git] gclone: clona un repo aplicando un perfil de identidad git | uso: gclone -u <url> [-p perfil] [dir] ---
 gclone() {
@@ -882,8 +883,9 @@ _load_dotenv() {
 
 _load_dotenv
 
-# Tokens especificos (se cargan si existen en ~/.env)
-# GITLAB_TOKEN_KECHARPEN, GITLAB_TOKEN_CEI_WALLE, GITLAB_TOKEN_KEVINCHARP, GITHUB_TOKEN_KEVINCHARP
+# _load_dotenv ya exporta TODO lo que haya en ~/.env, tokens incluidos: no hace
+# falta declararlos aca. Convencion sugerida: GITLAB_TOKEN_<perfil> /
+# GITHUB_TOKEN_<perfil>, uno por identidad del vault.
 
 # ==============================================================================
 # AWS / CLAUDE CODE SMG

@@ -60,11 +60,16 @@ $DIRS = @(
 # git-identities.ps1 (lo escribe el asistente git-profiles), se usan esas;
 # si no, las historicas (mismo criterio que bootstrap.sh).
 $ctxDirs = @('personal', 'work', 'cei_walle')
+# Sufijos de los ~/.gitconfig-<sufijo>: idem, del mapa $GitIdentityFiles del
+# vault. Sin esto los perfiles de un vault ajeno no se symlinkean nunca.
+$idSuffixes = @('personal', 'work', 'cei_walle')
 $giVault = Join-Path $VAULT_DIR 'shell\git-identities.ps1'
 if (Test-Path $giVault) {
     $GitContextDirs = $null
+    $GitIdentityFiles = $null
     . $giVault
     if ($GitContextDirs) { $ctxDirs = @($GitContextDirs) }
+    if ($GitIdentityFiles) { $idSuffixes = @($GitIdentityFiles.Keys) }
 }
 foreach ($c in $ctxDirs) { $DIRS += (Join-Path $HOME "repositorios\$c") }
 
@@ -160,9 +165,7 @@ $DOTFILES = @(
     @{ Src='git\ignore';              Dst="$HOME\.config\git\ignore"             ; Mode='link' }
     # Git config + identidades (VAULT privado: namespaces y emails)
     @{ Src='git\config';              Dst="$HOME\.gitconfig"            ; Mode='link'; Root='vault' }
-    @{ Src='git\config-personal';     Dst="$HOME\.gitconfig-personal"   ; Mode='link'; Root='vault' }
-    @{ Src='git\config-work';         Dst="$HOME\.gitconfig-work"       ; Mode='link'; Root='vault' }
-    @{ Src='git\config-cei_walle';    Dst="$HOME\.gitconfig-cei_walle"  ; Mode='link'; Root='vault' }
+    # Los perfiles (git\config-<sufijo>) se agregan abajo desde $idSuffixes.
     # Identidades para el shell pwsh (gclone/gset-profile)
     @{ Src='shell\git-identities.ps1'; Dst="$HOME\.config\git-identities.ps1"   ; Root='vault' }
     # SSH config (VAULT privado)
@@ -183,6 +186,11 @@ $DOTFILES = @(
     @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link' }
     @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link' }
 )
+# Un perfil de identidad por sufijo del vault (ver $idSuffixes): con nombres
+# propios (freelance, cliente-x...) antes no se symlinkeaba ninguno.
+foreach ($s in $idSuffixes) {
+    $DOTFILES_MAP += @{ Src="git\config-$s"; Dst="$HOME\.gitconfig-$s"; Mode='link'; Root='vault' }
+}
 
 # ==============================================================================
 # HELPERS

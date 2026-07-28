@@ -1252,8 +1252,13 @@ DIRS=(
 # contaminar el entorno del bootstrap con las variables del vault.
 _ctx_dirs=(personal work cei_walle)
 if [[ -f "$VAULT_DIR/shell/git-identities.sh" ]]; then
+    # OJO: hay que declarar TODOS los arrays asociativos que el vault pueda
+    # asignar, GIT_IDENTITY_FILES incluido. Si falta uno, bash trata
+    # 'MAPA[clave]=x' como array indexado y evalua la clave como aritmetica:
+    # con claves no numericas ('personal') aborta el source entero y este
+    # subshell no imprime nada -> se caia al fallback historico en silencio.
     _ctx_from_vault="$(bash -c '
-        declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
+        declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
         GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
         source "$1" >/dev/null 2>&1 || true
         echo "${GIT_CONTEXT_DIRS[@]:-}"
@@ -1262,6 +1267,25 @@ if [[ -f "$VAULT_DIR/shell/git-identities.sh" ]]; then
 fi
 for _c in "${_ctx_dirs[@]}"; do DIRS+=("$HOME/repositorios/$_c"); done
 unset _c _ctx_from_vault
+
+# Sufijos de los ~/.gitconfig-<sufijo> a symlinkear desde el vault: si define
+# GIT_IDENTITY_FILES (mapa sufijo→perfil), se usan sus claves; si no, las
+# historicas. Sin esto los perfiles de un vault ajeno no se symlinkean nunca
+# (y se avisaba por los tres nombres historicos inexistentes).
+# OJO: el archivo del vault NO trae 'declare -gA', asi que hay que declararlo
+# antes de sourcear (si no, bash lo toma como array indexado y hace aritmetica
+# con el nombre del perfil). Mismo bash aparte que _ctx_dirs, por lo mismo.
+_id_sfx=(personal work cei_walle)
+if [[ -f "$VAULT_DIR/shell/git-identities.sh" ]]; then
+    _id_from_vault="$(bash -c '
+        declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
+        GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
+        source "$1" >/dev/null 2>&1 || true
+        echo "${!GIT_IDENTITY_FILES[@]}"
+    ' _ "$VAULT_DIR/shell/git-identities.sh" 2>/dev/null)" || _id_from_vault=""
+    [[ -n "$_id_from_vault" ]] && read -ra _id_sfx <<< "$_id_from_vault"
+fi
+unset _id_from_vault
 
 # La barra global avanza por carpeta; abajo se ve que hace (crear/validar).
 # El "ya existe" va al log; solo se cuentan. Fallos se muestran (gb_note vía log).
@@ -1335,15 +1359,15 @@ BAK_DESTINATIONS=(
     "$HOME/.zshrc"
     "$HOME/.zprofile"
     "$HOME/.gitconfig"
-    "$HOME/.gitconfig-personal"
-    "$HOME/.gitconfig-work"
-    "$HOME/.gitconfig-cei_walle"
     "$HOME/.config/git/ignore"
     "$HOME/.ssh/config"
     "$HOME/.editorconfig"
     "$HOME/.claude/settings.json"
     "$HOME/.claude/settings.local.json"
 )
+# Identidades git: los sufijos salen del vault (ver _id_sfx), no hardcodeados.
+for _s in "${_id_sfx[@]}"; do BAK_DESTINATIONS+=("$HOME/.gitconfig-$_s"); done
+unset _s
 
 if [[ "$DRY_RUN" == true ]]; then
     log "[DryRun] Migrar backups viejos" "SKIP"
@@ -1472,9 +1496,12 @@ copy_dotfile "git/ignore"           "$HOME/.config/git/ignore"    "link"
 # Git config principal + identidades (vault privado): contiene namespaces y emails
 if [[ -d "$VAULT_DIR/git" ]]; then
     copy_dotfile "$VAULT_DIR/git/config"           "$HOME/.gitconfig"            "link"
-    copy_dotfile "$VAULT_DIR/git/config-personal"  "$HOME/.gitconfig-personal"   "link"
-    copy_dotfile "$VAULT_DIR/git/config-work"      "$HOME/.gitconfig-work"       "link"
-    copy_dotfile "$VAULT_DIR/git/config-cei_walle" "$HOME/.gitconfig-cei_walle"  "link"
+    # Un perfil por sufijo del vault (ver _id_sfx): con nombres propios
+    # (freelance, cliente-x...) antes no se symlinkeaba ninguno.
+    for _s in "${_id_sfx[@]}"; do
+        copy_dotfile "$VAULT_DIR/git/config-$_s" "$HOME/.gitconfig-$_s" "link"
+    done
+    unset _s
 else
     log "Vault no encontrado en $VAULT_DIR — saltando git config e identidades" "WARN"
     WARNINGS+=("~/.gitconfig e identidades no aplicados — sin vault (crear el tuyo: docs/adaptalo.md)")

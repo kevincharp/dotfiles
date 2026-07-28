@@ -56,7 +56,16 @@ sesión sobrevive.
 - El temporal se escribe con `-Encoding Default` (cp1252): es lo que 5.1 espera,
   y el archivo es ASCII puro igual.
 - Los `exit` del script pasan por **`Stop-Install`**: si la re-ejecución no pudo
-  hacerse, lanza excepción en vez de `exit` para no matar la sesión.
+  hacerse, corta con `break dotfilesInstall` (bloque etiquetado que envuelve todo
+  el cuerpo) en vez de `exit`, para no matar la sesión. Con `throw` funcionaba
+  pero dejaba un volcado rojo de excepción en pantalla.
+- **`$MyInvocation` NO sirve para que el script se lea a sí mismo bajo `iex`**:
+  devuelve el texto del script **contenedor**, no el propio (verificado: dos
+  fragmentos distintos ejecutados por `iex` reportan el mismo largo). Por eso la
+  re-ejecución **vuelve a descargar** `install.ps1` de su URL en vez de
+  escribirse desde `$MyInvocation`.
+- `DOTFILES_INLINE_MODE` se **inicializa** en el preámbulo: con `Set-StrictMode`,
+  leer una variable no establecida lanza error.
 
 ### `[System.IO.File]::Open('CONIN$')` NO funciona en PowerShell 5.1
 

@@ -939,8 +939,40 @@ ICLOUD_REMOTE="${ICLOUD_REMOTE:-icloud}"
 ICLOUD_MOUNT="${ICLOUD_MOUNT:-$HOME/icloud}"
 export ICLOUD_REMOTE ICLOUD_MOUNT
 
-# Verifica que rclone este instalado y el remote configurado. Devuelve 1 si no.
-# --- [nube] _icloud_check: (interna) verifica que rclone y el remote existan | uso: _icloud_check ---
+# --- [nube] icloud-relink: reautentica el remote cuando caduco la sesion | uso: icloud-relink ---
+# Apple invalida el trust_token cada tanto (y siempre que cambia el 2FA): ahi
+# rclone tira "421 Misdirected Request / Invalid global session". Pide el codigo
+# de 6 digitos del iPhone. Requiere la password real del Apple ID (las
+# app-specific no sirven: el backend hace el flujo de 2FA completo).
+icloud-relink() {
+    if ! command -v rclone &>/dev/null; then
+        echo "rclone no esta instalado (bootstrap: bash install.sh --tools=rclone)" >&2
+        return 1
+    fi
+    echo "Reautenticando '${ICLOUD_REMOTE}' (tene a mano el codigo 2FA del iPhone)..."
+    if ! rclone config reconnect "${ICLOUD_REMOTE}:"; then
+        echo "Fallo el reconnect. Alternativa: rclone config update ${ICLOUD_REMOTE}" >&2
+        return 1
+    fi
+    echo "Sesion de iCloud renovada."
+}
+
+# Prueba que la sesion siga viva con un listado de la raiz (no baja archivos).
+# Devuelve 0 = OK, 2 = sesion caducada (reautenticable), 1 = otro fallo.
+# --- [nube] _icloud_probe: (interna) verifica que la sesion de iCloud siga viva | uso: _icloud_probe ---
+_icloud_probe() {
+    local out rc=0
+    out="$(rclone lsd "${ICLOUD_REMOTE}:" --retries 1 --low-level-retries 1 2>&1)" || rc=$?
+    [ "$rc" -eq 0 ] && return 0
+    if printf '%s' "$out" | grep -qE 'Invalid global session|421 Misdirected|401 Unauthorized'; then
+        return 2
+    fi
+    printf '%s\n' "$out" >&2
+    return 1
+}
+
+# Verifica rclone, el remote y que la sesion sirva. Devuelve 1 si no.
+# --- [nube] _icloud_check: (interna) verifica rclone, el remote y la sesion | uso: _icloud_check ---
 _icloud_check() {
     if ! command -v rclone &>/dev/null; then
         echo "rclone no esta instalado (bootstrap: bash install.sh --tools=rclone)" >&2
@@ -950,6 +982,27 @@ _icloud_check() {
         echo "Remote '${ICLOUD_REMOTE}' no configurado. Ejecuta: rclone config" >&2
         return 1
     fi
+    local rc=0
+    _icloud_probe || rc=$?
+    case "$rc" in
+        0) return 0 ;;
+        2)
+            echo "Sesion de iCloud caducada (Apple invalida el token cada tanto)." >&2
+            if [ -t 0 ]; then
+                printf "Reautenticar ahora con el codigo 2FA del iPhone? [s/N] "
+                local reply; read -r reply
+                case "$reply" in
+                    [sSyY]) icloud-relink && _icloud_probe && return 0 ;;
+                esac
+            fi
+            echo "Corre: icloud-relink" >&2
+            return 1
+            ;;
+        *)
+            echo "No se pudo contactar iCloud (error arriba). Revisa la red y reintenta." >&2
+            return 1
+            ;;
+    esac
 }
 
 # --- [nube] icloud-mount: monta iCloud Drive en ~/icloud | uso: icloud-mount ---

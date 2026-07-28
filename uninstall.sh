@@ -51,9 +51,6 @@ DOTFILES_TARGETS=(
     "$HOME/.zprofile"
     "$HOME/.config/git/ignore"
     "$HOME/.gitconfig"
-    "$HOME/.gitconfig-personal"
-    "$HOME/.gitconfig-work"
-    "$HOME/.gitconfig-cei_walle"
     "$HOME/.config/git-identities.sh"
     "$HOME/.ssh/config"
     "$HOME/.editorconfig"
@@ -75,6 +72,30 @@ DOTFILES_TARGETS=(
     # huerfano tras desinstalar.
     "$HOME/.config/rclone/rclone.conf"
 )
+
+# Identidades git (~/.gitconfig-<sufijo>): los sufijos salen del vault si define
+# GIT_IDENTITY_FILES, y SE SUMAN a los historicos en vez de reemplazarlos —
+# desinstalar con el vault ya borrado debe limpiar igual los symlinks viejos.
+# El archivo del vault no trae 'declare -gA': hay que declararlo antes (si no,
+# bash lo toma como array indexado y hace aritmetica con el nombre del perfil).
+_id_sfx=(personal work cei_walle)
+if [[ -f "$VAULT_DIR/shell/git-identities.sh" ]]; then
+    _id_from_vault="$(bash -c '
+        declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
+        GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
+        source "$1" >/dev/null 2>&1 || true
+        echo "${!GIT_IDENTITY_FILES[@]}"
+    ' _ "$VAULT_DIR/shell/git-identities.sh" 2>/dev/null)" || _id_from_vault=""
+    if [[ -n "$_id_from_vault" ]]; then
+        read -ra _id_extra <<< "$_id_from_vault"
+        _id_sfx+=("${_id_extra[@]}")
+    fi
+fi
+# Deduplicar (un vault con los sufijos historicos los repetiria).
+while IFS= read -r _s; do
+    [[ -n "$_s" ]] && DOTFILES_TARGETS+=("$HOME/.gitconfig-$_s")
+done < <(printf '%s\n' "${_id_sfx[@]}" | sort -u)
+unset _s _id_sfx _id_extra _id_from_vault
 
 # Lista de paquetes instalados (solo si --remove-packages)
 PACKAGES=(

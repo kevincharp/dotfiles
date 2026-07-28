@@ -39,6 +39,13 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
+# Inicializacion obligatoria: con StrictMode, LEER una variable no establecida
+# lanza error. Stop-Install consulta esta bandera, asi que tiene que existir
+# desde el arranque. $true = corriendo en la sesion del usuario (via iex), donde
+# un 'exit' cerraria la terminal; $false = corriendo como archivo (exit seguro).
+$script:DOTFILES_INLINE_MODE = $false
+$script:DOTFILES_EXIT_CODE   = 0
+
 # ==============================================================================
 # RE-EJECUCION COMO ARCHIVO (imprescindible bajo 'irm | iex')
 # ------------------------------------------------------------------------------
@@ -48,49 +55,57 @@ $ErrorActionPreference = 'Continue'
 # error (verificado: con iex, todo lo que sigue a un 'exit' no se ejecuta y la
 # consola muere; con -File la sesion sobrevive).
 #
-# Solucion: si venimos por iex (no hay $PSCommandPath), nos escribimos a un
-# archivo temporal y nos re-ejecutamos con -File en el MISMO PowerShell. Ahi
-# 'exit' es seguro y todos los mensajes se leen. Se conserva el exit code.
+# Solucion: si venimos por iex, se baja el script a un archivo temporal y se
+# re-ejecuta con -File. Ahi 'exit' es seguro y todos los mensajes se leen.
+#
+# OJO — por que se BAJA de nuevo y no se usa $MyInvocation: bajo iex,
+# $MyInvocation.MyCommand.ScriptBlock devuelve el texto del script CONTENEDOR
+# (el de la sesion), no el de este script. Verificado: dos fragmentos distintos
+# ejecutados por iex reportan el MISMO largo, el del contenedor. Por eso
+# escribirse "a si mismo" desde $MyInvocation no funciona: guardaba el script de
+# afuera. La fuente confiable es la URL de la que ya se venia descargando.
 # ==============================================================================
 
-# DOTFILES_INSTALL_REEXEC es la guarda anti-recursion. Sin ella, si este script
-# se ejecuta por iex ANIDADO dentro de otro script, $MyInvocation devuelve el
-# texto del script CONTENEDOR y se re-lanzaria a si mismo para siempre.
+# DOTFILES_INSTALL_REEXEC es la guarda anti-recursion (el hijo no vuelve a entrar).
 if (-not $PSCommandPath -and -not $env:DOTFILES_INSTALL_REEXEC) {
-    $self = $null
-    try { $self = $MyInvocation.MyCommand.ScriptBlock.ToString() } catch {}
-    # Verificar que el texto sea REALMENTE este script y no el del contenedor
-    # (con un iex anidado $MyInvocation devuelve el script de afuera).
-    if ($self -and $self -match 'GH_USER\s*=' -and $self -match 'CLONAR / ACTUALIZAR REPO PUBLICO') {
-        $reexecOk = $false
-        $tmpSelf = Join-Path $env:TEMP "dotfiles-install-$PID.ps1"
+    $reexecOk  = $false
+    $selfUrl   = 'https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1'
+    $tmpSelf   = Join-Path $env:TEMP "dotfiles-install-$PID.ps1"
+    try {
         try {
-            # UTF8 sin BOM no sirve para 5.1 (lee ANSI): se escribe en Default
-            # (cp1252), que es justo como 5.1 espera leerlo. El archivo es ASCII
-            # puro por diseno (ver CLAUDE.md), asi que no hay perdida.
-            Set-Content -LiteralPath $tmpSelf -Value $self -Encoding Default -ErrorAction Stop
-            $exe = $null
-            try { $exe = (Get-Process -Id $PID).Path } catch {}
-            if (-not $exe) { $exe = 'powershell.exe' }
-            $env:DOTFILES_INSTALL_REEXEC = '1'
-            $reexecOk = $true
-            # $LASTEXITCODE queda seteado por esta llamada: el usuario puede
-            # consultarlo despues, igual que con cualquier comando.
-            & $exe -NoProfile -ExecutionPolicy Bypass -File $tmpSelf
-        } catch {
-            Write-Host "  No se pudo re-ejecutar como archivo: $($_.Exception.Message)" -ForegroundColor DarkYellow
-        } finally {
-            Remove-Item -LiteralPath $tmpSelf -Force -ErrorAction SilentlyContinue
-            Remove-Item Env:\DOTFILES_INSTALL_REEXEC -ErrorAction SilentlyContinue
+            [Net.ServicePointManager]::SecurityProtocol =
+                [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        } catch {}
+        $prevPP = $ProgressPreference
+        $ProgressPreference = 'SilentlyContinue'
+        try {
+            Invoke-WebRequest -Uri $selfUrl -OutFile $tmpSelf -UseBasicParsing -ErrorAction Stop
+        } finally { $ProgressPreference = $prevPP }
+
+        # Sanity check: que lo bajado sea de verdad este instalador.
+        $txt = Get-Content -LiteralPath $tmpSelf -Raw -ErrorAction Stop
+        if ($txt -notmatch 'GH_USER\s*=' -or $txt -notmatch 'CLONAR / ACTUALIZAR REPO PUBLICO') {
+            throw 'el archivo descargado no parece ser install.ps1'
         }
-        # 'return' y no 'exit': aca seguimos dentro de la sesion del usuario.
-        if ($reexecOk) { return }
-        # Si la re-ejecucion fallo se sigue en linea, pero marcando que los
-        # 'exit' son peligrosos (cerrarian la terminal): ver Stop-Install.
-        $script:DOTFILES_INLINE_MODE = $true
-    } else {
-        $script:DOTFILES_INLINE_MODE = $true
+
+        $exe = $null
+        try { $exe = (Get-Process -Id $PID).Path } catch {}
+        if (-not $exe) { $exe = 'powershell.exe' }
+        $env:DOTFILES_INSTALL_REEXEC = '1'
+        $reexecOk = $true
+        # $LASTEXITCODE queda seteado por esta llamada.
+        & $exe -NoProfile -ExecutionPolicy Bypass -File $tmpSelf
+    } catch {
+        # Sin red o URL caida: se sigue en linea. Los 'exit' quedan marcados como
+        # peligrosos (cerrarian la terminal) via DOTFILES_INLINE_MODE.
+        Write-Host "  (no se pudo re-ejecutar como archivo: $($_.Exception.Message))" -ForegroundColor DarkGray
+    } finally {
+        Remove-Item -LiteralPath $tmpSelf -Force -ErrorAction SilentlyContinue
+        Remove-Item Env:\DOTFILES_INSTALL_REEXEC -ErrorAction SilentlyContinue
     }
+    # 'return' y no 'exit': aca seguimos dentro de la sesion del usuario.
+    if ($reexecOk) { return }
+    $script:DOTFILES_INLINE_MODE = $true
 }
 
 # ==============================================================================
@@ -152,13 +167,15 @@ function Stop-Install {
     # Termina el instalador SIN cerrarle la terminal al usuario.
     # Bajo 'irm | iex' un 'exit' pelado mata la sesion (cierra la ventana). Lo
     # normal es que la re-ejecucion como archivo ya nos haya puesto a salvo; si
-    # no se pudo (DOTFILES_INLINE_MODE), se lanza una excepcion que corta el
-    # script y deja la consola viva.
+    # no se pudo (DOTFILES_INLINE_MODE), se corta con 'break' sobre la etiqueta
+    # del bloque principal: termina el script y deja la consola viva, SIN el
+    # volcado rojo de excepcion que ensuciaba la pantalla.
     param([int]$Code = 1)
     if ($script:DOTFILES_INLINE_MODE) {
         Write-Host ''
         Write-Host '  (instalacion interrumpida)' -ForegroundColor DarkGray
-        throw [System.OperationCanceledException]::new('dotfiles-install-abort')
+        $script:DOTFILES_EXIT_CODE = $Code
+        break dotfilesInstall
     }
     exit $Code
 }
@@ -234,7 +251,7 @@ function Install-Winget {
     # VCLibs y UI.Xaml son dependencias del .msixbundle; si ya estan, el
     # Add-AppxPackage falla con "ya instalado" y se ignora.
     Write-Log 'Instalando winget (App Installer)...' 'INFO'
-    Write-Log 'Son 3 descargas (~60 MB en total): VCLibs, UI.Xaml y el bundle.' 'INFO'
+    Write-Log 'Son 4 descargas (~80 MB en total): 3 dependencias y el bundle.' 'INFO'
 
     # PowerShell 5.1 negocia TLS 1.0 por defecto y GitHub/aka.ms lo rechazan.
     try {
@@ -253,11 +270,18 @@ function Install-Winget {
     New-Item -ItemType Directory -Path $tmp -Force -ErrorAction SilentlyContinue | Out-Null
 
     # El orden importa: las dependencias van antes del bundle.
+    #
+    # WindowsAppRuntime: las versiones NUEVAS del App Installer (1.29+) dependen
+    # de Microsoft.WindowsAppRuntime.1.8, que NO viene en una imagen limpia de
+    # Windows (ni en Sandbox). Sin el, Add-AppxPackage falla con 0x80073CF3
+    # ("depende de un marco que no se encontro"). Se instala antes.
     $pkgs = @(
         @{ Name = 'VCLibs';  File = 'VCLibs.appx'
            Url  = 'https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx'; Required = $false }
         @{ Name = 'UI.Xaml'; File = 'UIXaml.appx'
            Url  = 'https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx'; Required = $false }
+        @{ Name = 'WindowsAppRuntime'; File = 'WinAppRuntime.exe'
+           Url  = 'https://aka.ms/windowsappsdk/1.8/latest/windowsappruntimeinstall-x64.exe'; Required = $false; Installer = 'exe' }
         @{ Name = 'App Installer (winget)'; File = 'winget.msixbundle'
            Url  = 'https://aka.ms/getwinget'; Required = $true }
     )
@@ -281,12 +305,37 @@ function Install-Winget {
             continue
         }
         try {
-            Add-AppxPackage -Path $out -ErrorAction Stop
+            if ($p.ContainsKey('Installer') -and $p.Installer -eq 'exe') {
+                # WindowsAppRuntime viene como .exe, no como appx.
+                $proc = Start-Process -FilePath $out -ArgumentList '--quiet' -Wait -PassThru -ErrorAction Stop
+                if ($proc.ExitCode -ne 0) { throw "el instalador devolvio $($proc.ExitCode)" }
+            } else {
+                Add-AppxPackage -Path $out -ErrorAction Stop
+            }
             Write-Log "$($p.Name) instalado" 'OK'
         } catch {
-            # Si ya estaba instalada (caso comun) no es un problema.
-            if ($p.Required) {
-                Write-Log "No se pudo instalar $($p.Name): $($_.Exception.Message)" 'WARN'
+            $msg = $_.Exception.Message
+            if (-not $p.Required) {
+                # Si ya estaba instalada (caso comun) no es un problema.
+                Write-Log "$($p.Name): no se instalo, sigo ($($msg.Split([char]10)[0]))" 'WARN'
+                continue
+            }
+            # El bundle es el que importa. Si fallo por dependencia faltante
+            # (0x80073CF3), se reintenta con una version ANTERIOR del App
+            # Installer, que no necesita WindowsAppRuntime.
+            Write-Log "No se pudo instalar $($p.Name)." 'WARN'
+            Write-Log $msg.Split([char]10)[0] 'INFO'
+            if ($msg -match '0x80073CF3|marco que no se encontro|framework') {
+                Write-Log 'Reintentando con una version anterior de winget (sin esa dependencia)...' 'INFO'
+                $legacyUrl = 'https://github.com/microsoft/winget-cli/releases/download/v1.9.25200/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'
+                $legacyOut = Join-Path $tmp 'winget-legacy.msixbundle'
+                try {
+                    Invoke-WebRequest -Uri $legacyUrl -OutFile $legacyOut -UseBasicParsing -ErrorAction Stop
+                    Add-AppxPackage -Path $legacyOut -ErrorAction Stop
+                    Write-Log 'winget (version 1.9) instalado' 'OK'
+                } catch {
+                    Write-Log "El reintento tambien fallo: $($_.Exception.Message.Split([char]10)[0])" 'WARN'
+                }
             }
         }
     }
@@ -321,6 +370,65 @@ function Install-Winget {
     Write-Log 'winget no quedo disponible tras la instalacion' 'ERROR'
     return $false
 }
+
+function Install-Pwsh7Msi {
+    # Instala PowerShell 7 desde su MSI oficial, SIN winget. Es el plan B cuando
+    # winget no se puede instalar (p.ej. imagenes limpias donde el App Installer
+    # nuevo pide WindowsAppRuntime y falla): pwsh 7 no necesita nada de eso, y con
+    # pwsh 7 el bootstrap ya puede seguir. El MSI se instala por maquina, asi que
+    # puede pedir elevacion (UAC).
+    param([string]$Version = '7.4.6')
+
+    $arch = if ([Environment]::Is64BitOperatingSystem) { 'x64' } else { 'x86' }
+    $url  = "https://github.com/PowerShell/PowerShell/releases/download/v$Version/PowerShell-$Version-win-$arch.msi"
+    $msi  = Join-Path $env:TEMP "PowerShell-$Version-win-$arch.msi"
+
+    Write-Log "Instalando PowerShell 7 desde el MSI oficial (~100 MB)..." 'INFO'
+    try {
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    } catch {}
+
+    $prevPP = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $msi -UseBasicParsing -ErrorAction Stop
+    } catch {
+        Write-Log "No se pudo descargar el MSI: $($_.Exception.Message)" 'ERROR'
+        $ProgressPreference = $prevPP
+        return $false
+    } finally { $ProgressPreference = $prevPP }
+
+    Write-Log 'Ejecutando el instalador (puede pedir permisos de administrador)...' 'INFO'
+    try {
+        $args = @('/i', "`"$msi`"", '/quiet', '/norestart',
+                  'ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=0', 'ENABLE_PSREMOTING=0', 'REGISTER_MANIFEST=1')
+        $proc = Start-Process -FilePath 'msiexec.exe' -ArgumentList $args -Wait -PassThru -ErrorAction Stop
+        # 3010 = instalado, requiere reinicio (no hace falta para usar pwsh).
+        if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
+            Write-Log "msiexec devolvio $($proc.ExitCode)" 'WARN'
+        }
+    } catch {
+        Write-Log "No se pudo ejecutar el MSI: $($_.Exception.Message)" 'ERROR'
+        return $false
+    } finally {
+        Remove-Item -LiteralPath $msi -Force -ErrorAction SilentlyContinue
+    }
+
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+                [Environment]::GetEnvironmentVariable('Path', 'User')
+    if (Find-Pwsh7) {
+        Write-Log 'PowerShell 7 instalado' 'OK'
+        return $true
+    }
+    Write-Log 'El MSI corrio pero no encuentro pwsh 7.' 'WARN'
+    return $false
+}
+
+# Bloque etiquetado que envuelve todo el cuerpo: permite a Stop-Install cortar
+# con 'break dotfilesInstall' cuando no se pudo re-ejecutar como archivo (ahi un
+# 'exit' cerraria la terminal del usuario). Se cierra al final del archivo.
+:dotfilesInstall do {
 
 # ==============================================================================
 # 0. VERIFICAR (Y OFRECER INSTALAR) POWERSHELL 7 — antes de tocar NADA
@@ -383,29 +491,41 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             Stop-Install 1
         }
 
-        if ($needWinget) {
-            if (-not (Install-Winget)) {
-                Write-Log 'Sin winget no puedo seguir instalando.' 'ERROR'
-                Write-Log 'Opciones: instalar "App Installer" desde la Microsoft Store' 'WARN'
-                Write-Log '(https://aka.ms/getwinget), o PowerShell 7 a mano (https://aka.ms/powershell)' 'WARN'
-                Write-Log 'y volver a correr el one-liner desde pwsh.' 'WARN'
-                Stop-Install 1
-            }
+        # Si winget no se pudo instalar NO se aborta: pwsh 7 tiene un MSI oficial
+        # que no depende de winget, y con pwsh 7 el bootstrap ya puede correr
+        # (el propio bootstrap reinstalara/usara winget cuando este disponible).
+        $wingetOk = $true
+        if ($needWinget) { $wingetOk = Install-Winget }
+
+        if ($wingetOk) {
+            Write-Log 'Instalando PowerShell 7 via winget (~100 MB, es la parte mas larga)...' 'INFO'
+            # La primera corrida de winget ademas sincroniza sus indices de fuentes,
+            # lo que suma bastante: se avisa para que no parezca colgado.
+            if ($needWinget) { Write-Log 'winget recien instalado: la primera vez sincroniza sus fuentes.' 'INFO' }
+            winget install --id Microsoft.PowerShell -e --accept-package-agreements --accept-source-agreements
+            # Refrescar el PATH del proceso: winget deja pwsh en Program Files pero
+            # esta sesion no lo ve hasta recargar el PATH de Machine + User.
+            $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+                        [Environment]::GetEnvironmentVariable('Path', 'User')
+            $pwshPath = Find-Pwsh7
+        } else {
+            Write-Log 'No se pudo instalar winget, pero PowerShell 7 no lo necesita:' 'WARN'
+            Write-Log 'se usa su instalador MSI oficial. winget se puede instalar despues' 'INFO'
+            Write-Log 'desde la Microsoft Store (https://aka.ms/getwinget).' 'INFO'
+            if (Install-Pwsh7Msi) { $pwshPath = Find-Pwsh7 }
         }
 
-        Write-Log 'Instalando PowerShell 7 via winget (~100 MB, es la parte mas larga)...' 'INFO'
-        # La primera corrida de winget ademas sincroniza sus indices de fuentes,
-        # lo que suma bastante: se avisa para que no parezca colgado.
-        if ($needWinget) { Write-Log 'winget recien instalado: la primera vez sincroniza sus fuentes.' 'INFO' }
-        winget install --id Microsoft.PowerShell -e --accept-package-agreements --accept-source-agreements
-        # Refrescar el PATH del proceso: winget deja pwsh en Program Files pero
-        # esta sesion no lo ve hasta recargar el PATH de Machine + User.
-        $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-                    [Environment]::GetEnvironmentVariable('Path', 'User')
-        $pwshPath = Find-Pwsh7
         if (-not $pwshPath) {
-            Write-Log 'PowerShell 7 se instalo pero no lo encuentro en esta sesion.' 'ERROR'
-            Write-Log 'Cerra y reabri la terminal, y corre el one-liner desde pwsh:' 'WARN'
+            # Ultimo intento: si winget estaba pero su install de pwsh fallo, se
+            # prueba el MSI antes de rendirse.
+            if ($wingetOk -and (Install-Pwsh7Msi)) {
+                $pwshPath = Find-Pwsh7
+            }
+        }
+        if (-not $pwshPath) {
+            Write-Log 'No se pudo dejar PowerShell 7 disponible en esta sesion.' 'ERROR'
+            Write-Log 'Instalalo a mano (https://aka.ms/powershell), reabri la terminal' 'WARN'
+            Write-Log 'y corre el one-liner desde pwsh:' 'WARN'
             Write-Log "  pwsh -NoProfile -Command `"$oneLiner`"" 'INFO'
             Stop-Install 1
         }
@@ -701,3 +821,7 @@ if ($LASTEXITCODE -eq 0 -and $originUrl -like 'https://*') {
     Write-Log '3. Si es TU repo (o tu fork) y queres pushear sin credenciales, pasa el remote a SSH:' 'INFO'
     Write-Log "   cd $DOTFILES_DIR; git remote set-url origin $PUBLIC_SSH" 'INFO'
 }
+
+# Cierre del bloque etiquetado :dotfilesInstall (ver arriba). El 'while ($false)'
+# lo hace correr una sola vez; existe solo para que 'break' tenga a que salir.
+} while ($false)

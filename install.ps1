@@ -502,7 +502,11 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             # La primera corrida de winget ademas sincroniza sus indices de fuentes,
             # lo que suma bastante: se avisa para que no parezca colgado.
             if ($needWinget) { Write-Log 'winget recien instalado: la primera vez sincroniza sus fuentes.' 'INFO' }
-            winget install --id Microsoft.PowerShell -e --accept-package-agreements --accept-source-agreements
+            # --source winget es OBLIGATORIO: si la fuente 'msstore' falla (en
+            # Sandbox y detras de proxies corporativos da error de certificado),
+            # winget encuentra el paquete en 2 fuentes, no elige ninguna y sale
+            # sin instalar nada pidiendo --source. Fijandola, msstore no importa.
+            winget install --id Microsoft.PowerShell -e --source winget --accept-package-agreements --accept-source-agreements
             # Refrescar el PATH del proceso: winget deja pwsh en Program Files pero
             # esta sesion no lo ve hasta recargar el PATH de Machine + User.
             $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
@@ -588,16 +592,34 @@ if (-not (Test-CommandAvailable 'git')) {
         }
     }
     Write-Log 'Instalando git via winget...' 'INFO'
-    winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements
+    # --source winget: ver nota en el gate de pwsh 7 (sin esto, si msstore falla
+    # winget no elige fuente y no instala nada).
+    winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
     # Refrescar el PATH del proceso actual: winget deja git en Program Files pero
     # esta sesion no lo ve hasta recargar el PATH de Machine + User.
     $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
                 [Environment]::GetEnvironmentVariable('Path', 'User')
     if (-not (Test-CommandAvailable 'git')) {
+        # El PATH de Machine tarda en propagarse (o winget lo dejo solo en el
+        # registro): se buscan las rutas fijas de Git for Windows y se agregan a
+        # mano, para no obligar al usuario a reabrir la terminal.
+        foreach ($gitDir in @(
+            "$env:ProgramFiles\Git\cmd",
+            "${env:ProgramFiles(x86)}\Git\cmd",
+            "$env:LOCALAPPDATA\Programs\Git\cmd"
+        )) {
+            if ($gitDir -and (Test-Path (Join-Path $gitDir 'git.exe'))) {
+                $env:Path = "$env:Path;$gitDir"
+                break
+            }
+        }
+    }
+    if (-not (Test-CommandAvailable 'git')) {
         Write-Log 'Git se instalo pero no quedo en el PATH de esta sesion.' 'ERROR'
         Write-Log 'Cerra y reabri la terminal, y volve a correr install.ps1.' 'WARN'
         Stop-Install 1
     }
+    Write-Log 'git instalado' 'OK'
 }
 $gitVersion = (git --version) -replace 'git version ', ''
 Write-Log "git $gitVersion OK" 'OK'
@@ -698,7 +720,7 @@ function Invoke-CloneVault {
         if (-not (Test-CommandAvailable 'gh')) {
             Write-Log 'gh no instalado - instalando via winget...' 'INFO'
             if (Test-CommandAvailable 'winget') {
-                winget install --id GitHub.cli -e --accept-package-agreements --accept-source-agreements | Out-Null
+                winget install --id GitHub.cli -e --source winget --accept-package-agreements --accept-source-agreements | Out-Null
             } else {
                 Write-Log 'winget no disponible - instala gh manualmente' 'ERROR'; return $false
             }

@@ -79,9 +79,10 @@ Al terminar: **abrí una terminal nueva** y probá `dothelp`.
 > `--tools=a,b,c`, `--update-only`. Lista completa en
 > [docs/instalacion.md](docs/instalacion.md#flags).
 
-## ¿No sos Kevin?
+## Adoptarlo como tuyo
 
-El repo es personal pero está pensado para adoptarse. Tres niveles:
+Nació como config personal, pero está pensado para que cualquiera lo use. Tres
+niveles, de menor a mayor compromiso:
 
 | Nivel | Qué hacés | Qué obtenés |
 |---|---|---|

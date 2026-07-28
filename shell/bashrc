@@ -526,7 +526,12 @@ edit-history() {
 # El bootstrap las copia a ~/.config/git-identities.sh. Si no estan, las
 # funciones gclone/gset-profile/ginit avisan que falta el vault.
 _GIT_IDENTITIES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
-declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL
+# Hay que declarar TODOS los arrays asociativos que el vault pueda asignar, no
+# solo los que se usan aca. Si falta uno, 'MAPA[clave]=x' se toma como array
+# indexado y la clave se evalua como aritmetica: con claves no numericas
+# ('personal') el source ABORTA ahi mismo y las identidades quedan sin cargar
+# (gclone/ginit rotos). Los vaults del asistente definen GIT_IDENTITY_FILES.
+declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
 if [[ -f "$_GIT_IDENTITIES_FILE" ]]; then
     . "$_GIT_IDENTITIES_FILE"
 fi

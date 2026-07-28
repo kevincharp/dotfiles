@@ -431,11 +431,11 @@ function Install-WingetPackage {
     Write-Log "Instalando $Name ($Id)..." 'INFO'
 
     if ($DryRun) {
-        Write-Log "[DryRun] winget install --id $Id -e --accept-package-agreements --accept-source-agreements" 'SKIP'
+        Write-Log "[DryRun] winget install --id $Id -e --source winget --accept-package-agreements --accept-source-agreements" 'SKIP'
         return
     }
 
-    $result = winget install --id $Id -e --accept-package-agreements --accept-source-agreements 2>&1
+    $result = winget install --id $Id -e --source winget --accept-package-agreements --accept-source-agreements 2>&1
     if ($LASTEXITCODE -ne 0) {
         $msg = "Error instalando $Name`: $result"
         if ($Optional) {

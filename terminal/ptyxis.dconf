@@ -15,7 +15,7 @@ palette='linux'
 
 [Profiles/efb537879e29f6d38e04d1e56a2e4ff5]
 cell-width-scale=1.0
-label='kevincharp'
+label='dotfiles'
 login-shell=false
 palette='linux'
 

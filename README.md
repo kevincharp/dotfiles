@@ -10,7 +10,9 @@ prompt, mismos atajos, mismas funciones en bash, zsh y PowerShell.
 
 - **Instalador interactivo con selector**: elegís qué instalar de un catálogo de
   ~30 herramientas por grupos (core, shell, dev, cloud, fonts, apps). Nada se
-  instala sin que lo marques.
+  instala sin que lo marques — y **tampoco se configura**: la config de cada
+  herramienta se aplica solo si la elegiste o ya la tenías instalada. Si no
+  marcás Neovim, tu `~/.config/nvim` no se toca.
 - **Tres shells, una experiencia**: prompt [oh-my-posh](https://ohmyposh.dev)
   temado, syntax highlighting mientras tipeás, sugerencias desde el historial y
   la misma paleta de colores en bash, zsh y PowerShell 7.

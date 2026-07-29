@@ -189,7 +189,7 @@ $DOTFILES = @(
 # Un perfil de identidad por sufijo del vault (ver $idSuffixes): con nombres
 # propios (freelance, cliente-x...) antes no se symlinkeaba ninguno.
 foreach ($s in $idSuffixes) {
-    $DOTFILES_MAP += @{ Src="git\config-$s"; Dst="$HOME\.gitconfig-$s"; Mode='link'; Root='vault' }
+    $DOTFILES += @{ Src="git\config-$s"; Dst="$HOME\.gitconfig-$s"; Mode='link'; Root='vault' }
 }
 
 # ==============================================================================

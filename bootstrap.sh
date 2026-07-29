@@ -364,6 +364,26 @@ tool_installed() {
     esac
 }
 
+# want_tool <id> — DECISION UNICA de "¿el usuario quiere esta herramienta?":
+# 0 si la eligio en el selector (SELECTED_TOOLS) o ya la tiene instalada.
+#
+# Es el gate de las CONFIGS del paso [5/8]: sin esto se symlinkeaban configs de
+# herramientas que el tercero nunca pidio (un ~/.config/nvim apuntando a esta
+# config aunque no tenga nvim, y peor, el CLAUDE.md con reglas personales del
+# autor). El README promete "nada se instala sin que lo marques": esto lo hace
+# valer tambien para las configs, no solo para los paquetes.
+#
+# Cuenta "ya instalada" a proposito: si la maquina ya tiene nvim de antes y el
+# usuario no lo marco (no hacia falta reinstalarlo), igual quiere su config.
+# Ese es el caso normal al re-correr el bootstrap.
+want_tool() {
+    local id="$1" t
+    for t in "${SELECTED_TOOLS[@]:-}"; do
+        [[ "$t" == "$id" ]] && return 0
+    done
+    tool_installed "$id"
+}
+
 # install_tool <id> — instala la herramienta (logica por distro preservada)
 install_tool() {
     case "$1" in
@@ -1485,10 +1505,15 @@ _QUIET_STEPS=1; _QUIET_OK=0
 
 gb_sub 15 "symlinks de shell y git"
 # Shell (symlinks: editar en el repo se ve al instante)
+# bash es el shell base de cualquier Linux: su config va siempre.
 copy_dotfile "shell/bashrc"         "$HOME/.bashrc"        "link"
 copy_dotfile "shell/bash_profile"   "$HOME/.bash_profile"  "link"
-copy_dotfile "shell/zshrc"          "$HOME/.zshrc"         "link"
-copy_dotfile "shell/zprofile"       "$HOME/.zprofile"      "link"
+# zsh solo si el usuario lo tiene o lo eligio: sin zsh instalado estos symlinks
+# son huerfanos (nadie los lee) y ensucian el home de quien nunca pidio zsh.
+if want_tool zsh; then
+    copy_dotfile "shell/zshrc"      "$HOME/.zshrc"         "link"
+    copy_dotfile "shell/zprofile"   "$HOME/.zprofile"      "link"
+fi
 
 # Git ignore (publico)
 copy_dotfile "git/ignore"           "$HOME/.config/git/ignore"    "link"
@@ -1616,12 +1641,16 @@ copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
 # Neovim: la config completa (kickstart + plugins) vive versionada en nvim/.
 # Symlink de DIRECTORIO: ~/.config/nvim → <repo>/nvim, asi lazy.nvim escribe el
 # lazy-lock.json directo en el repo y cualquier ajuste se versiona al instante.
-link_dir "nvim" "$HOME/.config/nvim"
+# Gateado: sin esto, quien no eligio neovim se llevaba ~/.config/nvim apuntando
+# aca, y el dia que instalara nvim arrancaba con ESTA config en vez de la propia.
+if want_tool neovim; then
+    link_dir "nvim" "$HOME/.config/nvim"
+fi
 
 # yazi (file manager TUI): config en ~/.config/yazi (en Windows va a %APPDATA%,
 # ver bootstrap.ps1). Symlink: editar en el repo se versiona al instante. Solo
 # si yazi esta instalado (evita crear un symlink huerfano en maquinas sin yazi).
-if has_cmd yazi; then
+if want_tool yazi; then
     copy_dotfile "yazi/yazi.toml"   "$HOME/.config/yazi/yazi.toml"  "link"
 fi
 
@@ -1630,7 +1659,12 @@ fi
 # donde Symbola y Noto Emoji (monocromaticas) ganan y los emoji salen en B/N.
 # El fonts.conf las desprioriza para que gane Noto Color Emoji. Symlink: editarlo
 # en el repo se versiona al instante.
-copy_dotfile "fontconfig/fonts.conf"  "$HOME/.config/fontconfig/fonts.conf"  "link"
+# Gateado por Chrome/Chromium: es una preferencia de fuentes de TODO el sistema
+# (con rejectfont adentro), no algo que corresponda imponerle a quien no tiene
+# el navegador cuyo bug arregla.
+if want_tool chrome || has_cmd chromium; then
+    copy_dotfile "fontconfig/fonts.conf"  "$HOME/.config/fontconfig/fonts.conf"  "link"
+fi
 
 # Claude Code
 # settings.json va por symlink: editarlo en el repo (o cambios via /config) se
@@ -1639,24 +1673,30 @@ copy_dotfile "fontconfig/fonts.conf"  "$HOME/.config/fontconfig/fonts.conf"  "li
 # settings.local.json NO se toca: es config por-maquina (permisos con rutas
 # absolutas), no esta trackeado y cada PC mantiene el suyo. statusline.sh tampoco
 # se copia: el settings.json lo referencia directo desde el repo.
-copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
-# CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
-# que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
-copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
+# Gateado por want_tool: quien no eligio Claude Code se llevaba igual un
+# ~/.claude/settings.json apuntando al statusline.sh de este repo y, sobre todo,
+# las REGLAS de trabajo del autor (ver nota de CLAUDE.md abajo).
+if want_tool claude; then
+    copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
+    # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
+    # que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
+    copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
+fi
 # El MISMO archivo rige para los otros agentes de IA: Codex y opencode leen
 # AGENTS.md (en ~/.codex y ~/.config/opencode). Fuente unica: editar el
 # CLAUDE.md global es editar las reglas de todos. Solo si el CLI esta instalado.
-if has_cmd codex; then
+if want_tool codex; then
     copy_dotfile ".claude/CLAUDE.md"         "$HOME/.codex/AGENTS.md"       "link"
 fi
-if has_cmd opencode; then
+if want_tool opencode; then
     copy_dotfile ".claude/CLAUDE.md"         "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md"  "link"
 fi
 
-# Tema oh-my-posh claude-code
+# Tema oh-my-posh claude-code — solo si oh-my-posh se tiene o se eligio (es el
+# unico que lee ~/.config/oh-my-posh/themes; sin el es un archivo muerto).
 _omp_themes_dst="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes"
 _omp_src="$REPO_ROOT/shell/themes/claude-code.omp.json"
-if [[ -f "$_omp_src" ]]; then
+if [[ -f "$_omp_src" ]] && want_tool oh-my-posh; then
     mkdir -p "$_omp_themes_dst"
     run_step "Copiar tema claude-code.omp.json → oh-my-posh themes" \
         cp "$_omp_src" "$_omp_themes_dst/claude-code.omp.json"
@@ -1671,7 +1711,7 @@ unset _omp_themes_dst _omp_src
 # Ulauncher no funciona, por eso lo dispara un atajo de GNOME -> ulauncher-toggle.
 # El autostart se copia (no symlink) a ~/.config/autostart: GNOME reescribe ese
 # .desktop si se togglea desde la GUI de "Aplicaciones al inicio".
-if has_cmd ulauncher; then
+if want_tool ulauncher; then
     copy_dotfile "ulauncher/settings.json"   "$HOME/.config/ulauncher/settings.json"   "link"
     copy_dotfile "ulauncher/shortcuts.json"  "$HOME/.config/ulauncher/shortcuts.json"  "link"
     copy_dotfile "ulauncher/autostart.desktop" "$HOME/.config/autostart/ulauncher.desktop"
@@ -1684,7 +1724,7 @@ fi
 # va por symlink: editarlo por la GUI se versiona al instante. OJO: el archivo
 # tiene el serial del mouse y el unit_id del receptor incrustados en las claves,
 # asi que es best-effort (sirve con el mismo mouse; si cambia, OpenLogi regenera).
-if has_cmd openlogi; then
+if want_tool openlogi; then
     copy_dotfile "openlogi/config.toml" "$HOME/.config/openlogi/config.toml" "link"
 fi
 

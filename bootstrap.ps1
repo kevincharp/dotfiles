@@ -63,13 +63,20 @@ $ctxDirs = @('personal', 'work', 'cei_walle')
 # Sufijos de los ~/.gitconfig-<sufijo>: idem, del mapa $GitIdentityFiles del
 # vault. Sin esto los perfiles de un vault ajeno no se symlinkean nunca.
 $idSuffixes = @('personal', 'work', 'cei_walle')
+# Un host alias real del vault, para el consejo final de "verifica tus claves
+# SSH" (antes se sugeria el alias del autor, inexistente en otros vaults).
+$script:sshAliasHint = $null
 $giVault = Join-Path $VAULT_DIR 'shell\git-identities.ps1'
 if (Test-Path $giVault) {
     $GitContextDirs = $null
     $GitIdentityFiles = $null
+    $GitSshAliases = $null
     . $giVault
     if ($GitContextDirs) { $ctxDirs = @($GitContextDirs) }
     if ($GitIdentityFiles) { $idSuffixes = @($GitIdentityFiles.Keys) }
+    if ($GitSshAliases -and $GitSshAliases.Keys.Count -gt 0) {
+        $script:sshAliasHint = ($GitSshAliases.Keys | Sort-Object | Select-Object -First 1)
+    }
 }
 foreach ($c in $ctxDirs) { $DIRS += (Join-Path $HOME "repositorios\$c") }
 
@@ -1661,9 +1668,13 @@ $stepNum = 1
 Write-Host "    $($script:C_DIM)$stepNum. Abri una terminal nueva para recargar el profile$($script:C_RESET)"
 $stepNum++
 if ($WithAws) {
-    Write-Host "    $($script:C_DIM)$stepNum. Ejecuta: aws configure sso (completar datos de SMG)$($script:C_RESET)"
+    Write-Host "    $($script:C_DIM)$stepNum. Ejecuta: aws configure sso (completar los datos de tu organizacion)$($script:C_RESET)"
     $stepNum++
     Write-Host "    $($script:C_DIM)$stepNum. Ejecuta: aws sts get-caller-identity --profile tu_usuario$($script:C_RESET)"
     $stepNum++
 }
-Write-Host "    $($script:C_DIM)$stepNum. Verifica tus claves SSH: ssh -T git@github.com-kevincharp$($script:C_RESET)"
+if ($script:sshAliasHint) {
+    Write-Host "    $($script:C_DIM)$stepNum. Verifica tus claves SSH: ssh -T git@$($script:sshAliasHint)$($script:C_RESET)"
+} else {
+    Write-Host "    $($script:C_DIM)$stepNum. Verifica tus claves SSH: ssh -T git@<host-alias-de-tu-vault>$($script:C_RESET)"
+}

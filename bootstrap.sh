@@ -2050,7 +2050,16 @@ printf '    %bBackups:%b %s\n' "$C_DIM" "$C_RESET" "$BACKUP_DIR"
 
 banner "Proximos pasos"
 log "1. Abri una terminal nueva para recargar el profile" "INFO"
-log "2. Verifica tus claves SSH: ssh -T git@github.com-kevincharp" "INFO"
+# El host alias sale del vault (antes se sugeria el del autor, que no existe en
+# otros vaults). Sin vault se muestra un placeholder.
+_ssh_alias_hint="$(bash -c '
+    declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
+    GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
+    source "$1" >/dev/null 2>&1 || true
+    for _a in "${!GIT_SSH_ALIASES[@]}"; do echo "$_a"; done | sort | head -1
+' _ "$VAULT_DIR/shell/git-identities.sh" 2>/dev/null)" || _ssh_alias_hint=""
+log "2. Verifica tus claves SSH: ssh -T git@${_ssh_alias_hint:-<host-alias-de-tu-vault>}" "INFO"
+unset _ssh_alias_hint
 if [[ "$WITH_AWS" == true ]]; then
     log "3. Ejecuta: aws configure sso" "INFO"
 fi

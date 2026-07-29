@@ -1923,7 +1923,7 @@ output = json
 AWSCFG
             # Perfiles adicionales bajo la MISMA sso-session (reusan el login).
             # Formato en ~/.env: AWS_EXTRA_PROFILES="perfil:cuenta:rol[:region];..."
-            # Ej: "ecs-pre:562722450811:Control_de_Cambios_e_Imp.;ecs-prod:245109378300:Control_de_Cambios_e_Imp."
+            # Ej: "pre:111111111111:MiRol;prod:222222222222:MiRol"
             if [[ -n "${AWS_EXTRA_PROFILES:-}" ]]; then
                 _extra_n=0
                 _oldifs="$IFS"; IFS=';'

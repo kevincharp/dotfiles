@@ -1411,10 +1411,22 @@ if (-not $WithAws) {
     # AWS con certificados + login por navegador: todo interactivo/verboso -> fuera
     # de la barra.
     Suspend-Bar
-    # Configurar combined-ca.pem para Netskope (solo si existe el cert)
-    $netskopeThumb = (Get-ChildItem -Path Cert:\LocalMachine\Root |
-                      Where-Object { $_.Subject -match "Netskope" } |
-                      Select-Object -First 1).Thumbprint
+    # Configurar combined-ca.pem para Netskope (solo si existe el cert).
+    # OJO con Set-StrictMode: si el Where-Object no encuentra nada (o sea, en
+    # cualquier maquina SIN el proxy corporativo), el pipeline devuelve $null y
+    # leerle .Thumbprint lanza PropertyNotFoundException; el 'if' de abajo
+    # fallaba despues por variable no asignada. Dos volcados rojos en el paso de
+    # Bedrock para todo el que no tenga Netskope. De ahi el $null explicito y el
+    # try/catch (el drive Cert: tampoco existe fuera de Windows).
+    $netskopeThumb = $null
+    try {
+        $netskopeCert = Get-ChildItem -Path Cert:\LocalMachine\Root -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Subject -match "Netskope" } |
+                        Select-Object -First 1
+        if ($netskopeCert) { $netskopeThumb = $netskopeCert.Thumbprint }
+    } catch {
+        Write-Log "No se pudo leer el almacen de certificados — salteo el ajuste de CA bundle" 'SKIP'
+    }
 
     if ($netskopeThumb) {
         Invoke-Step "Exportar cert Netskope y crear combined-ca.pem" {

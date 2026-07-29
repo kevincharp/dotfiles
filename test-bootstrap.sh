@@ -470,6 +470,78 @@ else
 fi
 
 # ==============================================================================
+# 13. GATE DE CONFIGS POR HERRAMIENTA
+# ------------------------------------------------------------------------------
+# Ninguna config debe aplicarse por el solo hecho de estar en el repo: primero
+# pasa por want_tool (bash) / Test-ToolWanted (pwsh). Sin esto, un tercero que
+# elige 3 herramientas se lleva igual la config de nvim y las reglas de IA del
+# autor. Se verifica de forma ESTATICA (grep sobre los bootstraps): correr el
+# bootstrap real desde el test cambiaria la maquina.
+# ==============================================================================
+
+section "13. Gate de configs por herramienta"
+
+# Raiz del repo = donde vive este script (funciona corriendolo desde cualquier cwd).
+_repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_bs_sh="$_repo_root/bootstrap.sh"
+_bs_ps="$_repo_root/bootstrap.ps1"
+
+# La primitiva tiene que existir en los dos bootstraps (paridad).
+if grep -q '^want_tool()' "$_bs_sh"; then
+    test_ok "want_tool definida en bootstrap.sh"
+else
+    test_fail "want_tool" "no esta definida en bootstrap.sh"
+fi
+if grep -q 'function Test-ToolWanted' "$_bs_ps"; then
+    test_ok "Test-ToolWanted definida en bootstrap.ps1 (paridad)"
+else
+    test_fail "Test-ToolWanted" "falta en bootstrap.ps1 (paridad rota con want_tool)"
+fi
+
+# Configs de Linux que NO deben aplicarse sin su herramienta. Formato:
+# <patron del copy_dotfile/link_dir> | <id que lo tiene que gatear>
+_gated_sh=(
+    'link_dir "nvim"|neovim'
+    'yazi/yazi.toml|yazi'
+    'copy_dotfile ".claude/settings.json"|claude'
+    'ulauncher/settings.json|ulauncher'
+    'openlogi/config.toml|openlogi'
+    'shell/zshrc|zsh'
+)
+for _entry in "${_gated_sh[@]}"; do
+    _pat="${_entry%%|*}"; _tool="${_entry##*|}"
+    # Linea de la config y el want_tool mas cercano por encima: si el gate
+    # correcto no aparece en las 12 lineas previas, la config esta suelta.
+    _ln=$(grep -nF "$_pat" "$_bs_sh" | head -1 | cut -d: -f1)
+    if [[ -z "$_ln" ]]; then
+        test_warn "Gate de $_tool" "no encontre '$_pat' en bootstrap.sh (¿se renombro?)"
+    elif sed -n "$(( _ln > 12 ? _ln - 12 : 1 )),${_ln}p" "$_bs_sh" | grep -q "want_tool $_tool"; then
+        test_ok "Config de $_tool gateada por want_tool (bootstrap.sh)"
+    else
+        test_fail "Config de $_tool" "se aplica sin want_tool $_tool en bootstrap.sh:$_ln"
+    fi
+done
+
+# Windows: el gate es declarativo (clave Tool en $DOTFILES) + el filtro del loop.
+if grep -q "ContainsKey('Tool')" "$_bs_ps"; then
+    test_ok "bootstrap.ps1 filtra \$DOTFILES por la clave Tool"
+else
+    test_fail "Gate de \$DOTFILES" "bootstrap.ps1 no filtra por la clave Tool"
+fi
+# OJO: los paths de $DOTFILES son de Windows (un backslash). En comillas simples
+# '\\' seria DOS backslashes literales y no matchearia nada.
+for _entry in 'yazi\yazi.toml|yazi' '.claude\CLAUDE.md|claude' '.claude\settings.json|claude' 'terminal\settings.json|windows-terminal'; do
+    _pat="${_entry%%|*}"; _tool="${_entry##*|}"
+    if grep -F "$_pat" "$_bs_ps" | grep -q "Tool='$_tool'"; then
+        test_ok "Config de $_tool con Tool='$_tool' (bootstrap.ps1)"
+    else
+        test_fail "Config de $_tool" "la entrada de \$DOTFILES no declara Tool='$_tool'"
+    fi
+done
+
+unset _repo_root _bs_sh _bs_ps _gated_sh _entry _pat _tool _ln
+
+# ==============================================================================
 # RESUMEN
 # ==============================================================================
 

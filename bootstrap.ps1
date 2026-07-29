@@ -163,11 +163,16 @@ $PS_MODULES = @(
 )
 
 # Dotfiles: origen (relativo al repo) -> destino
+#   Tool = Key del catalogo que "dueña" esta config. Si esta presente, la config
+#          solo se aplica cuando Test-ToolWanted da True (elegida o ya instalada).
+#          Sin Tool -> se aplica siempre (config base, sin dueño: pwsh, git).
 $DOTFILES = @(
     # Shell (symlinks: editar en el repo se ve al instante)
     @{ Src='shell\profile.ps1';       Dst="$HOME\.config\powershell\profile.ps1"; Mode='link' }
-    @{ Src='shell\bashrc';            Dst="$HOME\.bashrc"                       ; Mode='link' }
-    @{ Src='shell\bash_profile';      Dst="$HOME\.bash_profile"                 ; Mode='link' }
+    # bash en Windows solo existe si esta Git for Windows (trae Git Bash): sin el,
+    # estos symlinks no los lee nadie.
+    @{ Src='shell\bashrc';            Dst="$HOME\.bashrc"                       ; Mode='link'; Tool='git' }
+    @{ Src='shell\bash_profile';      Dst="$HOME\.bash_profile"                 ; Mode='link'; Tool='git' }
     # Git ignore (publico)
     @{ Src='git\ignore';              Dst="$HOME\.config\git\ignore"             ; Mode='link' }
     # Git config + identidades (VAULT privado: namespaces y emails)
@@ -178,20 +183,20 @@ $DOTFILES = @(
     # SSH config (VAULT privado)
     @{ Src='ssh\config';              Dst="$HOME\.ssh\config"           ; Root='vault' }
     # Terminal (symlink: cambios en la GUI de Windows Terminal se ven al instante en el repo)
-    @{ Src='terminal\settings.json';  Dst="$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"; Mode='link' }
+    @{ Src='terminal\settings.json';  Dst="$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"; Mode='link'; Tool='windows-terminal' }
     # Editorconfig (symlink)
     @{ Src='.editorconfig';           Dst="$HOME\.editorconfig"                  ; Mode='link' }
     # yazi (file manager TUI): en Windows la config vive en %APPDATA%\yazi\config
     # (NO en ~/.config como Linux). Symlink: editar en el repo se ve al instante.
-    @{ Src='yazi\yazi.toml';          Dst="$env:APPDATA\yazi\config\yazi.toml"   ; Mode='link' }
+    @{ Src='yazi\yazi.toml';          Dst="$env:APPDATA\yazi\config\yazi.toml"   ; Mode='link'; Tool='yazi' }
     # Claude Code (settings.json por symlink: se versiona al editar en el repo.
     # OJO: un /model en cualquier sesion escribe a traves del symlink y modifica
     # el repo. settings.local.json NO se toca: es per-maquina (permisos con rutas
     # absolutas), no esta trackeado y cada PC mantiene el suyo — paridad con Linux.
     # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
     # que sea portable en cada instalacion (paridad con bootstrap.sh).
-    @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link' }
-    @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link' }
+    @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link'; Tool='claude' }
+    @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link'; Tool='claude' }
 )
 # Un perfil de identidad por sufijo del vault (ver $idSuffixes): con nombres
 # propios (freelance, cliente-x...) antes no se symlinkeaba ninguno.
@@ -708,6 +713,37 @@ function Test-ToolSelected {
     return ($script:SELECTED_KEYS -contains $Key)
 }
 
+# Test-ToolInstalled <Key> — True si la herramienta YA esta presente en la
+# maquina (espejo del tool_installed de bootstrap.sh). Se chequea por comando en
+# PATH, que es barato y no depende de winget; para las que no dejan binario
+# (fuentes, apps GUI) se usa la comprobacion que corresponda.
+function Test-ToolInstalled {
+    param([string]$Key)
+    switch ($Key) {
+        'neovim'           { return (Test-CommandAvailable 'nvim') }
+        'ripgrep'          { return (Test-CommandAvailable 'rg') }
+        'pwsh'             { return (Test-CommandAvailable 'pwsh') }
+        'git'              { return (Test-CommandAvailable 'git') }
+        'windows-terminal' { return (Test-Path (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe')) }
+        'firacode'         { return [bool](Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\Windows\Fonts", "$env:WINDIR\Fonts" `
+                                            -Filter 'FiraCode*' -ErrorAction SilentlyContinue | Select-Object -First 1) }
+        default            { return (Test-CommandAvailable $Key) }
+    }
+}
+
+# Test-ToolWanted <Key> — DECISION UNICA de "¿el usuario quiere esta
+# herramienta?": True si la eligio en el selector o si ya la tiene instalada.
+# Espejo exacto de want_tool en bootstrap.sh (ver el comentario largo alla).
+# Es el gate de las CONFIGS del paso 7: antes el array $DOTFILES se aplicaba
+# completo, asi que un tercero que elegia solo pwsh + Windows Terminal + aws se
+# llevaba igual ~/.bashrc, la config de yazi, %LOCALAPPDATA%\nvim apuntando a
+# este repo y el CLAUDE.md con las reglas de trabajo del autor.
+function Test-ToolWanted {
+    param([string]$Key)
+    if (Test-ToolSelected $Key) { return $true }
+    return (Test-ToolInstalled $Key)
+}
+
 # ==============================================================================
 # PANTALLA DE BIENVENIDA (espejo de welcome_screen en bootstrap.sh)
 # ------------------------------------------------------------------------------
@@ -1159,6 +1195,14 @@ if ($SkipDotfiles) {
         $src = Join-Path $root $df.Src
         $dst = $df.Dst
 
+        # Gate por herramienta: si la config tiene dueño (Tool) y el usuario no
+        # lo eligio ni lo tiene instalado, no se aplica. Al log, no a pantalla:
+        # no es un problema, es la config que el usuario no pidio.
+        if ($df.ContainsKey('Tool') -and -not (Test-ToolWanted $df.Tool)) {
+            Write-Log "$($df.Src): $($df.Tool) no seleccionado ni instalado, saltando" 'SKIP'
+            continue
+        }
+
         if (-not (Test-Path $src)) {
             if ($df.ContainsKey('Root') -and $df.Root -eq 'vault') {
                 $msg = "Vault no disponible: $($df.Src) (falta $VAULT_DIR)"
@@ -1228,8 +1272,8 @@ if ($SkipDotfiles) {
     Sub-Bar 62 "reglas de agentes IA"
     $agentsSrc  = Join-Path $REPO_ROOT '.claude\CLAUDE.md'
     $agentsDsts = @()
-    if (Test-CommandAvailable 'codex')    { $agentsDsts += (Join-Path $HOME '.codex\AGENTS.md') }
-    if (Test-CommandAvailable 'opencode') { $agentsDsts += (Join-Path $HOME '.config\opencode\AGENTS.md') }
+    if (Test-ToolWanted 'codex')    { $agentsDsts += (Join-Path $HOME '.codex\AGENTS.md') }
+    if (Test-ToolWanted 'opencode') { $agentsDsts += (Join-Path $HOME '.config\opencode\AGENTS.md') }
     foreach ($agDst in $agentsDsts) {
         $agItem   = if (Test-Path $agDst) { Get-Item -LiteralPath $agDst -Force } else { $null }
         $agIsLink = $agItem -and ($agItem.LinkType -eq 'SymbolicLink')
@@ -1251,10 +1295,15 @@ if ($SkipDotfiles) {
     # Symlink de DIRECTORIO a %LOCALAPPDATA%\nvim (path de nvim en Windows;
     # paridad con el link_dir de bootstrap.sh). Si habia config real previa,
     # se mueve entera al backup centralizado.
+    # Gateado: sin esto, quien no eligio Neovim se llevaba %LOCALAPPDATA%\nvim
+    # apuntando a esta config, y al instalar nvim mas adelante arrancaba con ESTA
+    # en vez de la propia (paridad con el want_tool neovim de bootstrap.sh).
     Sub-Bar 65 "config de nvim"
     $nvimSrc = Join-Path $REPO_ROOT 'nvim'
     $nvimDst = Join-Path $env:LOCALAPPDATA 'nvim'
-    if (Test-Path $nvimSrc) {
+    if ((Test-Path $nvimSrc) -and -not (Test-ToolWanted 'neovim')) {
+        Write-Log "Neovim no seleccionado ni instalado, saltando config de nvim" 'SKIP'
+    } elseif (Test-Path $nvimSrc) {
         $nvimItem   = if (Test-Path $nvimDst) { Get-Item -LiteralPath $nvimDst -Force } else { $null }
         $nvimIsLink = $nvimItem -and ($nvimItem.LinkType -eq 'SymbolicLink')
         if ($nvimIsLink -and $nvimItem.Target -eq $nvimSrc) {
@@ -1284,7 +1333,11 @@ if ($SkipDotfiles) {
     $ompThemesLocal  = Join-Path $REPO_ROOT "shell\themes"
     $ompLegacyTheme  = "$env:LOCALAPPDATA\Programs\oh-my-posh\themes\claude-code.omp.json"
 
-    if (Test-Path $ompSrc) {
+    # Gateado por oh-my-posh: setea POSH_THEMES_PATH (variable de entorno de
+    # USUARIO, persistente), no corresponde tocarla si no se tiene el prompt.
+    if ((Test-Path $ompSrc) -and -not (Test-ToolWanted 'oh-my-posh')) {
+        Write-Log "oh-my-posh no seleccionado ni instalado, saltando tema" 'SKIP'
+    } elseif (Test-Path $ompSrc) {
         # Setear POSH_THEMES_PATH al repo (idempotente)
         if ($env:POSH_THEMES_PATH -ne $ompThemesLocal) {
             if ($DryRun) {

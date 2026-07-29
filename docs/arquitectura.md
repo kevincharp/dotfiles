@@ -31,6 +31,24 @@ La primitiva del bootstrap es `copy_dotfile <src> <dst> [link|copy]` (y
 Antes de pisar cualquier archivo tuyo preexistente, el bootstrap lo respalda en
 `~/.local/backups/bootstrap/<timestamp>/` — el desinstalador restaura desde ahí.
 
+### Gate por herramienta
+
+Ninguna config se aplica por el solo hecho de estar en el repo: primero pasa por
+la **decisión única** de si el usuario quiere esa herramienta —
+`want_tool <id>` (bash) / `Test-ToolWanted <Key>` (pwsh), que dan verdadero si el
+id está en la selección (`SELECTED_TOOLS` / `$SELECTED_KEYS`) **o** si ya está
+instalado (`tool_installed` / `Test-ToolInstalled`).
+
+Cuenta "ya instalado" a propósito: si la máquina tiene nvim de antes y el usuario
+no lo marcó (no hacía falta reinstalarlo), igual quiere su config — es el caso
+normal al re-correr el bootstrap.
+
+En Windows el gate es declarativo: las entradas de `$DOTFILES` llevan una clave
+`Tool` con el dueño de la config, y el loop saltea las que no correspondan. Sin
+`Tool`, la config se aplica siempre (es config base: `profile.ps1`,
+`.editorconfig`, `git/ignore`). La tabla de qué depende de qué está en
+[adaptalo.md](adaptalo.md#solo-se-configura-lo-que-elegís).
+
 <a name="dconf"></a>
 ## dconf no es un archivo (Ptyxis / GNOME)
 

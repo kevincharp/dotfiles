@@ -19,6 +19,36 @@ defecto) cuando pregunte por el vault. Obtenés todo lo público:
 - En Fedora/GNOME: atajos, dock y extensiones (con *mis* preferencias — ver
   [abajo](#gnome-los-dconf-traen-mis-preferencias)).
 
+### Solo se configura lo que elegís
+
+Las configs están **gateadas por herramienta**: cada una se aplica solo si la
+marcaste en el selector **o** ya la tenías instalada (`want_tool` en
+`bootstrap.sh`, `Test-ToolWanted` en `bootstrap.ps1`). Si instalás solo pwsh 7 +
+Windows Terminal + AWS, no te llevás la config de Neovim, ni la de yazi, ni las
+reglas de IA de este repo.
+
+| Config | Se aplica si tenés/elegís |
+|---|---|
+| `~/.config/nvim` | `neovim` |
+| `~/.zshrc`, `~/.zprofile` | `zsh` |
+| yazi (`yazi.toml`) | `yazi` |
+| `~/.claude/` (`settings.json` + `CLAUDE.md`) | `claude` |
+| `AGENTS.md` de Codex / opencode | `codex` / `opencode` |
+| tema de oh-my-posh | `oh-my-posh` |
+| `fontconfig/fonts.conf` (emoji a color) | `chrome` o Chromium |
+| Ulauncher, OpenLogi | `ulauncher` / `openlogi` |
+| Windows Terminal (`settings.json`) | `windows-terminal` |
+| `~/.bashrc` en Windows | `git` (viene con Git Bash) |
+
+Se aplican **siempre**, porque no tienen dueño en el catálogo: `~/.bashrc` y
+`~/.bash_profile` en Linux (bash es el shell base), `profile.ps1` en Windows,
+`~/.editorconfig` y `~/.config/git/ignore`.
+
+> **Ojo con `~/.claude/CLAUDE.md`**: si elegís `claude`, ese symlink te trae
+> **mis** reglas de trabajo (proyectos en `~/repositorios/`, `ginit` con perfiles
+> del vault, respuestas en español). Están pensadas para editarse —
+> [cómo personalizarlas](#reglas-para-agentes-de-ia).
+
 Lo que **no** vas a tener sin vault (el bootstrap lo avisa como WARN y sigue):
 
 - `~/.gitconfig` e identidades por perfil (`gclone`, `gset-profile`, `ginit`).

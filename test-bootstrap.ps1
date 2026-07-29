@@ -134,7 +134,11 @@ foreach ($f in $DOTFILES) {
             if ($target -and -not [System.IO.Path]::IsPathRooted($target)) {
                 $target = Join-Path (Split-Path $f -Parent) $target
             }
-            $size = if ($target -and (Test-Path $target)) { (Get-Item -LiteralPath $target).Length } else { 0 }
+            # -Force es obligatorio: sin el, Get-Item NO encuentra archivos que
+            # empiezan con punto (los trata como ocultos) y el size quedaba en 0
+            # -> FAIL falso en todo dotfile symlinkeado (.editorconfig, .gitconfig,
+            # .bashrc...). Test-Path si los ve, por eso el bug pasaba desapercibido.
+            $size = if ($target -and (Test-Path $target)) { (Get-Item -LiteralPath $target -Force).Length } else { 0 }
         } else {
             $size = $item.Length
         }

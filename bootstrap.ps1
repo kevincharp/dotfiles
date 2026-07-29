@@ -1473,7 +1473,14 @@ if (-not $WithAws) {
         # Persistir solo las claves que aún no estén en ~/.env (evita duplicados).
         if ($ssoStartUrl -and $ssoAccountId) {
             if (-not (Test-Path $envFileAws)) { New-Item -ItemType File -Path $envFileAws -Force | Out-Null }
-            $envTxt = Get-Content $envFileAws -Raw -ErrorAction SilentlyContinue
+            # OJO: el cast [string] no es decorativo. Get-Content -Raw sobre un
+            # archivo VACIO (el que se acaba de crear arriba) devuelve $null, y
+            # PowerShell trata el $null de un cmdlet como coleccion: ahi
+            # '-notmatch' FILTRA en vez de comparar y devuelve un Object[] vacio,
+            # que en un 'if' es falso. Resultado: no se agregaba ni una clave,
+            # el ~/.env quedaba vacio pese al "Datos AWS guardados" y claude-smg
+            # caia al perfil 'default' inexistente. Con [string] es '' y compara.
+            $envTxt = [string](Get-Content $envFileAws -Raw -ErrorAction SilentlyContinue)
             $toAdd = [System.Collections.Generic.List[string]]::new()
             if ($envTxt -notmatch '(?m)^AWS_SSO_START_URL=')  { $toAdd.Add("AWS_SSO_START_URL=$ssoStartUrl") }
             if ($envTxt -notmatch '(?m)^AWS_SSO_ACCOUNT_ID=') { $toAdd.Add("AWS_SSO_ACCOUNT_ID=$ssoAccountId") }

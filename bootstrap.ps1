@@ -49,12 +49,19 @@ $BACKUP_DIR  = Join-Path $HOME ".local\backups\bootstrap\$BACKUP_TS"
 $DIRS = @(
     "$HOME\.config\powershell"
     "$HOME\.config\git"
-    "$HOME\.config\lazygit"
-    "$env:APPDATA\yazi\config"
     "$HOME\.local\bin"
     "$HOME\.local\logs"
     "$HOME\.cache"
     "$HOME\.ssh"
+)
+# Carpetas de configuracion de una herramienta puntual: se agregan mas abajo
+# (paso 5) solo si el usuario quiere esa herramienta. Sin el gate quedaban un
+# ~\.config\lazygit y un %APPDATA%\yazi\config VACIOS en la maquina de quien no
+# eligio ninguna de las dos. No se puede resolver aca: $DIRS se define antes de
+# que exista la seleccion (Resolve-SelectedTools corre en el paso 2).
+$DIRS_GATED = @(
+    @{ Path="$HOME\.config\lazygit";      Tool='lazygit' }
+    @{ Path="$env:APPDATA\yazi\config";   Tool='yazi'    }
 )
 # Carpetas de contexto de repos: si el vault define $GitContextDirs en
 # git-identities.ps1 (lo escribe el asistente git-profiles), se usan esas;
@@ -1085,6 +1092,16 @@ if ($SkipModules) {
 # ==============================================================================
 
 Step-Bar 5 "Creando carpetas"
+
+# Sumar las carpetas gateadas cuyo dueño el usuario quiere (ver $DIRS_GATED).
+# Aca ya existe la seleccion: el paso 2 corrio Resolve-SelectedTools.
+foreach ($gd in $DIRS_GATED) {
+    if (Test-ToolWanted $gd.Tool) {
+        $DIRS += $gd.Path
+    } else {
+        Write-Log "$($gd.Path): $($gd.Tool) no seleccionado ni instalado, no se crea" 'SKIP'
+    }
+}
 
 $dirTot = [Math]::Max($DIRS.Count, 1); $dirIdx = 0
 foreach ($dir in $DIRS) {

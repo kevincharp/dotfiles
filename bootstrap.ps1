@@ -155,11 +155,19 @@ $TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 # no con el de Git. Ver [[git-for-windows-winget]] en las notas del repo.
 # ==============================================================================
 
-# Modulos de PowerShell
+# Modulos de PowerShell — gateados por el catalogo, igual que los paquetes.
+# Antes se instalaban los tres SIEMPRE (ni figuraban en el selector), asi que
+# quien elegia 3 herramientas se llevaba igual modulos que no pidio.
+# Cada uno declara la Key que lo habilita:
+#   PSReadLine     -> pwsh: es el editor de linea del shell, profile.ps1 lo
+#                     configura entero (historial, ListView, colores, Ctrl+R).
+#   Terminal-Icons -> pwsh: lo usa 'll' (carga diferida, ver profile.ps1).
+# posh-git SALE de la lista: profile.ps1 no lo importa ni lo usa en ningun lado
+# — el estado de git en el prompt lo da oh-my-posh. Era un modulo instalado
+# de mas en toda maquina.
 $PS_MODULES = @(
-    'PSReadLine'
-    'posh-git'
-    'Terminal-Icons'
+    @{ Name='PSReadLine';     Tool='pwsh' }
+    @{ Name='Terminal-Icons'; Tool='pwsh' }
 )
 
 # Dotfiles: origen (relativo al repo) -> destino
@@ -1058,12 +1066,15 @@ if ($SkipModules) {
     $modTot = [Math]::Max($PS_MODULES.Count, 1); $modIdx = 0
     foreach ($mod in $PS_MODULES) {
         $modIdx++
-        Sub-Bar ([int]($modIdx * 100 / $modTot)) $mod
-        if (Get-Module -ListAvailable -Name $mod) {
-            Write-Log "Módulo '$mod' ya instalado, saltando" 'SKIP'
+        $modName = $mod.Name
+        Sub-Bar ([int]($modIdx * 100 / $modTot)) $modName
+        if (-not (Test-ToolWanted $mod.Tool)) {
+            Write-Log "Módulo '$modName': $($mod.Tool) no seleccionado ni instalado, saltando" 'SKIP'
+        } elseif (Get-Module -ListAvailable -Name $modName) {
+            Write-Log "Módulo '$modName' ya instalado, saltando" 'SKIP'
         } else {
-            Invoke-Step "Instalar módulo $mod" {
-                Install-Module $mod -Scope CurrentUser -Force -ErrorAction Stop
+            Invoke-Step "Instalar módulo $modName" {
+                Install-Module $modName -Scope CurrentUser -Force -ErrorAction Stop
             }
         }
     }

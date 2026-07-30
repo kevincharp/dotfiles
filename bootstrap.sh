@@ -1264,12 +1264,20 @@ gb_step 3 "Creando carpetas"
 
 DIRS=(
     "$HOME/.config/git"
-    "$HOME/.config/lazygit"
     "$HOME/.local/bin"
     "$HOME/.local/logs"
     "$HOME/.cache"
     "$HOME/.ssh"
 )
+# Carpetas de configuracion de una herramienta puntual: solo si se la quiere.
+# Sin el gate quedaba un ~/.config/lazygit vacio en el home de quien nunca
+# eligio lazygit (mismo criterio que las configs del paso [5/8]).
+# Va como if y no como 'want_tool x && DIRS+=(...)': con set -e la forma corta
+# no aborta (el && no es el ultimo comando) pero deja $? en 1, y eso envenena
+# cualquier chequeo posterior de rc.
+if want_tool lazygit; then
+    DIRS+=("$HOME/.config/lazygit")
+fi
 
 # Carpetas de contexto de repos (~/repositorios/<contexto>): si el vault define
 # GIT_CONTEXT_DIRS en git-identities.sh (lo escribe el asistente git-profiles),

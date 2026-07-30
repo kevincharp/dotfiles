@@ -234,7 +234,12 @@ gb_sub() {
 gb_note() {
     if (( _GB_ENABLED )) && (( _GB_ACTIVE )); then printf '\r\033[K\n\r\033[K\033[1A\r'; fi
     printf '  %b%s%b %s\n' "$1" "$2" "$C_RESET" "$3"
-    (( _GB_ENABLED )) && _gb_render
+    # OJO: como 'if' y no '(( _GB_ENABLED )) && _gb_render'. Siendo el ULTIMO
+    # comando de la funcion, sin TTY (_GB_ENABLED=0) el (( )) devuelve 1, ese 1
+    # es el exit de gb_note y con 'set -e' aborta el bootstrap entero: moria en
+    # el paso [2/8] al instalar la 1ra herramienta, sin mensaje de error, cada
+    # vez que la salida estaba redirigida (log, CI, | tee).
+    if (( _GB_ENABLED )); then _gb_render; fi
 }
 
 # gb_pause — borra la barra para dar lugar a una interaccion (selector/sudo/shell).

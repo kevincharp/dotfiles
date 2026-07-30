@@ -539,6 +539,27 @@ for _entry in 'yazi\yazi.toml|yazi' '.claude\CLAUDE.md|claude' '.claude\settings
     fi
 done
 
+# Trampa de set -e (cuarta variante, suma a las tres del CLAUDE.md): una funcion
+# cuyo ULTIMO comando es '(( flag )) && cmd' devuelve 1 cuando flag vale 0, y con
+# set -e eso aborta el script entero. Paso con gb_note y '(( _GB_ENABLED )) &&
+# _gb_render': sin TTY el bootstrap moria en [2/8] sin ningun mensaje.
+#
+# Se chequea ESTATICAMENTE (linea '(( ... )) && ...' seguida del cierre de la
+# funcion) y no ejecutando el bootstrap: una corrida real solo llega a gb_note si
+# hay una herramienta NUEVA para instalar, asi que en la maquina del autor
+# —donde ya esta todo— el test pasaba sin ejercitar el bug.
+for _bs in "$_bs_sh" "$_repo_root/install.sh" "$_repo_root/uninstall.sh"; do
+    [[ -f "$_bs" ]] || continue
+    _bad=$(awk '/^[[:space:]]*\(\(.*\)\)[[:space:]]*&&/ { prev=NR; line=$0; next }
+                /^\}/ && prev == NR-1 { printf "%d:%s\n", prev, line }' "$_bs")
+    if [[ -z "$_bad" ]]; then
+        test_ok "$(basename "$_bs"): sin '(( x )) && cmd' como ultimo comando de una funcion"
+    else
+        test_fail "$(basename "$_bs") set -e" "linea $_bad devuelve 1 sin TTY y aborta el script"
+    fi
+done
+unset _bs _bad
+
 unset _repo_root _bs_sh _bs_ps _gated_sh _entry _pat _tool _ln
 
 # ==============================================================================

@@ -103,6 +103,7 @@ La guía paso a paso (incluida la estructura exacta del vault):
 | [Adaptalo a tu cuenta](docs/adaptalo.md) | Usarlo sin vault, fork, crear tu propio vault, identidades git |
 | [Referencia de comandos](docs/comandos.md) | Todas las funciones y aliases, por categoría |
 | [Arquitectura](docs/arquitectura.md) | Dos repos, symlink vs copia, dconf, paridad de shells, decisiones de diseño |
+| [Idea: generador de dotfiles](docs/idea-generador-de-dotfiles.md) | *(pausada)* Convertir el repo en una herramienta que genere **tu** dotfiles y lo versione en tu cuenta |
 
 ## Desinstalar
 

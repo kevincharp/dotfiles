@@ -18,6 +18,12 @@ aviso). Quien no tiene vault puede generarse uno con el **asistente**
 (`git-profiles.sh`/`.ps1`), que produce exactamente la estructura esperada.
 Detalle: [Adaptalo](adaptalo.md#el-vault).
 
+> Este repo hace **dos trabajos a la vez**: es el instalador y es la config del
+> autor. Hay una idea pausada para separarlos —que la herramienta *genere* el
+> dotfiles del usuario y se lo versione en su cuenta— con el diseño y los
+> problemas abiertos escritos en
+> [idea-generador-de-dotfiles.md](idea-generador-de-dotfiles.md).
+
 ## Symlink vs copia
 
 La primitiva del bootstrap es `copy_dotfile <src> <dst> [link|copy]` (y

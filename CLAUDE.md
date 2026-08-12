@@ -127,6 +127,26 @@ que **no se symlinkean**. Se sincronizan con helpers definidos en `bashrc`:
 Tras cambiar atajos/tema por la GUI, hay que correr el `*-save` para versionarlo.
 Editar el `.dconf` a mano no aplica nada hasta hacer `*-load`.
 
+### Abrir Ptyxis SIEMPRE requiere `--new-window`
+
+`ptyxis` pelado **no abre una ventana**: es `DBusActivatable`, así que manda
+`activate` a la instancia ya corriendo y esa presenta la ventana **que ya tenía
+abierta**. Si esa ventana está en otro escritorio, GNOME Shell no cambia de
+workspace (prevención de robo de foco) y solo tira la notificación *«Terminal
+está preparada»* → desde el otro escritorio parece que el atajo/lanzador no hace
+nada. Verificado en Fedora.
+
+- **Atajo de teclado:** `gnome/media-keys.dconf` → `custom0` usa
+  `ptyxis --new-window`. Reversionar con `gnome-save`.
+- **Ulauncher / menú de apps:** lanzan el `Exec` del `.desktop` del sistema, que
+  no se puede editar (lo pisan los updates). El bootstrap (paso 5) genera un
+  **override** en `~/.local/share/applications/org.gnome.Ptyxis.desktop` con
+  `Exec=ptyxis --new-window` y **sin `DBusActivatable`** — con activación D-Bus
+  el `Exec` se ignora y vuelve el problema. Mismo patrón que el override de
+  Chrome; `uninstall.sh` lo limpia.
+- `--tab` reproduce el bug (usa la ventana activa, esté donde esté) y `-s` abre
+  un proceso separado, que no es lo que se quiere.
+
 ## Launcher de apps (Ulauncher / Flow Launcher)
 
 Lanzador estilo Spotlight, **uno por SO** (ninguno cruza): Linux → Ulauncher

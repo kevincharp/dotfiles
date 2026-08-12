@@ -64,6 +64,9 @@ DOTFILES_TARGETS=(
     "$HOME/.config/ulauncher/user-themes"
     "$HOME/.config/autostart/ulauncher.desktop"
     "$HOME/.config/openlogi/config.toml"
+    # Override generado (no symlink) para que los lanzadores abran Ptyxis en
+    # ventana nueva; sin el, vuelve a regir el .desktop del sistema.
+    "$HOME/.local/share/applications/org.gnome.Ptyxis.desktop"
     "$HOME/.config/yazi/yazi.toml"
     "$HOME/.config/nvim"
     "$HOME/.codex/AGENTS.md"

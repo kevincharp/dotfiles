@@ -1778,6 +1778,30 @@ if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
 fi
 unset _ptyxis_dump
 
+# Ptyxis — override del .desktop para que los lanzadores abran VENTANA NUEVA.
+# El .desktop del sistema trae 'Exec=ptyxis' + DBusActivatable=true: eso no crea
+# ventana, manda 'activate' a la instancia viva y esa presenta su ventana YA
+# abierta. Si esa ventana esta en otro escritorio, GNOME (prevencion de robo de
+# foco) no cambia de workspace y solo notifica «Terminal esta preparada», asi que
+# desde Ulauncher/menu parece que no abre nada. El override fuerza
+# '--new-window' y quita DBusActivatable (con activacion D-Bus el Exec se
+# ignora). El atajo de teclado se arregla aparte, en gnome/media-keys.dconf.
+_ptyxis_sys_desktop="/usr/share/applications/org.gnome.Ptyxis.desktop"
+_ptyxis_override="$HOME/.local/share/applications/org.gnome.Ptyxis.desktop"
+if has_cmd ptyxis && [[ -f "$_ptyxis_sys_desktop" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+        log "[DryRun] Override Ptyxis (lanzadores -> ventana nueva)" "SKIP"
+    else
+        mkdir -p "$(dirname "$_ptyxis_override")"
+        sed -E 's#^Exec=ptyxis$#Exec=ptyxis --new-window#; /^DBusActivatable=true$/d' \
+            "$_ptyxis_sys_desktop" > "$_ptyxis_override"
+        has_cmd update-desktop-database \
+            && update-desktop-database "$(dirname "$_ptyxis_override")" &>/dev/null || true
+        log "Override Ptyxis aplicado (lanzadores abren ventana nueva)" "OK"
+    fi
+fi
+unset _ptyxis_sys_desktop _ptyxis_override
+
 # Cierre del modo silencioso del paso [5/8]: resumen total de symlinks/configs.
 # Lo que sigue (shell por defecto / GNOME) tiene su propia salida.
 _QUIET_STEPS=0

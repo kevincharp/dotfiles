@@ -321,8 +321,8 @@ $work      = Join-Path $repos 'work'
 Set-Alias openh open-here
 
 <#
-.SYNOPSIS abrir explorador aquí
-.EXAMPLE openh
+.SYNOPSIS abrir explorador aquí (alias: openh)
+.EXAMPLE open-here
 #>
 function open-here {
     if ($IsWindows) {
@@ -378,7 +378,7 @@ function update-all {
 
 <#
 .SYNOPSIS abrir directorio o archivo
-.EXAMPLE open path
+.EXAMPLE open [ruta]
 #>
 function open {
     param([string[]]$f)
@@ -405,7 +405,7 @@ function open {
 
 <#
 .SYNOPSIS editar archivo (VSCode si existe, sino Notepad)
-.EXAMPLE edit archivo
+.EXAMPLE edit <archivo>
 #>
 function edit {
     param([Parameter(Mandatory)][string]$File)
@@ -424,7 +424,7 @@ historial (con confirmacion); con un patron borra solo las lineas que lo conteng
 (util si pegaste un token/secreto). Opera sobre el archivo de PSReadLine
 (HistorySavePath) y limpia la sesion actual. Nota: 'Clear-History' nativo de
 PowerShell solo vacia la sesion, no el archivo; por eso esta funcion lo reemplaza.
-.EXAMPLE clear-history            # vacia todo (pregunta y/N)
+.EXAMPLE clear-history [texto]    # sin args vacia todo (pregunta y/N)
 .EXAMPLE clear-history AWS_SECRET # borra solo lineas con ese texto
 #>
 function clear-history {
@@ -651,7 +651,7 @@ function grep {
 
 <#
 .SYNOPSIS emula find de Linux
-.EXAMPLE find . -type d -name "wiki-gs-smg"
+.EXAMPLE find . -type d -name "mi-carpeta"
 #>
 function find {
     param(
@@ -763,7 +763,7 @@ Set-Alias g git
 
 <#
 .SYNOPSIS git clone
-.EXAMPLE gcl url
+.EXAMPLE gcl <url>
 #>
 function gcl {
     param([string]$url, [string]$dir)
@@ -1071,7 +1071,7 @@ function Resolve-GitProfileGuess {
 .DESCRIPTION El perfil es opcional: si no se pasa, se deduce del host-alias del
 remoto o de la carpeta de contexto (~/repositorios/<ctx>). Un targetDir que ya
 existe se toma como carpeta padre y el repo se clona en <targetDir>/<repo>.
-.EXAMPLE gclone git@gitlab.com-xxx:grupo/repo.git ~/repositorios/work
+.EXAMPLE gclone <url> [dir] [-p perfil]
 .EXAMPLE gclone -remoteUrl git@gitlab.com-xxx:grupo/repo.git -perfil work
 #>
 function gclone {
@@ -1166,7 +1166,7 @@ function gclone {
 
 <#
 .SYNOPSIS aplicar perfil git a repo ya existente
-.EXAMPLE gset-profile -Perfil work
+.EXAMPLE gset-profile <perfil>
 #>
 function gset-profile {
     [CmdletBinding(SupportsShouldProcess)]
@@ -1205,7 +1205,7 @@ function gset-profile {
 
 <#
 .SYNOPSIS git init + perfil de identidad + .gitignore base
-.EXAMPLE ginit work
+.EXAMPLE ginit <perfil> [path]
 #>
 function ginit {
     [CmdletBinding(SupportsShouldProcess)]
@@ -1241,7 +1241,7 @@ function ginit {
 
 <#
 .SYNOPSIS agregar/actualizar remoto con alias SSH
-.EXAMPLE gremote -Alias gitlab.com-<mi-alias> -PathNs mi-grupo/mi-repo
+.EXAMPLE gremote <alias-ssh> <ns/repo> [nombre]
 #>
 function gremote {
     [CmdletBinding(SupportsShouldProcess)]

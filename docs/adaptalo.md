@@ -183,8 +183,9 @@ $GitHostAliases = @{
 El `git/config` del vault usa `includeIf` con `hasconfig:remote.*.url` (git ≥
 2.36): según la URL del remoto, git carga el `config-<perfil>` correspondiente.
 Con `user.useConfigOnly=true`, un repo sin perfil aplicable **no comitea** con
-una identidad equivocada — falla y te avisa. `gclone -p <perfil> -u <url>`
-aplica todo al clonar.
+una identidad equivocada — falla y te avisa. `gclone <url> [dir]` aplica todo al
+clonar (deduce el perfil del host alias del remoto o de la carpeta de contexto;
+con `-p <perfil>` lo forzás).
 
 ### Claves SSH: alta y sincronización
 

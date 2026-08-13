@@ -34,7 +34,8 @@ sección, **Preferencias**, es personal: editala a tu gusto.
   pedido, **preguntar antes de crear nada**.
 - Inicializar con **`ginit <perfil>`** — nunca `git init` pelado: aplica la
   identidad del vault y deja un `.gitignore` base (plantilla
-  `git/gitignore-proyecto` de los dotfiles). Al clonar: `gclone -p <perfil>`.
+  `git/gitignore-proyecto` de los dotfiles). Al clonar: `gclone <url> [dir]`
+  (deduce el perfil; `-p <perfil>` lo fuerza).
   Si el shell no tiene esas funciones, los perfiles están en
   `~/.config/git-identities.sh` (o `.ps1`) para aplicar con
   `git config --local`.

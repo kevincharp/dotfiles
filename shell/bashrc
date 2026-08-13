@@ -1231,6 +1231,9 @@ _dothelp_emit() {
     while IFS= read -r line; do
         [[ "$line" =~ ^#\ ---\ \[([a-zA-Z]+)\]\ ([a-zA-Z_][a-zA-Z0-9_-]*):\ (.*)\ ---$ ]] || continue
         cat="${BASH_REMATCH[1]}"; name="${BASH_REMATCH[2]}"; rest="${BASH_REMATCH[3]}"
+        # Las internas (_nombre) se documentan en el codigo pero NO van al menu:
+        # el menu es para ejecutar, y elegir un helper interno no sirve de nada.
+        [[ "$name" == _* ]] && continue
         if [[ "$rest" =~ ^(.*)\ \|\ uso:\ (.*)$ ]]; then
             desc="${BASH_REMATCH[1]}"; uso="${BASH_REMATCH[2]}"
         else

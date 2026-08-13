@@ -1202,6 +1202,9 @@ _dothelp_emit() {
     while IFS= read -r line; do
         [[ "$line" =~ '^#\ ---\ \[([a-zA-Z]+)\]\ ([a-zA-Z_][a-zA-Z0-9_-]*):\ (.*)\ ---$' ]] || continue
         cat="${match[1]}"; name="${match[2]}"; rest="${match[3]}"
+        # Las internas (_nombre) se documentan en el codigo pero NO van al menu:
+        # el menu es para ejecutar, y elegir un helper interno no sirve de nada.
+        [[ "$name" == _* ]] && continue
         if [[ "$rest" =~ '^(.*)\ \|\ uso:\ (.*)$' ]]; then
             desc="${match[1]}"; uso="${match[2]}"
         else

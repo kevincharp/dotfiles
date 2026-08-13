@@ -1849,7 +1849,7 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
 
     # Extensiones (paquetes nativos en Fedora; en otras distros se omiten)
     if [[ "$PKG_MANAGER" == "dnf" ]]; then
-        for _ext_pkg in gnome-shell-extension-dash-to-dock gnome-shell-extension-gpaste gnome-shell-extension-blur-my-shell; do
+        for _ext_pkg in gnome-shell-extension-dash-to-dock gnome-shell-extension-blur-my-shell; do
             if rpm -q "$_ext_pkg" &>/dev/null; then
                 echo "[$(date +%H:%M:%S)][SKIP] $_ext_pkg ya instalado" >> "$LOG_FILE" 2>/dev/null || true
             else
@@ -1867,8 +1867,6 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         "/org/gnome/desktop/wm/keybindings/:wm-keybindings.dconf"
         "/org/gnome/shell/extensions/dash-to-dock/:dash-to-dock.dconf"
         "/org/gnome/shell/extensions/blur-my-shell/:blur-my-shell.dconf"
-        "/org/gnome/GPaste/:gpaste.dconf"
-        "/org/gnome/settings-daemon/global-shortcuts/:gpaste-shortcuts.dconf"
         "/org/gnome/shell/:shell.dconf"
     )
     _gnome_total=${#_gnome_map[@]}; _gnome_i=0

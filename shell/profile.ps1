@@ -383,6 +383,9 @@ function update-all {
 function open {
     param([string[]]$f)
 
+    # Sin argumentos abre el directorio actual (paridad con el 'open [ruta]' de
+    # bash/zsh, que usa ${1:-.}): antes no hacia nada en silencio.
+    if (-not $f) { $f = @('.') }
     foreach ($p in $f) {
         if (Test-Path -LiteralPath $p) {
             $i = Get-Item -LiteralPath $p

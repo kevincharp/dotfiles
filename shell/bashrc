@@ -533,6 +533,9 @@ _GIT_IDENTITIES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
 # ('personal') el source ABORTA ahi mismo y las identidades quedan sin cargar
 # (gclone/ginit rotos). Los vaults del asistente definen GIT_IDENTITY_FILES.
 declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
+# GIT_PROFILE_REMOTES (indexado, "url|perfil|label") tambien se declara: si el
+# vault no esta, _infer_git_profile lo consulta y sin declarar reventaria.
+declare -ga GIT_PROFILE_REMOTES
 if [[ -f "$_GIT_IDENTITIES_FILE" ]]; then
     . "$_GIT_IDENTITIES_FILE"
 fi
@@ -556,44 +559,165 @@ _resolve_identity() {
     return 0
 }
 
+# Extrae el host de una URL de git (scp-like 'git@host:ns/repo' o con esquema).
+# Imprime vacio si la URL no tiene forma reconocible.
+# --- [git] _git_url_host: (interna) extrae el host de una URL de git | uso: _git_url_host <url> ---
+_git_url_host() {
+    local url="$1" host=""
+    case "$url" in
+        *://*)  host="${url#*://}"; host="${host#*@}"; host="${host%%/*}"; host="${host%%:*}" ;;
+        *@*:*)  host="${url#*@}";   host="${host%%:*}" ;;
+    esac
+    printf '%s' "$host"
+}
+
+# Infiere el perfil de identidad git cuando no se paso -p. Deja el resultado en
+# _gi_profile y el origen (para loguear) en _gi_profile_src. Devuelve 1 si no
+# pudo inferir. Dos senales, en orden de confianza:
+#   1. host del remoto vs. GIT_PROFILE_REMOTES del vault (exacto: el host-alias
+#      SSH ya identifica la clave y por lo tanto la identidad).
+#   2. carpeta de contexto ~/repositorios/<ctx>/... El ctx puede ser el nombre
+#      del perfil, una clave de GIT_IDENTITY_FILES (mapa sufijo->perfil) o, si no,
+#      se resuelve leyendo el email de ~/.gitconfig-<ctx> y buscando que perfil
+#      lo tiene: asi funciona con vaults donde el sufijo no es el perfil (el
+#      propio mapea 'personal' -> 'kevincharp') sin hardcodear nombres propios.
+# --- [git] _infer_git_profile: (interna) deduce el perfil git de un remoto/carpeta | uso: _infer_git_profile <url> <dir> ---
+_infer_git_profile() {
+    local url="$1" dir="$2"
+    _gi_profile=""; _gi_profile_src=""
+
+    local host entry entry_host
+    host="$(_git_url_host "$url")"
+    if [[ -n "$host" && ${#GIT_PROFILE_REMOTES[@]} -gt 0 ]]; then
+        for entry in "${GIT_PROFILE_REMOTES[@]}"; do
+            entry_host="$(_git_url_host "${entry%%|*}")"
+            if [[ -n "$entry_host" && "$entry_host" == "$host" ]]; then
+                _gi_profile="${entry#*|}"; _gi_profile="${_gi_profile%%|*}"
+                _gi_profile_src="host-alias del remoto ($host)"
+                return 0
+            fi
+        done
+    fi
+
+    local ctx=""
+    case "$dir" in
+        "$HOME"/repositorios/*) ctx="${dir#"$HOME"/repositorios/}"; ctx="${ctx%%/*}" ;;
+    esac
+    if [[ -n "$ctx" ]]; then
+        if [[ -n "${GIT_IDENTITIES_EMAIL[$ctx]:-}" ]]; then
+            _gi_profile="$ctx"
+        elif [[ -n "${GIT_IDENTITY_FILES[$ctx]:-}" ]]; then
+            _gi_profile="${GIT_IDENTITY_FILES[$ctx]}"
+        elif [[ -f "$HOME/.gitconfig-$ctx" ]]; then
+            local ctx_mail p
+            ctx_mail="$(git config --file "$HOME/.gitconfig-$ctx" user.email 2>/dev/null)"
+            # Orden estable: dos perfiles pueden compartir email (misma identidad
+            # en dos plataformas) y el recorrido de un hash no tiene orden.
+            if [[ -n "$ctx_mail" ]]; then
+                while read -r p; do
+                    if [[ "${GIT_IDENTITIES_EMAIL[$p]}" == "$ctx_mail" ]]; then
+                        _gi_profile="$p"; break
+                    fi
+                done < <(printf '%s\n' "${!GIT_IDENTITIES_EMAIL[@]}" | sort)
+            fi
+        fi
+        [[ -n "$_gi_profile" ]] && _gi_profile_src="carpeta de contexto ($ctx)"
+    fi
+
+    [[ -n "$_gi_profile" ]]
+}
+
+_gclone_usage() {
+    # OJO: '${!ARR[*]:-default}' NO es "claves o default": bash lee el '!' como
+    # indireccion y trata la lista de EMAILS como nombre de variable ("nombre de
+    # variable invalido"). Hay que expandir las claves a una variable aparte.
+    local perfiles="${!GIT_IDENTITIES_EMAIL[*]}"
+    echo "Uso: gclone <url> [dir] [-p <perfil>]"
+    echo "  dir  si existe, se clona DENTRO (dir/<repo>); si no, es el destino exacto."
+    echo "  -p   opcional: sin el, el perfil se deduce del host-alias del remoto o"
+    echo "       de la carpeta de contexto (~/repositorios/<ctx>)."
+    echo "Perfiles: ${perfiles:-(vault no cargado)}"
+}
+
 # Clonar repo y configurar identidad local automaticamente.
-# Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]
+# Uso: gclone <url> [dir] [-p <perfil>]   (tambien acepta -u/--url y -d/--dir)
 # Los perfiles disponibles son los que define tu vault (ver: gset-profile sin args).
-# Ejemplo: gclone -p work -u git@gitlab.com-xxx:grupo/repo.git
-# --- [git] gclone: clona un repo aplicando un perfil de identidad git | uso: gclone -u <url> [-p perfil] [dir] ---
+# Ejemplo: gclone git@gitlab.com-xxx:grupo/repo.git ~/repositorios/work
+# --- [git] gclone: clona un repo aplicando un perfil de identidad git | uso: gclone <url> [dir] [-p perfil] ---
 gclone() {
     local perfil="" remote_url="" target_dir=""
 
-    # Parsear argumentos
+    # Parsear argumentos: flags en cualquier orden + hasta dos posicionales
+    # (url, dir). Los flags -u/-d se mantienen por compatibilidad.
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -p|--perfil)  perfil="$2";     shift 2 ;;
             -u|--url)     remote_url="$2"; shift 2 ;;
             -d|--dir)     target_dir="$2"; shift 2 ;;
-            *)
-                echo "Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]"
-                echo "Perfiles: ${!GIT_IDENTITIES_EMAIL[*]:-(vault no cargado)}"
+            -h|--help)    _gclone_usage; return 0 ;;
+            -*)
+                echo "Error: opcion desconocida '$1'" >&2
+                _gclone_usage
                 return 1
+                ;;
+            *)
+                if   [[ -z "$remote_url" ]]; then remote_url="$1"
+                elif [[ -z "$target_dir" ]]; then target_dir="$1"
+                else
+                    echo "Error: argumento de mas: '$1'" >&2
+                    _gclone_usage
+                    return 1
+                fi
+                shift
                 ;;
         esac
     done
 
     # Validar parametros
-    if [[ -z "$perfil" || -z "$remote_url" ]]; then
-        echo "Error: -p <perfil> y -u <remoteUrl> son obligatorios"
-        echo "Uso: gclone -p <perfil> -u <remoteUrl> [-d targetDir]"
+    if [[ -z "$remote_url" ]]; then
+        echo "Error: falta la URL del repo" >&2
+        _gclone_usage
         return 1
+    fi
+
+    # Determinar directorio destino: un dir EXISTENTE es el padre (se clona
+    # dentro), como hace 'git clone' con un path que ya es carpeta poblada.
+    local repo_name
+    repo_name="$(basename "$remote_url" .git)"
+    local clone_dir
+    if [[ -z "$target_dir" ]]; then
+        clone_dir="$(pwd)/$repo_name"
+    elif [[ -d "$target_dir" ]]; then
+        clone_dir="${target_dir%/}/$repo_name"
+    else
+        clone_dir="$target_dir"
+    fi
+
+    # Perfil: explicito o inferido del remoto / la carpeta de contexto
+    if [[ -z "$perfil" ]]; then
+        if _infer_git_profile "$remote_url" "$clone_dir"; then
+            perfil="$_gi_profile"
+            echo "Perfil inferido: $perfil (por $_gi_profile_src)"
+        else
+            echo "Error: no pude inferir el perfil; pasalo con -p <perfil>" >&2
+            _gclone_usage
+            return 1
+        fi
+    fi
+
+    # Avisar si el remoto SSH no usa un host-alias del vault: engancha la clave
+    # por defecto en vez de la del perfil y el clone puede fallar.
+    local url_host
+    url_host="$(_git_url_host "$remote_url")"
+    if [[ "$remote_url" != *://* && -n "$url_host" \
+          && ${#GIT_SSH_ALIASES[@]} -gt 0 && -z "${GIT_SSH_ALIASES[$url_host]:-}" ]]; then
+        echo "Aviso: '$url_host' no es un host-alias del vault; conviene usar el alias SSH del perfil." >&2
     fi
 
     # Identidades (desde el vault via _resolve_identity)
     local name="" email=""
     _resolve_identity "$perfil" || return 1
     name="$_gi_name"; email="$_gi_email"
-
-    # Determinar directorio destino
-    local repo_name
-    repo_name="$(basename "$remote_url" .git)"
-    local clone_dir="${target_dir:-$(pwd)/$repo_name}"
 
     if [[ -d "$clone_dir" ]] && [[ -n "$(ls -A "$clone_dir" 2>/dev/null)" ]]; then
         echo "Error: el destino ya existe y no esta vacio: $clone_dir"

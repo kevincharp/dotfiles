@@ -1682,6 +1682,9 @@ function claude-smg {
 #   dothelp git      listado estático filtrado (sin menú)
 #   Sin fzf → listado estático.
 #
+# Las funciones internas NO se listan: se filtran por el prefijo '_' en el
+# nombre o por '(interna)' al principio del .SYNOPSIS.
+#
 # Categoría 'unix' = emuladores de comandos Linux que solo existen en Windows
 # (cat, grep, find, ll, touch...); en Linux esos son nativos y no aparecen.
 
@@ -1696,7 +1699,7 @@ $global:__DotHelpCatMap = @{
     gcl='git'; gs='git'; gst='git'; glo='git'; glg='git'; gcmm='git'; gco='git'
     gnew='git'; gsw='git'; gbr='git'; gbra='git'; grls='git'; grem='git'; grurl='git'
     gup='git'; gpsu='git'; gsync='git'; gcleanbranches='git'; gclone='git'
-    'gset-profile'='git'; ginit='git'; gremote='git'; gbrowser='git'; 'Resolve-GitIdentity'='git'
+    'gset-profile'='git'; ginit='git'; gremote='git'; gbrowser='git'
     # unix (emuladores de Linux, solo Windows)
     echolf='unix'; lss='unix'; la='unix'; ll='unix'; touch='unix'; export='unix'; unset='unix'
     grep='unix'; find='unix'; head='unix'; tail='unix'; tailf='unix'; which='unix'
@@ -1708,7 +1711,7 @@ $global:__DotHelpCatMap = @{
     # ssh
     'ssh-newkey'='ssh'
     # herramientas
-    'claude-smg'='tools'; 'Load-DotEnv'='tools'; 'Get-SecretFromEnv'='tools'
+    'claude-smg'='tools'
     # dotfiles / config
     'clear-history'='dotfiles'; 'edit-history'='dotfiles'; 'vault-sync'='dotfiles'
 }
@@ -1743,15 +1746,19 @@ function dothelp {
     if (-not $text) { Write-Host "No se pudo leer el profile: $profilePath" -ForegroundColor Red; return }
 
     # Helpers internos del arranque del profile (no son comandos de usuario).
-    $skip = @('dothelp','_TryImportModule','_Invoke-CachedInit','Ensure-Module')
+    # El resto de las internas NO se listan a mano: se detectan por el prefijo '_'
+    # en el nombre o por '(interna)' al principio del .SYNOPSIS (misma regla que
+    # el filtro de bash/zsh). Así una interna nueva no aparece por olvido.
+    $skip = @('dothelp','Ensure-Module')
 
     $items = [System.Collections.Generic.List[object]]::new()
     foreach ($m in $rxCbh.Matches($text)) {
         $cbh  = $m.Groups[1].Value
         $name = $m.Groups[2].Value
-        if ($name -in $skip) { continue }
+        if ($name -in $skip -or $name -like '_*') { continue }
 
         $synopsis = ([regex]::Match($cbh, '(?ms)\.SYNOPSIS\s+(.+?)(?:\r?\n\s*\.\w+|$)').Groups[1].Value -replace '\s+',' ').Trim()
+        if ($synopsis -like '(interna)*') { continue }
         $example  = ([regex]::Match($cbh, '(?ms)\.EXAMPLE\s+(.+?)(?:\r?\n\s*\.\w+|$)').Groups[1].Value -replace '\s+',' ').Trim()
         # La plantilla de uso: primer segmento del .EXAMPLE (sin el comentario '# ...').
         $uso = ($example -split '\s+#')[0].Trim()

@@ -970,13 +970,19 @@ function killdev {
 # Identidades (nombre/email por perfil) viven en el vault privado.
 # El bootstrap las copia a ~/.config/git-identities.ps1. Si no estan,
 # las funciones git de perfil avisan que falta el vault.
-$script:GitIdentities  = @{}
-$script:GitHostAliases = @{}
+$script:GitIdentities     = @{}
+$script:GitHostAliases    = @{}
+$script:GitSshAliases     = @{}
+$script:GitProfileRemotes = @()
+$script:GitIdentityFiles  = @{}
 $_giFile = Join-Path ($env:XDG_CONFIG_HOME ?? (Join-Path $HOME '.config')) 'git-identities.ps1'
 if (Test-Path -LiteralPath $_giFile) {
     . $_giFile
-    if ($GitIdentities)  { $script:GitIdentities  = $GitIdentities }
-    if ($GitHostAliases) { $script:GitHostAliases = $GitHostAliases }
+    if ($GitIdentities)     { $script:GitIdentities     = $GitIdentities }
+    if ($GitHostAliases)    { $script:GitHostAliases    = $GitHostAliases }
+    if ($GitSshAliases)     { $script:GitSshAliases     = $GitSshAliases }
+    if ($GitProfileRemotes) { $script:GitProfileRemotes = $GitProfileRemotes }
+    if ($GitIdentityFiles)  { $script:GitIdentityFiles  = $GitIdentityFiles }
 }
 
 <#
@@ -995,28 +1001,122 @@ function Resolve-GitIdentity {
 }
 
 <#
+.SYNOPSIS (interna) extrae el host de una URL de git
+.EXAMPLE Get-GitUrlHost git@gitlab.com-xxx:grupo/repo.git
+#>
+function Get-GitUrlHost {
+    param([string]$Url)
+    if ($Url -match '^[a-zA-Z][\w+.-]*://(?:[^@/]+@)?([^/:]+)') { return $Matches[1] }
+    if ($Url -match '^[^/]*@([^:]+):')                          { return $Matches[1] }
+    return ''
+}
+
+<#
+.SYNOPSIS (interna) deduce el perfil de identidad git de un remoto/carpeta
+.EXAMPLE Resolve-GitProfileGuess -Url git@gitlab.com-xxx:g/r.git -Dir C:\repos\work\r
+#>
+function Resolve-GitProfileGuess {
+    param([string]$Url, [string]$Dir)
+
+    # 1. Host-alias del remoto: es la senal exacta (el alias ya elige la clave
+    #    SSH y por lo tanto la identidad).
+    $urlHost = Get-GitUrlHost $Url
+    if ($urlHost) {
+        foreach ($entry in $script:GitProfileRemotes) {
+            if ((Get-GitUrlHost $entry.url) -eq $urlHost) {
+                return @{ profile = $entry.profile; source = "host-alias del remoto ($urlHost)" }
+            }
+        }
+    }
+
+    # 2. Carpeta de contexto ~/repositorios/<ctx>. El ctx puede ser el nombre del
+    #    perfil, una clave de $GitIdentityFiles (sufijo->perfil) o resolverse por
+    #    el email de ~/.gitconfig-<ctx>, para no hardcodear nombres de perfil.
+    $reposRoot = Join-Path $HOME 'repositorios'
+    if ($Dir -and $Dir.StartsWith($reposRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        $rest = $Dir.Substring($reposRoot.Length).TrimStart('\', '/')
+        $ctx  = ($rest -split '[\\/]')[0]
+        if ($ctx) {
+            $found = $null
+            if ($script:GitIdentities.ContainsKey($ctx)) {
+                $found = $ctx
+            } elseif ($script:GitIdentityFiles.ContainsKey($ctx)) {
+                $found = $script:GitIdentityFiles[$ctx]
+            } else {
+                $ctxFile = Join-Path $HOME ".gitconfig-$ctx"
+                if (Test-Path -LiteralPath $ctxFile) {
+                    $ctxMail = (git config --file $ctxFile user.email 2>$null)
+                    if ($ctxMail) {
+                        # Orden estable: dos perfiles pueden compartir email.
+                        foreach ($p in ($script:GitIdentities.Keys | Sort-Object)) {
+                            if ($script:GitIdentities[$p].email -eq $ctxMail) { $found = $p; break }
+                        }
+                    }
+                }
+            }
+            if ($found) { return @{ profile = $found; source = "carpeta de contexto ($ctx)" } }
+        }
+    }
+
+    return $null
+}
+
+<#
 .SYNOPSIS Clonar repo y configurar identidad local automáticamente
-.EXAMPLE gclone -perfil work -remoteUrl git@gitlab.com-xxx:grupo/repo.git
+.DESCRIPTION El perfil es opcional: si no se pasa, se deduce del host-alias del
+remoto o de la carpeta de contexto (~/repositorios/<ctx>). Un targetDir que ya
+existe se toma como carpeta padre y el repo se clona en <targetDir>/<repo>.
+.EXAMPLE gclone git@gitlab.com-xxx:grupo/repo.git ~/repositorios/work
+.EXAMPLE gclone -remoteUrl git@gitlab.com-xxx:grupo/repo.git -perfil work
 #>
 function gclone {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
-        [Parameter(Mandatory=$true)]
-        [string]$perfil,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position=0)]
         [string]$remoteUrl,
-        [string]$targetDir = ""
+        [Parameter(Position=1)]
+        [string]$targetDir = "",
+        [string]$perfil = ""
     )
 
     if ($remoteUrl -notmatch '^(?:git@[\w.-]+:.+(?:\.git)?|ssh://git@[\w.-]+/.+(?:\.git)?|https://[\w.-]+/.+(?:\.git)?)$') {
         throw "URL inválida: $remoteUrl"
     }
 
-    $originHost = if ($remoteUrl -match '.*@([^:]+):') { $Matches[1] }
-                  elseif ($remoteUrl -match '^https?://([^/]+)/') { $Matches[1] }
-                  else { '' }
+    $originHost = Get-GitUrlHost $remoteUrl
     $repoName   = [IO.Path]::GetFileNameWithoutExtension(($remoteUrl -replace '^[^:]+:|^https?://[^/]+/',''))
-    $cloneDir   = if ([string]::IsNullOrWhiteSpace($targetDir)) { Join-Path (Get-Location) $repoName } else { $targetDir }
+
+    # Un '~' o un relativo dentro de un [string] de parametro NO los expande
+    # PowerShell: hay que normalizarlos a mano o Test-Path y la deteccion de la
+    # carpeta de contexto miran un path que no existe.
+    if ($targetDir) {
+        $targetDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($targetDir)
+    }
+
+    # Un targetDir EXISTENTE es el padre: se clona dentro como <dir>/<repo>.
+    $cloneDir = if ([string]::IsNullOrWhiteSpace($targetDir)) {
+        Join-Path (Get-Location) $repoName
+    } elseif (Test-Path -LiteralPath $targetDir -PathType Container) {
+        Join-Path $targetDir $repoName
+    } else {
+        $targetDir
+    }
+
+    if (-not $perfil) {
+        $guess = Resolve-GitProfileGuess -Url $remoteUrl -Dir $cloneDir
+        if (-not $guess) {
+            throw "No pude inferir el perfil; pasalo con -perfil <perfil>. Validos: $($script:GitIdentities.Keys -join ', ')"
+        }
+        $perfil = $guess.profile
+        Write-Host "Perfil inferido: $perfil (por $($guess.source))" -ForegroundColor DarkGray
+    }
+
+    # Avisar si el remoto SSH no usa un host-alias del vault: engancha la clave
+    # por defecto en vez de la del perfil y el clone puede fallar.
+    if ($originHost -and $remoteUrl -notmatch '://' -and
+        $script:GitSshAliases.Count -gt 0 -and -not $script:GitSshAliases.ContainsKey($originHost)) {
+        Write-Host "Aviso: '$originHost' no es un host-alias del vault; conviene usar el alias SSH del perfil." -ForegroundColor DarkYellow
+    }
 
     if (Test-Path -LiteralPath $cloneDir) {
         if ((Get-ChildItem -LiteralPath $cloneDir -Force -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {

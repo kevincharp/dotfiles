@@ -129,7 +129,7 @@ export repos personal work
 # UTILIDADES GENERALES
 # ==============================================================================
 
-# --- [nav] open: abrir directorio o archivo con la app por defecto | uso: open <ruta> ---
+# --- [nav] open: abrir directorio o archivo con la app por defecto (por defecto: .) | uso: open [ruta] ---
 open() {
     local target="${1:-.}"
     if [[ "$IS_MACOS" == true ]]; then
@@ -151,7 +151,7 @@ edit() {
     fi
 }
 
-# --- [nav] y: yazi con cd-on-exit (queda en el último dir navegado) | uso: y ---
+# --- [nav] y: yazi con cd-on-exit (queda en el último dir navegado) | uso: y [ruta] ---
 # Wrapper oficial de yazi (paridad con profile.ps1 y bashrc). Lanza yazi y, al
 # salir con 'q', deja el shell parado en el ultimo directorio navegado (yazi
 # escribe el cwd en un archivo temporal via --cwd-file). Solo se define si yazi
@@ -418,7 +418,7 @@ gwork() {
 
 # --- [sistema] port: lista el proceso que escucha en un puerto | uso: port <puerto> ---
 port() {
-    local p="${1:?Uso: port <numero>}"
+    local p="${1:?Uso: port <puerto>}"
     if command -v lsof &>/dev/null; then
         lsof -nP -iTCP:"$p" -sTCP:LISTEN
     else
@@ -428,7 +428,7 @@ port() {
 
 # --- [sistema] killport: mata el proceso que escucha en un puerto | uso: killport <puerto> ---
 killport() {
-    local p="${1:?Uso: killport <numero>}"
+    local p="${1:?Uso: killport <puerto>}"
     local pid
     if command -v lsof &>/dev/null; then
         pid=$(lsof -nP -iTCP:"$p" -sTCP:LISTEN -t | head -n1)

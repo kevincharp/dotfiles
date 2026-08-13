@@ -482,7 +482,7 @@ killdev() {
 # Sin args borra TODO; con un patron borra solo las lineas que matcheen
 # (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
 # Espejo del zshrc; en bash se usa 'history -c/-r' (no existe 'fc -p').
-# --- [dotfiles] clear-history: vacía el historial completo, o borra las líneas que matcheen | uso: clear-history [patrón] ---
+# --- [dotfiles] clear-history: vacía el historial completo, o borra las líneas que contengan un texto | uso: clear-history [texto] ---
 clear-history() {
     local hist="${HISTFILE:-$HOME/.bash_history}"
     # Salvaguarda: distinguir "sin args" de "un arg vacio". Si se paso un patron
@@ -493,10 +493,36 @@ clear-history() {
         echo "  Para vaciar TODO el historial, corre 'clear-history' sin argumentos." >&2
         return 1
     fi
+    # Salvaguarda 2: el placeholder del formato sin editar. 'clear-history [patron]'
+    # pegado tal cual BORRABA toda linea con una p/a/t/r/o/n: grep lo tomaba como
+    # clase de caracteres de regex. Ahora el patron es literal (-F) y encima se
+    # rechaza cualquier cosa con forma de placeholder.
+    if [[ "$1" == \[*\] || "$1" == \<*\> ]]; then
+        echo "clear-history: '$1' parece el placeholder del formato, no un texto real." >&2
+        echo "  Uso: clear-history [texto]   (ej: clear-history TOKEN)" >&2
+        return 1
+    fi
     if [[ -n "$1" ]]; then
-        grep -v -- "$1" "$hist" > "${hist}.tmp" && mv "${hist}.tmp" "$hist"
+        # -F: el patron es LITERAL. Como regex, un token con . * [ ] matchea de mas
+        # y se borran lineas que nadie pidio borrar.
+        local borradas
+        borradas=$(grep -cF -- "$1" "$hist" 2>/dev/null) || borradas=0
+        if (( borradas == 0 )); then
+            echo "Historial: ninguna linea contiene '$1'. Nada que borrar."
+            return 0
+        fi
+        grep -vF -- "$1" "$hist" > "${hist}.tmp"
+        # OJO: grep devuelve 1 cuando no selecciona NINGUNA linea (matchearon todas).
+        # Para nosotros es exito; el error real es rc > 1.
+        local rc=$?
+        if (( rc > 1 )); then
+            rm -f "${hist}.tmp"
+            echo "clear-history: fallo al filtrar $hist (no se borro nada)." >&2
+            return 1
+        fi
+        mv "${hist}.tmp" "$hist"
         history -c; history -r "$hist"   # recarga el historial limpio
-        echo "Historial: borradas las lineas que matcheaban '$1'."
+        echo "Historial: borradas $borradas linea(s) que contenian '$1'."
     else
         printf 'Vaciar TODO el historial (%s)? [y/N] ' "$hist"
         local ans; read -r ans

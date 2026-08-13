@@ -1683,7 +1683,10 @@ function claude-smg {
 #
 # Uso:
 #   dothelp          MENÚ interactivo (fzf): elegís categoría → comando. Al
-#                    aceptar, deja el comando escrito en la línea (PSReadLine).
+#                    aceptar, muestra el formato de uso y deja el NOMBRE del
+#                    comando escrito en la línea (PSReadLine). Los args los
+#                    completás vos: si le das Enter pelado, el propio comando
+#                    te dice qué espera.
 #   dothelp git      listado estático filtrado (sin menú)
 #   Sin fzf → listado estático.
 #
@@ -1832,13 +1835,23 @@ function dothelp {
         if (-not $pick2) { continue }                     # Esc en comandos → volver al paso 1
 
         $parts = $pick2 -split $tab
-        $cmd   = if ($parts[2]) { $parts[2] } else { $parts[0] }
-        # Dejar el comando escrito en la línea, listo para editar (igual que print -z en zsh).
+        $name  = $parts[0]
+        $uso   = if ($parts[2]) { $parts[2] } else { $name }
+        # Se inserta SOLO el nombre, NO la plantilla de uso: la plantilla lleva
+        # <obligatorio> y [opcional], que no son ejecutables (Enter sin editar =
+        # error de parseo, que no dice nada del comando). Con solo el nombre, ese
+        # Enter llega a la función y es ELLA la que imprime su uso: una sola
+        # fuente de verdad, imposible que el menú y el comando se contradigan.
+        if ($uso -ne $name) {
+            Write-Host "uso: " -ForegroundColor DarkGray -NoNewline
+            Write-Host $uso -ForegroundColor DarkGray
+        }
+        # Dejar el nombre escrito en la línea, listo para completar (como print -z en zsh).
         if (Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue) {
-            [Microsoft.PowerShell.PSConsoleReadLine]::Insert($cmd)
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert("$name ")
         } else {
             Write-Host "copiá y ejecutá: " -ForegroundColor DarkGray -NoNewline
-            Write-Host $cmd -ForegroundColor White
+            Write-Host $name -ForegroundColor White
         }
         return
     }

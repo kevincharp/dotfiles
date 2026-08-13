@@ -334,13 +334,17 @@ function open-here {
     }
 }
 
-<#
-.SYNOPSIS yazi con cd-on-exit (paridad con la funcion 'y' de bashrc/zshrc)
-.DESCRIPTION Lanza yazi y, al salir con 'q', deja el shell parado en el ultimo
-directorio navegado (yazi escribe el cwd en un temporal via --cwd-file).
-.EXAMPLE y
-#>
+# OJO: el bloque de help va DENTRO del if, pegado a 'function y'. dothelp exige
+# que el <#...#> este inmediatamente antes del 'function': con el 'if' en medio
+# no lo asociaba a 'y' (que desaparecia del menu) y ademas se lo colgaba a la
+# funcion siguiente, que salia con la descripcion y el uso de yazi.
 if (Get-Command yazi -ErrorAction SilentlyContinue) {
+    <#
+    .SYNOPSIS yazi con cd-on-exit (paridad con la funcion 'y' de bashrc/zshrc)
+    .DESCRIPTION Lanza yazi y, al salir con 'q', deja el shell parado en el ultimo
+    directorio navegado (yazi escribe el cwd en un temporal via --cwd-file).
+    .EXAMPLE y [ruta]
+    #>
     function y {
         $tmp = [System.IO.Path]::GetTempFileName()
         yazi $args --cwd-file="$tmp"
@@ -357,6 +361,7 @@ if (Get-Command yazi -ErrorAction SilentlyContinue) {
 .DESCRIPTION Espejo del update-all de bash/zsh (paridad). winget cubre la mayoria
 de las apps; esta funcion suma npm (codex). Claude Code se autoactualiza solo;
 lazyssh (binario GitHub) se actualiza re-corriendo el bootstrap.
+.EXAMPLE update-all
 #>
 function update-all {
     if (Get-Command winget -ErrorAction SilentlyContinue) {

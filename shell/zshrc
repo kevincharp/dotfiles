@@ -727,7 +727,9 @@ gset-profile() {
     local perfil="$1"
     if [[ -z "$perfil" ]]; then
         echo "Uso: gset-profile <perfil>"
-        echo "Perfiles: ${(k)GIT_IDENTITIES_EMAIL:-(vault no cargado)}"
+        # Paridad con bash, donde la forma inline se lee como indireccion.
+        local perfiles="${(k)GIT_IDENTITIES_EMAIL}"
+        echo "Perfiles: ${perfiles:-(vault no cargado)}"
         return 1
     fi
 
@@ -757,7 +759,9 @@ ginit() {
 
     if [[ -z "$perfil" ]]; then
         echo "Uso: ginit <perfil> [path]"
-        echo "Perfiles: ${(k)GIT_IDENTITIES_EMAIL:-(vault no cargado)}"
+        # Paridad con bash, donde la forma inline se lee como indireccion.
+        local perfiles="${(k)GIT_IDENTITIES_EMAIL}"
+        echo "Perfiles: ${perfiles:-(vault no cargado)}"
         return 1
     fi
 

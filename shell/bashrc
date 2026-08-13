@@ -755,8 +755,11 @@ gclone() {
 gset-profile() {
     local perfil="$1"
     if [[ -z "$perfil" ]]; then
+        # Las claves van a una variable aparte: '${!ARR[*]:-default}' se lee como
+        # indireccion y aborta con "nombre de variable invalido" (ver _gclone_usage).
+        local perfiles="${!GIT_IDENTITIES_EMAIL[*]}"
         echo "Uso: gset-profile <perfil>"
-        echo "Perfiles: ${!GIT_IDENTITIES_EMAIL[*]:-(vault no cargado)}"
+        echo "Perfiles: ${perfiles:-(vault no cargado)}"
         return 1
     fi
 
@@ -785,8 +788,10 @@ ginit() {
     local dir="${2:-$PWD}"
 
     if [[ -z "$perfil" ]]; then
+        # Ver la nota de indireccion en gset-profile/_gclone_usage.
+        local perfiles="${!GIT_IDENTITIES_EMAIL[*]}"
         echo "Uso: ginit <perfil> [path]"
-        echo "Perfiles: ${!GIT_IDENTITIES_EMAIL[*]:-(vault no cargado)}"
+        echo "Perfiles: ${perfiles:-(vault no cargado)}"
         return 1
     fi
 

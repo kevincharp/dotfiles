@@ -115,6 +115,7 @@ $WINGET_PACKAGES = @(
     @{ Id='Obsidian.Obsidian';              Name='Obsidian';                Optional=$true ; Key='obsidian';         Group='extras' }
     @{ Id='Logitech.OptionsPlus';           Name='Logitech Options+';       Optional=$true ; Key='logitech';         Group='extras' }
     @{ Id='Microsoft.Sysinternals.SDelete'; Name='SDelete (Sysinternals)';  Optional=$true ; Key='sdelete';          Group='extras' }
+    @{ Id='Microsoft.PowerBI';              Name='Power BI Desktop';        Optional=$true ; Key='powerbi';          Group='extras' }
     @{ Id='Canonical.Ubuntu.2204';          Name='Ubuntu 22.04 (WSL)';      Optional=$true ; Key='wsl-ubuntu';       Group='extras' }
 )
 

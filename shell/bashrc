@@ -478,6 +478,16 @@ killdev() {
     done
 }
 
+# _reload_history: deja la lista en memoria igual al archivo de historial.
+# Espejo del zshrc; en bash es 'history -c/-r' (no existe 'fc -R' ni 'fc -p').
+# --- [dotfiles] _reload_history: (interna) recarga el historial de la sesion desde el archivo | uso: _reload_history ---
+_reload_history() {
+    local hist="${HISTFILE:-$HOME/.bash_history}"
+    history -c              # vacia la lista en memoria
+    history -r "$hist"      # relee el archivo
+    return 0
+}
+
 # clear-history: vacia el historial (archivo + memoria de la sesion actual).
 # Sin args borra TODO; con un patron borra solo las lineas que matcheen
 # (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
@@ -521,14 +531,14 @@ clear-history() {
             return 1
         fi
         mv "${hist}.tmp" "$hist"
-        history -c; history -r "$hist"   # recarga el historial limpio
+        _reload_history                  # recarga el historial limpio
         echo "Historial: borradas $borradas linea(s) que contenian '$1'."
     else
         printf 'Vaciar TODO el historial (%s)? [y/N] ' "$hist"
         local ans; read -r ans
         if [[ "$ans" == [yY] ]]; then
             : > "$hist"          # vacia el archivo
-            history -c           # limpia la memoria de la sesion
+            _reload_history      # limpia la memoria de la sesion
             echo "Historial vaciado."
         else
             echo "Cancelado."

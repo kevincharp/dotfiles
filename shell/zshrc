@@ -451,6 +451,20 @@ killdev() {
     done
 }
 
+# _reload_history: deja la lista en memoria igual al archivo ($HISTFILE).
+# NO usar 'fc -p': apila una historia nueva y, llamado DENTRO de una funcion, zsh
+# la descarta al volver — la sesion se queda con la lista vieja, asi que las
+# lineas borradas siguen apareciendo con ↑ y se reescriben al archivo al salir.
+# El idioma que si funciona: HISTSIZE=0 trunca la memoria y 'fc -R' relee el archivo.
+# --- [dotfiles] _reload_history: (interna) recarga el historial de la sesion desde el archivo | uso: _reload_history ---
+_reload_history() {
+    local _hs=$HISTSIZE
+    HISTSIZE=0          # truncar a 0 descarta la lista en memoria
+    HISTSIZE=$_hs
+    [[ -s "$HISTFILE" ]] && fc -R "$HISTFILE"
+    return 0            # el archivo vacio no es un error
+}
+
 # clear-history: vacia el historial (archivo + memoria de la sesion actual).
 # Sin args borra TODO; con un patron borra solo las lineas que matcheen
 # (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
@@ -493,14 +507,14 @@ clear-history() {
             return 1
         fi
         mv "${HISTFILE}.tmp" "$HISTFILE"
-        fc -p "$HISTFILE"   # recarga el historial limpio en la sesion
+        _reload_history     # deja la sesion con el historial limpio
         echo "Historial: borradas $borradas linea(s) que contenian '$1'."
     else
         printf 'Vaciar TODO el historial (%s)? [y/N] ' "$HISTFILE"
         local ans; read -r ans
         if [[ "$ans" == [yY] ]]; then
             : > "$HISTFILE"     # vacia el archivo
-            fc -p "$HISTFILE"   # limpia la memoria de la sesion
+            _reload_history     # limpia la memoria de la sesion
             echo "Historial vaciado."
         else
             echo "Cancelado."

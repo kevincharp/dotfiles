@@ -448,11 +448,45 @@ function clear-history {
         return
     }
 
+    # Salvaguarda 2: el placeholder del formato sin editar (paridad con bash/zsh).
+    if ($Pattern -match '^\[.*\]$' -or $Pattern -match '^<.*>$') {
+        Write-Host "clear-history: '$Pattern' parece el placeholder del formato, no un texto real." -ForegroundColor Red
+        Write-Host "  Uso: clear-history [texto]   (ej: clear-history TOKEN)" -ForegroundColor Red
+        return
+    }
+
     if ($Pattern) {
-        $kept = Get-Content -LiteralPath $hist | Where-Object { $_ -notlike "*$Pattern*" }
-        Set-Content -LiteralPath $hist -Value $kept
-        [Microsoft.PowerShell.PSConsoleReadLine]::ClearHistory()
-        Write-Host "Historial: borradas las lineas que matcheaban '$Pattern'."
+        # Patron LITERAL y case-sensitive (paridad con el 'grep -F' de bash/zsh).
+        # Con -like, un token con * ? [ ] matchea de mas y se borran lineas que
+        # nadie pidio borrar.
+        $lineas   = @(Get-Content -LiteralPath $hist)
+        $kept     = @($lineas | Where-Object { -not $_.Contains($Pattern) })
+        $borradas = $lineas.Count - $kept.Count
+        if ($borradas -eq 0) {
+            Write-Host "Historial: ninguna linea contiene '$Pattern'. Nada que borrar."
+            return
+        }
+        # OJO: ClearHistory() vacia TODO el historial en memoria, no solo las
+        # lineas del patron. Sin re-agregar lo conservado, la sesion queda SIN
+        # historial (flecha ↑ y ListView vacios) hasta reabrir la terminal —
+        # justo el sintoma que parecia "clear-history rompe el historial".
+        $style = (Get-PSReadLineOption).HistorySaveStyle
+        try {
+            # SaveNothing mientras se re-agrega: con SaveIncrementally cada
+            # AddToHistory apendea al archivo y lo duplicaria.
+            Set-PSReadLineOption -HistorySaveStyle SaveNothing
+            [Microsoft.PowerShell.PSConsoleReadLine]::ClearHistory()
+            foreach ($l in $kept) { [Microsoft.PowerShell.PSConsoleReadLine]::AddToHistory($l) }
+        } catch {
+            # AddToHistory necesita el PSReadLine de una sesion interactiva.
+            Write-Host "  (no se pudo recargar el historial en memoria; reabri la terminal)" -ForegroundColor DarkYellow
+        } finally {
+            Set-PSReadLineOption -HistorySaveStyle $style
+        }
+        # Se escribe al final para que el archivo sea autoritativo pase lo que
+        # pase con el re-agregado. WriteAllLines: UTF-8 sin BOM, como PSReadLine.
+        [System.IO.File]::WriteAllLines($hist, $kept)
+        Write-Host "Historial: borradas $borradas linea(s) que contenian '$Pattern'."
     } else {
         $ans = Read-Host "Vaciar TODO el historial ($hist)? [y/N]"
         if ($ans -eq 'y' -or $ans -eq 'Y') {

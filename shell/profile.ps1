@@ -181,11 +181,24 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
 if (Get-Command fzf -ErrorAction SilentlyContinue) {
     # Ctrl+R: búsqueda en historial con fzf (igual que bash)
     Set-PSReadLineKeyHandler -Chord "Ctrl+r" -ScriptBlock {
-        $history = Get-Content (Get-PSReadLineOption).HistorySavePath |
-                   Where-Object { $_ -ne '' } |
-                   Sort-Object -Unique |
-                   Select-Object -Last 5000
-        $selected = $history | fzf --tac --no-sort --height 40% --border --prompt "historial> "
+        $lineas = @(Get-Content -LiteralPath (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        # OJO: NO deduplicar con 'Sort-Object -Unique' — para poder unificar, ORDENA
+        # ALFABETICAMENTE: fzf pierde el orden cronologico (con --tac quedaba de la z
+        # a la a, no lo mas reciente primero) y el recorte a 5000 se queda con un
+        # tramo del abecedario en vez del historial reciente. Recorremos de abajo
+        # hacia arriba (lo mas nuevo primero) quedandonos con la primera vista de cada
+        # linea: dedup SIN perder recencia (mismo criterio que el bloque de dedup).
+        $vistas = [System.Collections.Generic.HashSet[string]]::new()
+        $historial = [System.Collections.Generic.List[string]]::new()
+        for ($i = $lineas.Count - 1; $i -ge 0 -and $historial.Count -lt 5000; $i--) {
+            if ($vistas.Add($lineas[$i])) { $historial.Add($lineas[$i]) }
+        }
+        # Sin --tac: la lista ya viene mas-reciente-primero y el layout default de fzf
+        # deja el primer item pegado al prompt (espejo del 'history | tac' del bashrc).
+        # --scheme=history + --tiebreak=index: mismo ranking que bash/zsh.
+        $selected = $historial | fzf --no-sort --scheme=history --tiebreak=index `
+                                     --height 40% --border --prompt "historial> "
         if ($selected) {
             [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
             [Microsoft.PowerShell.PSConsoleReadLine]::Insert($selected)

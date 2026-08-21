@@ -121,6 +121,24 @@
         {
             "command": "openTabColorPicker",
             "id": "User.openTabColorPicker"
+        },
+        {
+            "command":
+            {
+                "action": "multipleActions",
+                "actions":
+                [
+                    {
+                        "action": "clearBuffer",
+                        "clear": "all"
+                    },
+                    {
+                        "action": "sendInput",
+                        "input": "\u000c"
+                    }
+                ]
+            },
+            "id": "User.clearBufferAndRedraw"
         }
     ],
     "alwaysShowTabs": true,
@@ -291,6 +309,10 @@
         {
             "id": "Terminal.OpenNewTab",
             "keys": "ctrl+t"
+        },
+        {
+            "id": "User.clearBufferAndRedraw",
+            "keys": "ctrl+shift+k"
         }
     ],
     "newTabMenu": [],

@@ -183,6 +183,24 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
 - `settings.local.json` → **per-máquina** (permisos con rutas absolutas que
   difieren Linux/Windows). **No está trackeado** (lo cubre el `.gitignore`):
   cada PC mantiene el suyo y nunca entra en commits ni rebases.
+- `keybindings.json` → **NO se versiona a propósito** (lo cubre `.claude/*`).
+  Decisión: ambas máquinas usan los **defaults de Claude Code**, sin archivo. El
+  que había era un **volcado completo de los defaults** (ni un rebind propio) que
+  escribe Claude Code solo, y refleja los defaults de **la versión instalada** →
+  con versiones distintas en Linux y Windows los archivos divergen y parece
+  config propia. Versionar el dump es peor que no tenerlo: congela los defaults
+  de hoy y tapa los que agreguen versiones futuras. Si algún día hace falta
+  customizar, va un archivo **mínimo** con solo los rebinds (y ahí sí evaluar
+  symlinkearlo), no el dump.
+- **Atajos que "no funcionan"** casi nunca son un bug del archivo: los bindings
+  son **por contexto** (`Task`, `Transcript`, `Scroll`…), no globales — `ctrl+b`
+  solo manda a background si hay una tarea en foreground, y `ctrl+e` hace tres
+  cosas distintas según el foco. Gana el contexto más específico (`up` en el chat
+  es historial, salvo que esté abierto el autocomplete). `cmd+*` es de macOS.
+  Y el **terminal se queda las teclas antes** que Claude: `Ctrl+Shift+K` lo toma
+  Windows Terminal (limpia buffer), `Ctrl+Shift+C`/`B` los toma Ptyxis/GNOME, y
+  `ctrl+s` puede morir en el flow control del tty (`stty -a | grep ixon`).
+  Los warnings de validación salen con `claude --debug` (líneas `[keybindings]`).
 
 ## Emojis a color en Chrome (`fontconfig/`)
 

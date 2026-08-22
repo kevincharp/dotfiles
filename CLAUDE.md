@@ -192,6 +192,17 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   de hoy y tapa los que agreguen versiones futuras. Si algún día hace falta
   customizar, va un archivo **mínimo** con solo los rebinds (y ahí sí evaluar
   symlinkearlo), no el dump.
+  - **Quién lo crea:** el comando **`/keybindings`**. Su mensaje dice *"Created
+    ... with template"*, pero el "template" **es el dump completo de los
+    defaults** — así que el archivo **reaparece** cada vez que se abre el comando
+    y hay que volver a borrarlo si se lo quiere sin archivo. Al recrearlo en
+    Windows quedó `"alt+v": "chat:imagePaste"` donde Fedora tenía `"ctrl+v"`:
+    misma acción, tecla distinta según la versión instalada. Esa es la prueba de
+    que el archivo refleja el CLI, no las preferencias del usuario.
+  - **`shift+enter` no lo necesita:** en Windows lo resuelve el terminal —
+    `terminal/settings.json` mapea `shift+enter` a un `sendInput` con ESC+CR
+    (bytes `0x1b 0x0d`), que Claude lee como salto de línea. Un `chat:newline`
+    en `keybindings.json` sería redundante: la tecla nunca le llega.
 - **Atajos que "no funcionan"** casi nunca son un bug del archivo: los bindings
   son **por contexto** (`Task`, `Transcript`, `Scroll`…), no globales — `ctrl+b`
   solo manda a background si hay una tarea en foreground, y `ctrl+e` hace tres

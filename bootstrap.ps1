@@ -1339,6 +1339,19 @@ if ($SkipDotfiles) {
             Write-Log "Config de nvim ya symlinkeada al repo, saltando" 'SKIP'
         } elseif ($DryRun) {
             Write-Log "[DryRun] Symlink nvim → $nvimDst" 'SKIP'
+        } elseif (-not (Test-DeveloperMode)) {
+            # ORDEN DESTRUCTIVO: abajo se mueve la config previa al backup ANTES de
+            # crear el symlink. Si el symlink falla, el usuario queda sin config y
+            # sin link → nvim arranca con defaults (sin lualine, sin tema, sin
+            # números de línea) y el sintoma es indistinguible de "nvim roto".
+            # Por eso se corta ACÁ, antes de tocar nada: sin Modo de desarrollador
+            # (ni admin) New-Item -ItemType SymbolicLink no puede funcionar.
+            # El aviso del paso 1 queda cientos de lineas de log atras, asi que se
+            # repite acá, donde importa.
+            $msg = "Symlink de nvim omitido: Modo de desarrollador desactivado (la config previa NO se toco)"
+            Write-Log $msg 'ERROR'
+            Write-Log "  Activalo en: Configuración → Sistema → Para desarrolladores, o corré como admin" 'WARN'
+            $ERRORS.Add($msg)
         } else {
             if ($nvimItem -and -not $nvimIsLink) {
                 Invoke-Step "Backup $nvimDst → $BACKUP_DIR\nvim" {
@@ -1349,6 +1362,14 @@ if ($SkipDotfiles) {
             }
             Invoke-Step "Symlink nvim → $nvimDst" {
                 New-Item -ItemType SymbolicLink -Path $nvimDst -Target $nvimSrc | Out-Null
+            }
+            # Verificar que el symlink QUEDÓ USABLE, no solo que el comando no tiró.
+            # Un link creado pero que no resuelve a init.lua deja a nvim sin config,
+            # y sin este chequeo el bootstrap lo reporta como exito.
+            if (-not (Test-Path (Join-Path $nvimDst 'init.lua'))) {
+                $msg = "Symlink de nvim creado pero $nvimDst\init.lua no resuelve — nvim va a arrancar sin config"
+                Write-Log $msg 'ERROR'
+                $ERRORS.Add($msg)
             }
         }
     }

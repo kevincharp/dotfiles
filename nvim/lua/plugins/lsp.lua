@@ -14,11 +14,23 @@
 -- del repo. NOTA: Mason baja binarios de internet; algunos necesitan node (ya lo
 -- tenés). En Windows detrás de proxy corporativo puede fallar alguno (ver CLAUDE.md).
 --
--- Atajos LSP (se activan SOLO en buffers con servidor adjunto, vía on_attach):
---   gd          ir a la definición        gr   ver referencias
---   gI          ir a la implementación     K    hover (documentación)
---   <leader>rn  renombrar símbolo          <leader>ca  acciones de código (quick fix)
---   <leader>d   ver el error/diagnóstico de la línea   [d / ]d  saltar entre errores
+-- ATAJOS: nvim 0.12 ya trae los principales DE FÁBRICA, así que acá se mapea lo
+-- mínimo que falta. Los nativos (existen siempre, no hay que configurarlos):
+--   grn  renombrar símbolo      gra  acciones de código (quick fix)
+--   grr  ver referencias        gri  ir a la implementación
+--   grt  ir al tipo             grx  ejecutar codelens
+--   gO   estructura del archivo (símbolos)   K  hover (documentación)
+--   <C-w>d  ver el diagnóstico bajo el cursor
+--   <C-s>   (en modo insert) ver los parámetros de la función
+--
+-- Antes este archivo mapeaba gr, gI, <leader>rn, <leader>ca y <leader>d, que son
+-- exactamente esos defaults duplicados. Peor todavía: mapear `gr` A SECAS convierte
+-- `gr` en prefijo AMBIGUO, así que nvim tiene que esperar los 400 ms de timeoutlen
+-- para saber si venía grn/gra/grr — metía lag perceptible en los seis nativos.
+--
+-- Lo que sí se mapea acá (no tiene default):
+--   gd       ir a la definición ('gd' nativo es la declaración LOCAL, no el LSP)
+--   [d / ]d  saltar al diagnóstico anterior / siguiente
 -- ============================================================================
 
 return {
@@ -46,12 +58,6 @@ return {
         end
 
         map('gd', vim.lsp.buf.definition, 'Ir a la definición')
-        map('gr', vim.lsp.buf.references, 'Ver referencias')
-        map('gI', vim.lsp.buf.implementation, 'Ir a la implementación')
-        map('K', vim.lsp.buf.hover, 'Documentación (hover)')
-        map('<leader>rn', vim.lsp.buf.rename, 'Renombrar símbolo')
-        map('<leader>ca', vim.lsp.buf.code_action, 'Acciones de código (quick fix)')
-        map('<leader>d', vim.diagnostic.open_float, 'Ver diagnóstico de la línea')
         map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Diagnóstico anterior')
         map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Diagnóstico siguiente')
       end,

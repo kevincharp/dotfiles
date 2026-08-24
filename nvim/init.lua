@@ -17,7 +17,12 @@
 -- el estándar moderno de nvim (y el default de kickstart/LazyVim). Se fija acá,
 -- lo más temprano posible, porque los plugins leen su valor al registrarse.
 vim.g.mapleader = ' '
-vim.g.maplocalleader = ' '
+-- El líder LOCAL es el prefijo de atajos que valen solo en cierto tipo de buffer
+-- (los define el plugin dueño de ese buffer). Tenerlo también en espacio era un
+-- bug latente: cualquier plugin que mapee <localleader>x crea un <space>x que
+-- pisa —o vuelve ambiguo— un atajo global. La barra invertida es el default de
+-- vim y no se usa para nada acá.
+vim.g.maplocalleader = '\\'
 
 -- Damos por hecho que hay una Nerd Font en la terminal (FiraCode Nerd Font, ya
 -- instalada y usada por Ptyxis/Windows Terminal). Habilita íconos en los plugins.

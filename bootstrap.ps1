@@ -100,6 +100,9 @@ $WINGET_PACKAGES = @(
     @{ Id='Git.Git';                        Name='Git for Windows';         Optional=$false; Key='git';              Group='core'   }
     @{ Id='Neovim.Neovim';                  Name='Neovim';                  Optional=$false; Key='neovim';           Group='core'   }
     @{ Id='BurntSushi.ripgrep.MSVC';        Name='ripgrep';                 Optional=$false; Key='ripgrep';          Group='core'   }
+    # Requisito de nvim-treesitter rama 'main': compila los parsers. Sin esto,
+    # nvim abre pero sin resaltado de sintaxis (ver nvim/lua/plugins/treesitter.lua).
+    @{ Id='tree-sitter.tree-sitter-cli';    Name='tree-sitter CLI';         Optional=$false; Key='tree-sitter-cli';  Group='core'   }
     @{ Id='junegunn.fzf';                   Name='fzf';                     Optional=$false; Key='fzf';              Group='core'   }
     @{ Id='JanDeDobbeleer.OhMyPosh';        Name='Oh My Posh';              Optional=$false; Key='oh-my-posh';       Group='shell'  }
     @{ Id='ajeetdsouza.zoxide';             Name='zoxide';                  Optional=$false; Key='zoxide';           Group='shell'  }
@@ -738,6 +741,7 @@ function Test-ToolInstalled {
     switch ($Key) {
         'neovim'           { return (Test-CommandAvailable 'nvim') }
         'ripgrep'          { return (Test-CommandAvailable 'rg') }
+        'tree-sitter-cli'  { return (Test-CommandAvailable 'tree-sitter') }
         'pwsh'             { return (Test-CommandAvailable 'pwsh') }
         'git'              { return (Test-CommandAvailable 'git') }
         'windows-terminal' { return (Test-Path (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe')) }

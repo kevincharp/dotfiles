@@ -297,7 +297,8 @@ ensure_base_deps() {
 
 TOOLS_CATALOG=(
     "neovim|core|Editor de terminal"
-    "ripgrep|core|Busqueda rapida (Telescope)"
+    "tree-sitter-cli|core|Compilador de parsers de nvim (requisito de treesitter)"
+    "ripgrep|core|Busqueda rapida (picker y buscar/reemplazar de nvim)"
     "fzf|core|Fuzzy finder (Ctrl+R)"
     "bash-completion|core|Autocompletado de bash"
     "oh-my-posh|shell|Prompt con tema"
@@ -333,6 +334,7 @@ tool_installed() {
     case "$1" in
         neovim)          has_cmd nvim ;;
         ripgrep)         has_cmd rg ;;
+        tree-sitter-cli) has_cmd tree-sitter ;;
         fzf)             has_cmd fzf ;;
         bash-completion) [[ -f /usr/share/bash-completion/bash_completion ]] \
                             || rpm -q bash-completion &>/dev/null \
@@ -392,7 +394,7 @@ want_tool() {
 # install_tool <id> — instala la herramienta (logica por distro preservada)
 install_tool() {
     case "$1" in
-        neovim|ripgrep|fzf|bash-completion|zsh|flameshot)
+        neovim|ripgrep|tree-sitter-cli|fzf|bash-completion|zsh|flameshot)
             run_step "Instalar $1" $PKG_INSTALL "$1"
             ;;
         zsh-autosuggestions)
@@ -1198,7 +1200,7 @@ if [[ "$SKIP_PACKAGES" == true ]]; then
     log "skip-packages activado, saltando" "SKIP"
 elif [[ "$PKG_MANAGER" == "none" ]]; then
     log "Sin package manager, saltando paquetes" "WARN"
-    WARNINGS+=("Instalar paquetes manualmente: neovim, ripgrep, fzf, zoxide, lazygit")
+    WARNINGS+=("Instalar paquetes manualmente: neovim, tree-sitter-cli, ripgrep, fzf, zoxide, lazygit")
 else
     # El selector y (en dnf) el sudo del update piden pantalla: pausamos la barra.
     gb_pause

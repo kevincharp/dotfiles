@@ -91,7 +91,37 @@ return {
       enabled = true,
     },
   },
+  -- --------------------------------------------------------------------------
+  -- Atajos. El grueso son los PICKERS: el motor ya estaba instalado y sano
+  -- (rg, fd, git y sqlite disponibles) pero no tenía un solo atajo, así que
+  -- faltaba el Ctrl+P entero de VSCode. Todos son con líder, ninguno pisa un
+  -- atajo nativo de nvim ni una tecla que se queden Ptyxis/GNOME/Windows Terminal.
+  -- --------------------------------------------------------------------------
   keys = {
     { '<leader>e', function() Snacks.explorer() end, desc = 'Explorador de archivos (toggle)' },
+
+    -- El "Ctrl+P" real: mezcla archivos abiertos, recientes y del proyecto,
+    -- ordenados por frecuencia de uso. Es el que conviene usar por reflejo.
+    { '<leader><space>', function() Snacks.picker.smart() end, desc = 'Buscar archivo (inteligente)' },
+
+    -- Grupo <leader>f = buscar ARCHIVOS y TEXTO (el prefijo que liberó formateo).
+    { '<leader>ff', function() Snacks.picker.files() end, desc = 'Buscar: archivos' },
+    { '<leader>fg', function() Snacks.picker.grep() end, desc = 'Buscar: texto en el proyecto (grep)' },
+    { '<leader>fb', function() Snacks.picker.buffers() end, desc = 'Buscar: buffers abiertos' },
+    { '<leader>fr', function() Snacks.picker.recent() end, desc = 'Buscar: archivos recientes' },
+    { '<leader>fl', function() Snacks.picker.lines() end, desc = 'Buscar: líneas del archivo actual' },
+    -- grep_word funciona en normal (palabra bajo el cursor) y en visual (selección).
+    { '<leader>fw', function() Snacks.picker.grep_word() end, desc = 'Buscar: palabra bajo el cursor', mode = { 'n', 'x' } },
+
+    -- Grupo <leader>s = buscar SÍMBOLOS y metadatos del editor.
+    { '<leader>ss', function() Snacks.picker.lsp_symbols({ tree = true }) end, desc = 'Símbolos del archivo (outline)' },
+    { '<leader>sS', function() Snacks.picker.lsp_workspace_symbols() end, desc = 'Símbolos de todo el proyecto' },
+    { '<leader>sd', function() Snacks.picker.diagnostics() end, desc = 'Lista de errores del proyecto' },
+    { '<leader>sk', function() Snacks.picker.keymaps() end, desc = 'Atajos de teclado' },
+    { '<leader>sh', function() Snacks.picker.help() end, desc = 'Ayuda de nvim (:help)' },
+
+    -- lazygit ya está instalado en el sistema (lo confirma :checkhealth). Cubre
+    -- diff/stage/commit completos, que es justo lo que gitsigns no hace.
+    { '<leader>gg', function() Snacks.lazygit() end, desc = 'lazygit (git completo)' },
   },
 }

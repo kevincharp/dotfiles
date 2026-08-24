@@ -75,8 +75,25 @@ return {
         map('gd', vim.lsp.buf.definition, 'Ir a la definición')
         map('[d', function() vim.diagnostic.jump({ count = -1 }) end, 'Diagnóstico anterior')
         map(']d', function() vim.diagnostic.jump({ count = 1 }) end, 'Diagnóstico siguiente')
+
+        -- INLAY HINTS: los tipos inferidos y nombres de parámetros en gris que
+        -- VSCode muestra de fábrica en TypeScript. Se prenden por buffer y solo si
+        -- el servidor los ofrece (del stack: vtsls y lua_ls sí; pyright NO).
+        -- OJO, hacen falta DOS cosas: esto, y pedirle al servidor que los genere
+        -- (ver los settings de vtsls y lua_ls más abajo). Sin lo segundo, el
+        -- servidor contesta una lista vacía y no se ve nada.
+        local client = vim.lsp.get_client_by_id(event.data.client_id)
+        if client and client:supports_method('textDocument/inlayHint') then
+          vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
+        end
       end,
     })
+
+    -- Alternar los inlay hints: son muy útiles leyendo código ajeno y molestos
+    -- cuando estás escribiendo una línea larga, así que conviene poder apagarlos.
+    vim.keymap.set('n', '<leader>uh', function()
+      vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+    end, { desc = 'Alternar inlay hints (tipos en gris)' })
 
     -- ---------------------------------------------------------------------
     -- Cómo se ven los diagnósticos (errores/avisos) en pantalla.
@@ -113,7 +130,26 @@ return {
     -- ---------------------------------------------------------------------
     local servers = {
       -- Web: TypeScript/JavaScript/React. vtsls es el wrapper moderno de tsserver.
-      vtsls = {},
+      -- Los inlayHints vienen TODOS apagados del lado del servidor: sin este bloque
+      -- vim.lsp.inlay_hint.enable() no muestra nada (verificado: el servidor
+      -- contesta `textDocument/inlayHint → {}`). Hay que declararlo dos veces,
+      -- para typescript y para javascript, porque vtsls los trata por separado.
+      vtsls = (function()
+        local hints = {
+          parameterNames = { enabled = 'all' },      -- nombre del argumento en la llamada
+          parameterTypes = { enabled = true },       -- tipo de cada parámetro
+          variableTypes = { enabled = true },        -- tipo inferido de las variables
+          functionLikeReturnTypes = { enabled = true }, -- tipo de retorno inferido
+          propertyDeclarationTypes = { enabled = true },
+          enumMemberValues = { enabled = true },
+        }
+        return {
+          settings = {
+            typescript = { inlayHints = hints },
+            javascript = { inlayHints = hints },
+          },
+        }
+      end)(),
       -- HTML y CSS.
       html = {},
       cssls = {},
@@ -129,6 +165,8 @@ return {
             completion = { callSnippet = 'Replace' },
             -- Evita el aviso "variable global vim no definida" al configurar nvim.
             diagnostics = { globals = { 'vim' } },
+            -- Inlay hints también en Lua (tipos de parámetro y de variable).
+            hint = { enable = true },
           },
         },
       },

@@ -100,12 +100,19 @@ return {
     -- ---------------------------------------------------------------------
     vim.diagnostic.config({
       severity_sort = true,               -- ordenar por gravedad
-      float = { border = 'rounded', source = 'if_many' },
+      float = { source = 'if_many' },     -- el borde lo pone winborder (opciones.lua)
       underline = true,                   -- subrayar el código con problema
-      virtual_text = {                    -- texto del error al final de la línea
+      -- Texto corto al final de la línea, para el resto de las líneas.
+      virtual_text = {
         source = 'if_many',
         spacing = 2,
       },
+      -- Y en la línea DEL CURSOR, el mensaje completo desplegado abajo del código.
+      -- Es lo que resuelve los errores largos de TypeScript ("Type 'string' is not
+      -- assignable to...") que con virtual_text se cortan contra el borde derecho.
+      -- `current_line = true` es clave: sin eso, virtual_lines empuja el archivo
+      -- entero y se vuelve ilegible.
+      virtual_lines = { current_line = true },
       -- Íconos en la columna de signos (Nerd Font).
       signs = vim.g.have_nerd_font and {
         text = {

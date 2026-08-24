@@ -191,6 +191,13 @@ return {
           },
         },
       },
+      -- SQL NO lleva servidor LSP, y es una decisión, no un olvido: el único
+      -- maduro (sqls) es inútil sin un archivo config.yml con la CADENA DE CONEXIÓN
+      -- de la base; sin eso solo completa palabras clave, que es lo que ya hace la
+      -- fuente 'buffer' de blink. Y una config con credenciales no puede vivir en
+      -- este repo, que es público (iría al vault). Lo que sí aporta el editor
+      -- —resaltado con treesitter y formateo de la consulta— está cubierto en
+      -- treesitter.lua y formateo.lua.
       -- Docker: dos servidores que se reparten el trabajo.
       --   dockerls → los Dockerfile (instrucciones, flags, avisos de mala práctica)
       --   docker_compose_language_service → los compose (servicios, redes, volúmenes)
@@ -231,6 +238,7 @@ return {
       -- esta máquina no hay toolchain de Go (verificado: "Could not find
       -- executable go in PATH"). Tampoco hace falta: dockerls ya ofrece
       -- textDocument/formatting, y conform lo usa por su lsp_format = 'fallback'.
+      'sql-formatter', -- formateo de consultas .sql (npm, no necesita Go)
       -- prettier (a secas) y ruff ya vienen: ruff es servidor LSP + formateador.
     })
     require('mason-tool-installer').setup({ ensure_installed = ensure })

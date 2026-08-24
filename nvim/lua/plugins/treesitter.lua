@@ -51,6 +51,7 @@ return {
       'yaml',
       'toml',       -- configs .toml (yazi, etc.)
       'dockerfile', -- Dockerfile (los compose usan el parser de yaml)
+      'sql',        -- consultas .sql (resaltado + indentación; ver formateo.lua)
     },
 
     -- Instalar los parsers que falten al abrir nvim (sin bloquear el arranque).

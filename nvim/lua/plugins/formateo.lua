@@ -60,6 +60,15 @@ return {
       -- ('yaml.docker-compose', ver lua/tipos-archivo.lua) y conform resuelve por
       -- el filetype ENTERO, así que hay que nombrarlo tal cual.
       ['yaml.docker-compose'] = { 'prettierd', 'prettier', stop_after_first = true },
+      -- SQL. Acá el formateo es LA funcionalidad, no un extra: no se le suma un
+      -- servidor LSP (el porqué está en lsp.lua), así que ordenar la consulta
+      -- —una cláusula por línea, columnas indentadas, JOIN y ON separados— es todo
+      -- lo que aporta el editor sobre el resaltado. Nota: sql_formatter respeta
+      -- las mayúsculas/minúsculas tal como las escribiste (no pasa las palabras
+      -- clave a MAYÚSCULA); solo reacomoda.
+      sql = { 'sql_formatter' },
+      mysql = { 'sql_formatter' },
+      plsql = { 'sql_formatter' },
     },
 
     -- Formatear al guardar (Format on Save).

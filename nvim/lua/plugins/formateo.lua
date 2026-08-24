@@ -10,7 +10,12 @@
 -- instalar esos binarios automáticamente (mismo mecanismo que los servidores LSP).
 --
 -- Atajo:
---   <leader>f   formatear el archivo a mano (además del automático al guardar)
+--   <leader>cf  formatear el archivo a mano (además del automático al guardar)
+--
+-- OJO, esto ANTES era <leader>f. Se mudó a <leader>cf (grupo "código") porque
+-- <leader>f como atajo suelto BLOQUEA todo el prefijo: no puede existir un
+-- <leader>ff ni un <leader>fg si <leader>f ya es una acción terminada. Ese
+-- prefijo ahora es el grupo "buscar" de los pickers (ver snacks.lua).
 -- ============================================================================
 
 return {
@@ -19,7 +24,7 @@ return {
   cmd = { 'ConformInfo' },
   keys = {
     {
-      '<leader>f',
+      '<leader>cf',
       function()
         require('conform').format({ async = true, lsp_format = 'fallback' })
       end,
@@ -32,7 +37,10 @@ return {
     formatters_by_ft = {
       lua = { 'stylua' },
       python = { 'ruff_format' },        -- ruff también formatea (rápido, un solo binario)
-      -- Web: prettier para todo el stack front. Si prettierd no está, cae a prettier.
+      -- Web: prettier para todo el stack front. La cadena cae a `prettier` si
+      -- `prettierd` falla — pero OJO: prettier a secas NO está instalado (Mason
+      -- solo baja prettierd), así que hoy ese respaldo es teórico. Se deja porque
+      -- engancha solo si algún día hay un prettier del proyecto en node_modules.
       javascript = { 'prettierd', 'prettier', stop_after_first = true },
       typescript = { 'prettierd', 'prettier', stop_after_first = true },
       typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },

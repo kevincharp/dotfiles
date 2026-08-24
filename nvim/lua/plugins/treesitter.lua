@@ -31,6 +31,14 @@ return {
       'html',
       'css',
       'json',
+      -- NO se agrega 'jsonc' (tsconfig.json y compañía) aunque haría falta: en la
+      -- rama master, el parser apunta a un tarball de gitlab.com que hoy devuelve
+      -- 404, así que la descarga trae una página HTML y la extracción muere con
+      -- "not in gzip format" (verificado, y encima el parser pide tree-sitter-cli
+      -- por npm). Es deuda de la rama congelada, no algo que falte configurar; lo
+      -- resuelve la migración pendiente a 'main'. Mientras tanto lo importante de
+      -- un tsconfig.json —completado y validación de claves— lo da jsonls, no
+      -- treesitter.
       'python',
       'bash',       -- scripts de shell (bashrc/zshrc del repo)
       'lua',        -- la propia config de nvim

@@ -59,6 +59,9 @@ return {
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     -- Mensajes de estado del LSP mientras carga (esquina, discreto).
     { 'j-hui/fidget.nvim', opts = {} },
+    -- Catálogo de esquemas JSON/YAML de SchemaStore.org (el mismo que usa VSCode).
+    -- Es solo datos, sin binarios: lo consumen jsonls y yamlls más abajo.
+    'b0o/schemastore.nvim',
   },
   config = function()
     -- ---------------------------------------------------------------------
@@ -160,6 +163,34 @@ return {
       -- HTML y CSS.
       html = {},
       cssls = {},
+      -- JSON y YAML con ESQUEMAS. Es la pieza que faltaba y que más se nota:
+      -- editando package.json, tsconfig.json, un workflow de GitHub Actions o un
+      -- docker-compose.yml, el servidor sabe qué claves existen, las autocompleta,
+      -- muestra su documentación al pasar el cursor y marca en rojo lo que no es
+      -- válido — exactamente lo que hace VSCode, y por la misma fuente
+      -- (SchemaStore.org). Sin esto, un .json era texto con colores nada más.
+      jsonls = {
+        settings = {
+          json = {
+            schemas = require('schemastore').json.schemas(),
+            validate = { enable = true },
+          },
+        },
+      },
+      yamlls = {
+        settings = {
+          yaml = {
+            -- El schemaStore INTERNO de yamlls hay que apagarlo: si queda
+            -- prendido, compite con el catálogo de schemastore.nvim y gana el que
+            -- responde primero (esquemas distintos para el mismo archivo).
+            schemaStore = { enable = false, url = '' },
+            schemas = require('schemastore').yaml.schemas(),
+            -- keyOrdering viene en `true` y avisa por cada clave "fuera de orden
+            -- alfabético": ruido puro en archivos ajenos.
+            keyOrdering = false,
+          },
+        },
+      },
       -- Python: pyright (tipos/navegación) + ruff (linter rápido; formateo va en conform).
       pyright = {},
       ruff = {},

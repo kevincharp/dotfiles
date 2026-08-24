@@ -53,8 +53,14 @@ return {
     signature = { enabled = true },
 
     -- Fuentes de sugerencias, por prioridad: LSP, rutas, snippets, buffer.
+    -- 'lazydev' se suma para que al editar la config de nvim aparezcan los
+    -- símbolos de la API vim.* (ver lazydev.lua). El score_offset alto los pone
+    -- ARRIBA de lo que ofrece lua_ls, que para vim.* devuelve resultados peores.
     sources = {
-      default = { 'lsp', 'path', 'snippets', 'buffer' },
+      default = { 'lsp', 'path', 'snippets', 'buffer', 'lazydev' },
+      providers = {
+        lazydev = { name = 'LazyDev', module = 'lazydev.integrations.blink', score_offset = 100 },
+      },
     },
 
     -- Motor de fuzzy matching. 'prefer_rust_with_warning': usa el binario Rust

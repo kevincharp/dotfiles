@@ -165,13 +165,13 @@ return {
       ruff = {},
       -- Bash: para los scripts del repo (bashrc/zshrc). Usa shellcheck si está.
       bashls = {},
-      -- Lua: para editar la propia config de nvim. Le avisamos de la API 'vim'.
+      -- Lua: para editar la propia config de nvim. Quién le enseña la API 'vim' es
+      -- lazydev (ver lazydev.lua), NO un `diagnostics.globals = {'vim'}` acá: ese
+      -- parche solo silenciaba el aviso y dejaba sin completado ni hover de vim.*.
       lua_ls = {
         settings = {
           Lua = {
             completion = { callSnippet = 'Replace' },
-            -- Evita el aviso "variable global vim no definida" al configurar nvim.
-            diagnostics = { globals = { 'vim' } },
             -- Inlay hints también en Lua (tipos de parámetro y de variable).
             hint = { enable = true },
           },

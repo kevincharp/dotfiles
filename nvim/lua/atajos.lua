@@ -38,6 +38,9 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Resaltar el texto copiado',
   group = vim.api.nvim_create_augroup('resaltar-yank', { clear = true }),
   callback = function()
-    vim.highlight.on_yank()
+    -- vim.highlight quedó DEPRECADO en 0.11 (renombrado a vim.hl) y se elimina en
+    -- nvim 2.0. El aviso de deprecación es silencioso, así que no se nota: se
+    -- verificó interceptando vim.deprecate.
+    vim.hl.on_yank()
   end,
 })

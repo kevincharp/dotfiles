@@ -22,10 +22,12 @@ return {
       transparent = false,
       -- Cursiva en comentarios: igual que el tema por defecto de VSCode.
       italic_comments = true,
-      -- Subrayar la palabra bajo el cursor cuando el LSP la resuelve (llega en etapa LSP).
+      -- Subraya los links de markup (@markup.link.*), como VSCode con las URLs.
+      -- NO tiene nada que ver con resaltar la palabra bajo el cursor: eso es
+      -- documentHighlight del LSP y lo hace snacks.words (ver explorador.lua).
       underline_links = true,
-      -- Colorear la columna de signos (git/diagnósticos) acorde al fondo.
-      disable_nvimtree_bg = true,
+      -- Cursiva en los inlay hints (los tipos inferidos en gris), igual que VSCode.
+      italic_inlayhints = true,
     })
     -- Aplicar el tema.
     vim.cmd.colorscheme('vscode')

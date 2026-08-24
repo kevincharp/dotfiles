@@ -18,16 +18,24 @@ return {
       theme = 'auto',               -- hereda los colores de vscode.nvim
       icons_enabled = vim.g.have_nerd_font,
       component_separators = '',    -- sin separadores internos (más limpio)
-      section_separators = { left = '', right = '' }, -- separadores "flecha" en los extremos
+      section_separators = { left = '', right = '' }, -- sin separadores en los extremos tampoco
       globalstatus = true,          -- UNA sola statusline para todo (no una por split)
+      -- No dibujar la barra dentro de las ventanas de snacks: si no, ahí aparece
+      -- el buffer del picker como si fuera un archivo abierto. NO existe extensión
+      -- de lualine para snacks (sí para neo-tree, que ya no usamos), así que la
+      -- vía real son estos filetypes, tomados del fuente de snacks.
+      disabled_filetypes = { statusline = { 'snacks_picker_list', 'snacks_picker_input' } },
     },
     sections = {
       -- Izquierda: solo el modo (NORMAL / INSERT / VISUAL...).
       lualine_a = { 'mode' },
       lualine_b = {},
       lualine_c = {},                                    -- CENTRO VACÍO (a propósito)
-      -- Derecha: cantidad de buffers, posición en el archivo y reloj.
-      lualine_x = {},
+      -- Derecha: contador de errores/avisos, posición en el archivo y reloj.
+      -- El contador es la única concesión al minimalismo: la statusline NATIVA de
+      -- 0.12 muestra vim.diagnostic.status() por defecto y lualine la reemplaza,
+      -- así que sin esto perdíamos información que antes venía gratis.
+      lualine_x = { { 'diagnostics', symbols = { error = '󰅚 ', warn = '󰀪 ', info = '󰋽 ', hint = '󰌶 ' } } },
       lualine_y = { 'location' },                        -- línea:columna
       lualine_z = {
         -- Reloj con la hora actual (como en el screenshot). El %H:%M lo resuelve
@@ -35,9 +43,8 @@ return {
         { function() return ' ' .. vim.fn.strftime('%H:%M') end },
       },
     },
-    -- Cuando lualine no logra tema, evita romper: 'auto' ya lo cubre.
-    -- Extensiones: integra la barra con la ventana de snacks para que ahí no
-    -- aparezca "snacks"/"neo-tree" como nombre de archivo colgando.
-    extensions = {},
+    -- Extensiones: barras a medida para ventanas de plugins (en vez del nombre de
+    -- buffer crudo). Solo las de plugins que realmente tenemos instalados.
+    extensions = { 'toggleterm', 'lazy', 'mason', 'quickfix' },
   },
 }

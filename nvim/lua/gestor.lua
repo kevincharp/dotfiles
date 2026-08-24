@@ -32,10 +32,14 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   { import = 'plugins' },
 }, {
-  -- El instalador no elige tema al vuelo: dejamos el nuestro fijo abajo.
+  -- Qué colorscheme usa la VENTANA DE INSTALACIÓN de lazy en el primer arranque
+  -- (cuando el tema real todavía no está clonado). No cambia el tema de la sesión.
   install = { colorscheme = { 'vscode' } },
-  -- Avisar cuando haya updates de plugins (no auto-actualiza: eso es manual + commit).
+  -- No chequea updates al arrancar (cero red al inicio). Las actualizaciones se
+  -- hacen a mano con :Lazy sync y se commitea el lazy-lock.json resultante.
   checker = { enabled = false },
-  -- Íconos: si hay Nerd Font, lazy usa glifos; si no, texto plano.
-  ui = { icons = vim.g.have_nerd_font and {} or {} },
+  -- Ningún plugin de esta config usa luarocks (lo confirma :checkhealth lazy con
+  -- "no plugins require luarocks"). Sin esto, el health tira un ERROR y dos
+  -- WARNING por hererocks/lua 5.1 ausentes → ruido que tapa los problemas reales.
+  rocks = { enabled = false },
 })

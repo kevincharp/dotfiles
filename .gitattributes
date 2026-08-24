@@ -1,0 +1,13 @@
+# Atributos de git — fin de línea (EOL)
+#
+# Alcance DELIBERADAMENTE mínimo: solo lo que consume Neovim. Sin esto, los EOL
+# dependen del `core.autocrlf` de cada máquina (lo fija el .gitconfig del vault,
+# hoy `input`), y si en Windows quedara en `true` los archivos se checkoutean con
+# CRLF. nvim lee los .lua igual, pero `lazy-lock.json` con CRLF genera un diff
+# del archivo ENTERO cada vez que se corre `:Lazy sync` en la otra máquina.
+#
+# NO se pone `* text=auto` a propósito: renormalizaría el repo entero y chocaría
+# con la restricción de encoding de `install.ps1` (ASCII puro / cp1252 — ver
+# CLAUDE.md), que es el único script que lee PowerShell 5.1.
+nvim/**/*.lua       text eol=lf
+nvim/lazy-lock.json text eol=lf

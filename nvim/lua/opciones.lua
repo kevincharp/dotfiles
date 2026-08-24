@@ -31,11 +31,18 @@ opt.incsearch = true       -- salta a la coincidencia mientras tipeás
 
 -- --- Apariencia ---
 opt.termguicolors = true   -- colores de 24 bits (imprescindible para el tema VSCode)
-opt.signcolumn = 'yes'     -- columna de signos siempre visible (git/errores) → no "salta" el texto
+-- DOS columnas de signos, no una: git y diagnósticos comparten esta columna, y con
+-- 'yes' (una sola) el signo de error TAPA al de git cuando caen en la misma línea.
+-- VSCode muestra los dos. El ancho fijo evita además que el texto "salte".
+opt.signcolumn = 'yes:2'
 opt.cursorline = true      -- resalta la línea del cursor (como VSCode)
 opt.scrolloff = 8          -- mantiene 8 líneas de contexto arriba/abajo del cursor
 opt.wrap = false           -- no parte las líneas largas (scroll horizontal)
 opt.showmode = false       -- no muestra "-- INSERT --" (la statusline lo hará)
+-- Borde redondeado para TODAS las ventanas flotantes (hover, signature, menús).
+-- Opción global nueva de 0.11+: reemplaza tener que configurar `border` plugin
+-- por plugin, y de paso los deja consistentes entre sí.
+opt.winborder = 'rounded'
 
 -- --- Splits (ventanas divididas) ---
 opt.splitright = true      -- split vertical abre a la DERECHA (natural, como VSCode)
@@ -52,3 +59,23 @@ opt.timeoutlen = 400       -- ventana para completar un atajo con líder (which-
 -- --- Caracteres invisibles (útil para ver espacios/tabs, como en VSCode) ---
 opt.list = true
 opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+
+-- --- Plegado de código (folding), como el de VSCode ---
+-- nvim 0.12 ya deja `foldexpr` apuntando a vim.treesitter.foldexpr() por defecto,
+-- PERO `foldmethod` sigue siendo 'manual', que lo anula: sin estas líneas no hay
+-- plegado en absoluto a pesar de tener treesitter andando.
+opt.foldmethod = 'expr'
+opt.foldlevel = 99         -- arrancar TODO desplegado (con 0 abriría todo colapsado)
+opt.foldtext = ''          -- la línea plegada conserva su resaltado en vez de "+--- N líneas"
+opt.foldcolumn = 'auto:1'  -- columna de plegado solo cuando hay algo que plegar
+-- Atajos nativos, no hace falta mapear nada: za (alternar), zR (abrir todo),
+-- zM (cerrar todo), zc/zo (cerrar/abrir el pliegue del cursor).
+
+-- --- Proveedores legacy de plugins remotos: apagados a propósito ---
+-- Ningún plugin de esta config usa Python/Ruby/Perl/Node como host remoto (eso es
+-- el mecanismo viejo de plugins de vim). Sin esto, :checkhealth escupe 4 WARNING
+-- por intérpretes ausentes y ese ruido tapa los problemas de verdad.
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_node_provider = 0

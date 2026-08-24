@@ -7,8 +7,13 @@
 --
 -- Piezas:
 --   mason.nvim            → instala los servidores (binarios) automáticamente
---   mason-lspconfig       → puente entre Mason y lspconfig (instala lo que falte)
---   nvim-lspconfig        → configura y arranca cada servidor
+--   mason-lspconfig       → traduce nombres de servidor ↔ nombres de paquete Mason
+--   nvim-lspconfig        → aporta el cmd/filetypes/root de cada servidor
+--
+-- Sobre nvim-lspconfig: su "framework" viejo (require('lspconfig')) está DEPRECADO,
+-- pero el plugin NO — sigue siendo la fuente de los archivos lsp/*.lua con cómo se
+-- invoca cada servidor y cómo se detecta la raíz del proyecto. Esta config ya usa
+-- la API nueva (vim.lsp.config + vim.lsp.enable) y no lo requiere en ningún lado.
 --
 -- Los servidores se instalan en el data-dir (~/.local/share/nvim/mason), FUERA
 -- del repo. NOTA: Mason baja binarios de internet; algunos necesitan node (ya lo
@@ -37,9 +42,19 @@ return {
   'neovim/nvim-lspconfig',
   event = { 'BufReadPre', 'BufNewFile' },
   dependencies = {
-    -- Mason y su puente con lspconfig (instalan los servidores solos).
-    { 'williamboman/mason.nvim', opts = {} },
-    'williamboman/mason-lspconfig.nvim',
+    -- Mason: baja los binarios de los servidores. OJO con el nombre de la org:
+    -- el proyecto se mudó de `williamboman/` a `mason-org/`. La URL vieja todavía
+    -- resuelve por el redirect de GitHub, pero conviene no depender de eso.
+    { 'mason-org/mason.nvim', opts = {} },
+    -- mason-lspconfig va SOLO por el mapeo de nombres: los servidores se llaman
+    -- `html`/`cssls`/`lua_ls` en lspconfig pero `html-lsp`/`css-lsp`/`lua-language-server`
+    -- como paquetes de Mason, y este plugin es el que traduce (lo que hace que la
+    -- lista `ensure` de abajo funcione con nombres de servidor).
+    -- automatic_enable = false es IMPRESCINDIBLE: su default es true, y entonces
+    -- llama vim.lsp.enable() por su cuenta para TODO lo instalado con Mason —
+    -- chocaría con el bucle explícito del final y arrancaría servidores que hayas
+    -- bajado solo para probar con :Mason.
+    { 'mason-org/mason-lspconfig.nvim', opts = { automatic_enable = false } },
     -- Instala automáticamente las herramientas listadas si faltan.
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     -- Mensajes de estado del LSP mientras carga (esquina, discreto).

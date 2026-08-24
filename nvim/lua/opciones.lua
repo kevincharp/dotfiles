@@ -13,6 +13,11 @@ opt.relativenumber = true  -- + número relativo: facilita saltos con j/k (ej. 5
 
 -- --- Ratón y portapapeles ---
 opt.mouse = 'a'            -- ratón activo en todos los modos (click, scroll, seleccionar)
+-- Reportar el MOVIMIENTO del ratón, no solo los clicks. Viene apagado porque es
+-- tráfico extra por el pty, pero es lo que habilita los efectos "al pasar por
+-- encima": sin esto, la X de cerrar de las pestañas (pestanas.lua) no aparece al
+-- pasar el mouse por un tab.
+opt.mousemoveevent = true
 -- Usa el portapapeles del SISTEMA para yank/paste (Ctrl+C/V del SO). En Linux
 -- Wayland lo resuelve wl-clipboard (ya instalado); en Windows, el nativo.
 opt.clipboard = 'unnamedplus'

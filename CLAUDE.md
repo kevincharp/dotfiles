@@ -203,6 +203,24 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
     `terminal/settings.json` mapea `shift+enter` a un `sendInput` con ESC+CR
     (bytes `0x1b 0x0d`), que Claude lee como salto de línea. Un `chat:newline`
     en `keybindings.json` sería redundante: la tecla nunca le llega.
+  - **En Linux (Ptyxis) el equivalente es `Alt+Enter`, sin configurar nada.**
+    VTE aplica el prefijo meta ESC, así que Alt+Enter manda **los mismos bytes
+    `0x1b 0x0d`** que el `sendInput` de Windows Terminal. Verificado en Ptyxis
+    50.1 / VTE 0.84 (`cat -v` imprime `^[^M`). Más amigable que el `Ctrl+J` que
+    Claude trae por default; tampoco necesita `keybindings.json`.
+  - **`shift+enter` es IMPOSIBLE en Ptyxis** (y en cualquier terminal VTE, p.ej.
+    gnome-terminal — los docs de Claude Code lo listan como *"Not available"*).
+    Dos razones independientes: **(a)** VTE **no implementa** el protocolo de
+    teclado de kitty ni el `modifyOtherKeys` de xterm (`strings
+    libvte-2.91-gtk4.so.0 | grep -i modifyotherkeys` → 0 hits), así que Enter,
+    Shift+Enter y Ctrl+Enter llegan al PTY como **el mismo byte `0x0d`** y ningún
+    programa puede distinguirlos; **(b)** Ptyxis **no tiene acción de mandar
+    bytes** — su lista de atajos es un enum fijo de acciones de UI, sin análogo
+    al `sendInput` de Windows Terminal (lo único cercano son
+    `backspace-binding`/`delete-binding`, y solo para esas dos teclas).
+    Ghostty/Kitty/WezTerm sí lo soportan sin setup: si algún día se evalúa
+    reemplazar Ptyxis, esto suma al argumento del preview de imágenes de yazi
+    (ver `yazi/`), que falla por la misma pobreza de protocolos de Ptyxis.
 - **Atajos que "no funcionan"** casi nunca son un bug del archivo: los bindings
   son **por contexto** (`Task`, `Transcript`, `Scroll`…), no globales — `ctrl+b`
   solo manda a background si hay una tarea en foreground, y `ctrl+e` hace tres

@@ -375,7 +375,103 @@ File manager de terminal con preview de imágenes/PDF/video, en **ambos SO**
   `zshrc`, `profile.ps1`). Lanza yazi con `--cwd-file` y al salir deja el shell
   en el último directorio navegado. Solo se define si `yazi` está instalado.
 
+## Neovim (`nvim/`)
+
+Editor de código **principal** (VSCode queda como complemento para lo que nvim
+hace peor, no como reemplazo). Config propia estilo kickstart: `init.lua` +
+`lua/` (opciones, atajos, tipos-archivo, gestor) y **un archivo por plugin** en
+`lua/plugins/`. Sumar un plugin = crear un archivo; sacarlo = borrarlo.
+
+- **Symlink de DIRECTORIO, con path distinto por SO:** Linux →
+  `~/.config/nvim`; Windows → **`%LOCALAPPDATA%\nvim`** (no `~/.config`). Tiene
+  que ser el directorio entero, no archivo por archivo, porque lazy.nvim escribe
+  el `lazy-lock.json` adentro y así el cambio queda versionado al instante.
+- **Gateado por el selector:** si no elegiste neovim, el bootstrap NO crea el
+  link. Sin el gate, quien no lo quería se llevaba un `~/.config/nvim` apuntando
+  acá y el día que instalara nvim arrancaba con ESTA config.
+- **En Windows el symlink necesita Modo de desarrollador.** Si está apagado, el
+  paso se omite con WARN y **no se toca la config previa** — nvim arranca con
+  defaults, y el síntoma (sin tema, sin números de línea) es indistinguible de
+  "nvim roto".
+- **`lazy-lock.json` SE VERSIONA:** es lo que hace que Linux y Windows tengan los
+  mismos plugins en la misma versión. Flujo al tocar plugins: `:Lazy sync` y
+  **commitear el lock en su propio commit** (`chore(nvim): fijar …`).
+- **Nada de lo que baja se versiona:** plugins, parsers de treesitter y binarios
+  de Mason viven en el data-dir (`~/.local/share/nvim`), fuera del repo.
+
+### Requisitos de máquina (fáciles de olvidar)
+
+- **`tree-sitter-cli`** (>= 0.25): nvim-treesitter rama `main` compila los
+  parsers con él. Está en el catálogo `core` del bootstrap (Fedora lo tiene en
+  repos base; Windows es winget). Sin esto **no hay resaltado de sintaxis**.
+- **Compilador C:** en Linux ya hay gcc. En **Windows el bootstrap NO instala
+  ninguno** (haría falta zig o MSVC) → hoy es un hueco conocido: los parsers
+  pueden fallar al compilar.
+- **node** para varios servidores de Mason. Detrás del **proxy corporativo**
+  algunos paquetes de Mason no bajan; el síntoma es un servidor que nunca
+  aparece, no un error visible.
+
+### Atajos: dos reglas que ya nos mordieron
+
+1. **Los nativos ganan.** No se pisan las teclas de vim ni las de nvim 0.12:
+   `[b`/`]b`, `[q`/`]q`, `[t`/`]t`, `[c`/`]c`, `grn`/`gra`/`grr`/`gri`, `gO`, `K`,
+   `gc`. Por eso todo lo propio vive detrás del líder (espacio), los saltos de
+   pendientes NO usan `]t`/`[t` y el contexto fijo NO usa `[c`.
+2. **Un atajo suelto BLOQUEA todo su prefijo.** Si `<leader>f` es una acción
+   terminada, no puede existir `<leader>ff`. Pasó dos veces: el formateo se mudó
+   de `<leader>f` a `<leader>cf` para liberar el grupo "buscar", y las sesiones
+   usan `<leader>p` en vez del `<leader>q` que sugiere su README porque
+   `<leader>q` ya es "cerrar ventana".
+
+**Antes de crear un atajo hay que verificarlo sobre los mapeos REALES**, no de
+memoria: `nvim --headless -u ~/.config/nvim/init.lua` + `nvim_get_keymap('n')`
+filtrando por el prefijo. Y ojo con quién se queda la tecla primero: el
+**terminal** (Alt+1..9 son las pestañas de Ptyxis, Ctrl+PageUp/Down son del
+terminal) y **GNOME** (`Ctrl+Space` es Ulauncher).
+
+### treesitter usa la rama `main`, y eso cambia las reglas
+
+`master` está congelada y **rompe en nvim 0.12** (abrir un `.md` con un bloque
+` ```lua ` tiraba `query_predicates.lua:141: attempt to call method 'range'`).
+La rama `main` no se configura por `opts`, no prende el resaltado sola y **no
+soporta carga diferida** → `lazy = false` es obligatorio y el arranque subió de
+~19 ms a ~30 ms, a cambio. El detalle está en `nvim/lua/plugins/treesitter.lua`.
+
+- **Filetypes compuestos:** los compose se detectan como `yaml.docker-compose`
+  (ver `lua/tipos-archivo.lua`) para que les enganchen **los dos** servidores
+  (yamlls con su esquema + docker_compose_language_service). conform resuelve por
+  el filetype **entero**, así que hay que nombrarlo tal cual en
+  `formatters_by_ft`. Para treesitter, `vim.treesitter.language.get_lang()`
+  traduce (`yaml.docker-compose`→`yaml`, `sh`→`bash`, `jsonc`→`json`).
+
+### Ausencias deliberadas (no son olvidos)
+
+Cada una está documentada en su archivo: **Telescope** (el picker es snacks),
+**dashboard**, **DAP/debugger** y **runner de tests** (se descartaron
+explícitamente), **sqls** (necesita un `config.yml` con la cadena de conexión, y
+esto es un repo público), **dockerfmt** (se compila con Go, que no está; formatea
+dockerls vía el `lsp_format = 'fallback'` de conform).
+
+**Windows pendiente:** `vim.o.shell` sigue en `cmd.exe` (no se pasó a pwsh) y
+nada de esto se puede verificar desde Linux.
+
+### Verificar cambios de nvim sin abrir nvim
+
+Se prueba **headless** contra un fixture, comparando contra la realidad (extmarks,
+mapeos, items del picker), no contra el README del plugin. Dos trampas:
+
+- **Un error dentro de `vim.defer_fn`/`vim.schedule` se come el `qa!`** y nvim
+  headless, sin UI, **se cuelga para siempre**. Siempre `pcall` alrededor del
+  cuerpo del test y `timeout 90` alrededor del comando.
+- **El setup de un plugin de lazy.nvim es DIFERIDO:** en el mismo tick en que
+  lazy lo carga, su config todavía no está armada (verificado con
+  todo-comments: `config.search_regex` es `nil` y aparece un tick después). Si un
+  atajo es lo que dispara la carga y necesita algo del setup, va dentro de
+  `vim.schedule`.
+
 ## Verificación
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.
 - `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad).
+- Tras tocar `nvim/`: prueba headless contra un fixture (ver la sección de
+  Neovim) y `:checkhealth` para las dependencias externas.

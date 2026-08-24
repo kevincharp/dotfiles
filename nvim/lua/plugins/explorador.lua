@@ -33,12 +33,19 @@ return {
       enabled = true,
       sources = {
         explorer = {
-          position = 'left', -- panel a la IZQUIERDA (como VSCode)
-          width = 32,
+          -- OJO con el nivel de anidamiento: `position` y `width` son del LAYOUT,
+          -- no de la source. Puestos directo acá snacks los IGNORA en silencio —
+          -- el árbol quedaba a la izquierda y con 40 columnas por el default del
+          -- preset 'sidebar', no por esta config. Verificado en el fuente.
+          layout = { layout = { position = 'left', width = 32, min_width = 32 } },
           -- Mostrar archivos ocultos y los ignorados por git: este repo son
           -- puros dotfiles, hay que verlos.
           hidden = true,
           ignored = true,
+          -- ...pero `ignored = true` en un proyecto Node te muestra node_modules
+          -- ENTERO. Estas exclusiones conservan la utilidad para dotfiles sin
+          -- arruinar los repos web. Dentro del árbol, H e I alternan en vivo.
+          exclude = { 'node_modules', '.git', '__pycache__', '.venv', '.mypy_cache' },
           -- Seguir el archivo activo: al cambiar de buffer, el árbol lo resalta.
           follow_file = true,
         },

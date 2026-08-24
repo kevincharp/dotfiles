@@ -86,11 +86,12 @@ return {
     })
 
     -- ---------------------------------------------------------------------
-    -- Capacidades: le avisamos al servidor qué puede hacer el cliente. Se
-    -- amplían con las de blink.cmp (autocompletado) — ver autocompletado.lua.
-    -- ---------------------------------------------------------------------
-    local capabilities = require('blink.cmp').get_lsp_capabilities()
-
+    -- NO hace falta pasar `capabilities` a mano. Antes acá había un
+    -- require('blink.cmp').get_lsp_capabilities(), y era redundante: desde nvim
+    -- 0.11 blink registra sus capabilities solo, en su plugin/, con
+    -- vim.lsp.config('*', {...}) — o sea que aplican a TODOS los servidores.
+    -- Encima ese require forzaba a lazy.nvim a cargar blink acá, saltándose su
+    -- propio evento declarado. Lo dice su doc: "with 0.11+ you may skip this step".
     -- ---------------------------------------------------------------------
     -- Servidores del stack decidido (Web, Python, Bash, Lua). La clave es el
     -- nombre del servidor; el valor, su config (settings específicos).
@@ -132,10 +133,9 @@ return {
     })
     require('mason-tool-installer').setup({ ensure_installed = ensure })
 
-    -- Arrancar cada servidor con las capabilities y su config. La API nueva
-    -- (nvim 0.11+) es vim.lsp.config + enable, más simple que el setup viejo.
+    -- Arrancar cada servidor con su config. La API nueva (nvim 0.11+) es
+    -- vim.lsp.config + enable, más simple que el setup viejo de lspconfig.
     for name, cfg in pairs(servers) do
-      cfg.capabilities = capabilities
       vim.lsp.config(name, cfg)
       vim.lsp.enable(name)
     end

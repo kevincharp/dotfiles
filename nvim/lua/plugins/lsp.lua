@@ -191,6 +191,12 @@ return {
           },
         },
       },
+      -- Markdown: marksman entiende el documento como documento, no como texto.
+      -- Completa y valida los enlaces internos ([[wiki]] y [texto](./archivo.md)),
+      -- avisa si apuntan a un archivo o a un encabezado que no existe, y da
+      -- ir-a-la-definición sobre un enlace. Es justo lo que hace falta con los
+      -- CLAUDE.md, los README y los docs/ de este repo, que se referencian entre sí.
+      marksman = {},
       -- SQL NO lleva servidor LSP, y es una decisión, no un olvido: el único
       -- maduro (sqls) es inútil sin un archivo config.yml con la CADENA DE CONEXIÓN
       -- de la base; sin eso solo completa palabras clave, que es lo que ya hace la

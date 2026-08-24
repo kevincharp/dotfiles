@@ -29,6 +29,7 @@ return {
       { '<leader>g', group = 'git' },
       { '<leader>h', group = 'git (hunks)' },
       { '<leader>b', group = 'buffers (pestañas)' },
+      { '<leader>p', group = 'proyecto (sesiones)' },
       { '<leader>t', group = 'terminal' },
       { '<leader>c', group = 'código (LSP y formateo)' },
       { '<leader>u', group = 'alternar (toggles)' },

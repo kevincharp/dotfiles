@@ -191,6 +191,13 @@ return {
           },
         },
       },
+      -- Docker: dos servidores que se reparten el trabajo.
+      --   dockerls → los Dockerfile (instrucciones, flags, avisos de mala práctica)
+      --   docker_compose_language_service → los compose (servicios, redes, volúmenes)
+      -- El compose recibe ADEMÁS yamlls con su esquema, gracias al filetype
+      -- compuesto 'yaml.docker-compose' (ver lua/tipos-archivo.lua).
+      dockerls = {},
+      docker_compose_language_service = {},
       -- Python: pyright (tipos/navegación) + ruff (linter rápido; formateo va en conform).
       pyright = {},
       ruff = {},
@@ -220,6 +227,10 @@ return {
       'stylua',     -- formateo de Lua
       'shfmt',      -- formateo de shell/bash
       'prettierd',  -- formateo web (JS/TS/HTML/CSS/JSON/YAML/MD), demonio rápido
+      -- NO se pone 'dockerfmt': Mason lo instala compilando un paquete de Go y en
+      -- esta máquina no hay toolchain de Go (verificado: "Could not find
+      -- executable go in PATH"). Tampoco hace falta: dockerls ya ofrece
+      -- textDocument/formatting, y conform lo usa por su lsp_format = 'fallback'.
       -- prettier (a secas) y ruff ya vienen: ruff es servidor LSP + formateador.
     })
     require('mason-tool-installer').setup({ ensure_installed = ensure })

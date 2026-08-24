@@ -50,6 +50,7 @@ return {
       'gitcommit',  -- mensajes de commit
       'yaml',
       'toml',       -- configs .toml (yazi, etc.)
+      'dockerfile', -- Dockerfile (los compose usan el parser de yaml)
     },
 
     -- Instalar los parsers que falten al abrir nvim (sin bloquear el arranque).

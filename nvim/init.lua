@@ -8,9 +8,10 @@
 --
 -- Orden de carga:
 --   1. líder (debe fijarse ANTES de cargar plugins, si no los atajos no toman)
---   2. opciones  (comportamiento base del editor)
---   3. atajos    (mapeos nativos; los de estilo VSCode se sumarán más adelante)
---   4. lazy.nvim (gestor de plugins) → carga todo lua/plugins/
+--   2. opciones      (comportamiento base del editor)
+--   3. atajos        (mapeos nativos; los de estilo VSCode se sumarán más adelante)
+--   4. tipos-archivo (detección propia de filetypes: compose, Dockerfile.dev…)
+--   5. lazy.nvim     (gestor de plugins) → carga todo lua/plugins/
 -- ============================================================================
 
 -- La tecla líder ("<leader>") es el prefijo de los atajos propios. Espacio es
@@ -31,6 +32,7 @@ vim.g.have_nerd_font = true
 -- Configuración base del editor y atajos nativos (archivos en lua/).
 require('opciones')
 require('atajos')
+require('tipos-archivo') -- reglas propias de detección de tipo de archivo
 
 -- Gestor de plugins (lazy.nvim). Debe ir al final: adentro descubre y carga
 -- todo lo que haya en lua/plugins/.

@@ -52,6 +52,14 @@ return {
       markdown = { 'prettierd', 'prettier', stop_after_first = true },
       sh = { 'shfmt' },                  -- scripts de shell (bashrc/zshrc del repo)
       bash = { 'shfmt' },
+      -- Los Dockerfile NO se listan a propósito: el formateador de la comunidad
+      -- (dockerfmt) se compila con Go y acá no hay toolchain de Go. Al no tener
+      -- entrada, conform cae al LSP por su lsp_format = 'fallback' y formatea con
+      -- dockerls, que sí ofrece textDocument/formatting (verificado).
+      -- Los compose son YAML: los formatea prettier. El filetype es compuesto
+      -- ('yaml.docker-compose', ver lua/tipos-archivo.lua) y conform resuelve por
+      -- el filetype ENTERO, así que hay que nombrarlo tal cual.
+      ['yaml.docker-compose'] = { 'prettierd', 'prettier', stop_after_first = true },
     },
 
     -- Formatear al guardar (Format on Save).

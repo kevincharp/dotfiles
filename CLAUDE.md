@@ -180,6 +180,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   Editar ese archivo cambia las reglas de los tres.
 - `settings.json` → **symlink** (cambios se versionan al instante).
 - `statusline.sh` → **no se copia**; `settings.json` lo referencia desde el repo.
+  Lo verifica la **sección 14 de `test-bootstrap.sh`** (le mete el JSON por stdin,
+  con jq y con un `PATH` sin jq para ejercitar el fallback de Git Bash).
 - `settings.local.json` → **per-máquina** (permisos con rutas absolutas que
   difieren Linux/Windows). **No está trackeado** (lo cubre el `.gitignore`):
   cada PC mantiene el suyo y nunca entra en commits ni rebases.
@@ -230,6 +232,32 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   Windows Terminal (limpia buffer), `Ctrl+Shift+C`/`B` los toma Ptyxis/GNOME, y
   `ctrl+s` puede morir en el flow control del tty (`stty -a | grep ixon`).
   Los warnings de validación salen con `claude --debug` (líneas `[keybindings]`).
+
+### `/cd` mueve el cwd, NO el proyecto de la sesión
+
+El JSON que llega al statusline por stdin trae **los dos por separado**:
+`workspace.current_dir` (el cwd, que `/cd` mueve) y `workspace.project_dir` (fijo
+de por vida: es la carpeta desde la que se lanzó `claude`). Del **proyecto** salen
+la memoria, el historial (`~/.claude/projects/<slug>/`) y el `CLAUDE.md` de
+proyecto que se cargó al inicio — un `/cd` a otro repo **no** los cambia.
+
+Por eso `statusline.sh` muestra los dos cuando difieren (`proyecto ↦ cwd`, el cwd
+en amarillo) y la ruta relativa cuando el cwd está dentro del proyecto. Sin eso la
+línea decía solo el cwd y trabajar en un repo con las reglas y la memoria de otro
+no se notaba (menos todavía si ambos están en `main`).
+
+- **Los campos del payload se verificaron contra el binario, no contra la doc**
+  (`grep`/`dd` sobre `~/.local/share/claude/versions/<v>`; internamente
+  `current_dir = session.project.cwd` y `project_dir = session.project.originalCwd`).
+  Además de los que se usan hay: `added_dirs`, `git_worktree`, `repo`, `cost.*`,
+  `context_window.*`, `rate_limits.*`, `vim.mode`, `agent.name`, `pr.*`,
+  `worktree.*`, `session_name`, `fast_mode`, `thinking.enabled`.
+- **Sin jq hay que desambiguar por el padre:** el fallback grep/sed de Git Bash
+  buscaba claves planas y `name` aparece en `output_style`, `agent` y `worktree`,
+  igual que `used_percentage` en `context_window` **y** en `rate_limits`. Por eso
+  `_json_get` recorta el JSON en cada padre antes de buscar la hija.
+- **Redondear el porcentaje con `LC_ALL=C printf '%.0f'`:** con el locale `es_AR`
+  la coma decimal rompe el formateo de un valor como `12.3456`.
 
 ## Emojis a color en Chrome (`fontconfig/`)
 

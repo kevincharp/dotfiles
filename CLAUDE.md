@@ -179,6 +179,13 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   `~/.codex/AGENTS.md` (Codex) y `~/.config/opencode/AGENTS.md` (opencode).
   Editar ese archivo cambia las reglas de los tres.
 - `settings.json` → **symlink** (cambios se versionan al instante).
+- **Los plugins ya viajan solos, gratis:** `/plugin marketplace add` y
+  `/plugin install` escriben `extraKnownMarketplaces` y `enabledPlugins` **dentro
+  de `settings.json`**, o sea del archivo versionado. Registrar y habilitar un
+  plugin en Windows queda aplicado en Fedora con un commit; lo único no versionado
+  es el clon en `~/.claude/plugins/`, que se rebaja solo. **Las skills globales de
+  `~/.claude/skills/` NO se versionan** (el bootstrap solo symlinkea `CLAUDE.md` y
+  `settings.json`): lo que quieras portable va como plugin, no como carpeta suelta.
 - `statusline.sh` → **no se copia**; `settings.json` lo referencia desde el repo.
   Lo verifica la **sección 14 de `test-bootstrap.sh`** (le mete el JSON por stdin,
   con jq y con un `PATH` sin jq para ejercitar el fallback de Git Bash).
@@ -258,6 +265,35 @@ no se notaba (menos todavía si ambos están en `main`).
   `_json_get` recorta el JSON en cada padre antes de buscar la hija.
 - **Redondear el porcentaje con `LC_ALL=C printf '%.0f'`:** con el locale `es_AR`
   la coma decimal rompe el formateo de un valor como `12.3456`.
+
+### Instalar plugins en Windows: lo bloquea el SSL de git, no Claude Code
+
+Detrás del proxy corporativo (Netskope) `/plugin marketplace add` **falla siempre**,
+y el error engaña porque parece de permisos (`Could not read from remote repository`).
+Son dos caminos tapados a la vez:
+
+- **HTTPS:** el `gitconfig` **de sistema** de Git for Windows fija
+  `http.sslbackend=openssl` con su propio `ca-bundle.crt`, que no tiene la CA de
+  Netskope → `self-signed certificate in certificate chain`.
+- **SSH:** acá los remotes usan **host aliases** (`github.com-kevincharp`), así que
+  `git@github.com` pelado no engancha ninguna clave.
+
+Lo arregla el paso 9 del bootstrap seteando **`GIT_SSL_CAINFO`** (variable de
+usuario) al mismo `~/combined-ca.pem` que ya se armaba para AWS — ahora lo produce
+`Get-NetskopeCaBundle`, que se llama desde los pasos 8 y 9. Por qué así y no de las
+formas obvias:
+
+- **`git config --global` escribiría DENTRO DEL VAULT** (`~/.gitconfig` es symlink a
+  `$VAULT_DIR/git/config`) y además viajaría a Fedora, que no necesita nada de esto.
+- `http.sslBackend=schannel` también funciona (usa el almacén de Windows), pero es
+  una opción sin sentido fuera de Windows y **no hay `includeIf` por SO** donde
+  encerrarla.
+- `GIT_SSL_CAINFO` es una variable **dedicada**: no secuestra `GIT_CONFIG_COUNT`
+  (que pisaría cualquier otra herramienta que la use) y al ser variable de usuario
+  de Windows no existe en Linux.
+
+Para agregar un marketplace conviene la URL completa (`https://…/repo.git`): la
+forma corta `owner/repo` puede resolver a SSH y volver a caer en el problema.
 
 ## Emojis a color en Chrome (`fontconfig/`)
 

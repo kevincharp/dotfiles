@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 #   statusline.sh — linea de estado de Claude Code
-#   Muestra:  carpeta · rama git · cuenta · modelo · effort · contexto · estilo
+#   Muestra:  carpeta · rama git · cuenta · modelo · effort · fast · thinking · contexto · estilo · costo
 #   - Carpeta: el PROYECTO de la sesion y, si /cd movio el cwd afuera, tambien
 #     el cwd (ver "Carpeta" mas abajo). No son lo mismo: /cd mueve el cwd pero
 #     la memoria, el historial y el CLAUDE.md de proyecto siguen siendo los del
@@ -29,6 +29,7 @@ SEP="$(c "$DIM") · ${RESET}"
 # COLRv1), el color queda solo en el texto que los sigue.
 I_DIR="📁"; I_DRIFT="⚠️"; I_BRANCH="🌿"; I_MODEL="🤖"
 I_ANTHROPIC="✨"; I_BEDROCK="☁️"; I_CTX="📊"; I_STYLE="🎨"
+I_FAST="🚀"; I_THINKING="🧠"; I_COST="💰"
 
 # --- Lectura del JSON ---
 # Usa jq si esta disponible; si no (ej. Git Bash en Windows, donde jq no suele
@@ -71,6 +72,9 @@ project="$(_json_get str "$input" 'workspace.project_dir')"
 effort="$(_json_get str "$input" 'effort.level')"
 style="$(_json_get str "$input" 'output_style.name')"
 ctx="$(_json_get num "$input" 'context_window.used_percentage')"
+fast="$(_json_get str "$input" 'fast_mode')"
+thinking="$(_json_get str "$input" 'thinking.enabled')"
+cost="$(_json_get num "$input" 'cost.total')"
 [[ -z "$model" ]] && model="?"
 [[ -z "$cwd" ]] && cwd="$PWD"
 
@@ -148,9 +152,15 @@ line+="${SEP}${account}"
 line+="${SEP}${I_MODEL} $(c "$CYAN")${model}${RESET}"
 # effort solo viene si el modelo lo soporta; el output style, solo si no es el default
 [[ -n "$effort" ]] && line+="$(c "$DIM") ${effort}${RESET}"
+[[ "$fast" == "true" ]] && line+=" ${I_FAST}"
+[[ "$thinking" == "true" ]] && line+=" ${I_THINKING}"
 [[ -n "$ctx_seg" ]] && line+="${SEP}${ctx_seg}"
 if [[ -n "$style" ]] && [[ "$(printf '%s' "$style" | tr '[:upper:]' '[:lower:]')" != "default" ]]; then
     line+="${SEP}${I_STYLE} $(c "$DIM")${style}${RESET}"
+fi
+# Costo: si esta disponible, mostrarlo en gris (siempre crece, no necesita color de alarma)
+if [[ "$cost" =~ ^[0-9] ]]; then
+    line+="${SEP}${I_COST} $(c "$DIM")\$${cost}${RESET}"
 fi
 
 printf '%s' "$line"

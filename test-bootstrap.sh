@@ -602,10 +602,10 @@ _sl_run() {  # $1 = json, $2 = jq|nojq → imprime la linea sin secuencias ANSI
 # aparece rama git y la salida es determinista.
 _sl_ctx='"context_window":{"current_usage":{"input_tokens":9},"used_percentage":12.3456},"rate_limits":{"five_hour":{"used_percentage":99.9}}'
 _sl_cases=(
-    "cwd == proyecto|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy|↦"
-    "cwd bajo el proyecto|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy/nvim/lua\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy/nvim/lua\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy/nvim/lua|↦"
-    "cwd fuera del proyecto (/cd)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-otro\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-otro\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy ↦ no-existe-otro|"
-    "sin project_dir (Claude Code viejo)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-otro\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-otro\"}}|no-existe-otro|↦"
+    "cwd == proyecto|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy|⚠️"
+    "cwd bajo el proyecto|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy/nvim/lua\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy/nvim/lua\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy/nvim/lua|⚠️"
+    "cwd fuera del proyecto (/cd)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-otro\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-otro\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy ⚠️ no-existe-otro|"
+    "sin project_dir (Claude Code viejo)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-otro\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-otro\"}}|no-existe-otro|⚠️"
     "contexto redondeado, no el de rate_limits|{\"model\":{\"display_name\":\"M\"},${_sl_ctx},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|12%|99"
     # En el texto JSON los paths de Windows llegan con \\ (jq los devuelve con uno
     # solo, el fallback grep con los dos): las dos formas tienen que dar dot/nvim.

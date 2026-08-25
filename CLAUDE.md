@@ -241,7 +241,7 @@ de por vida: es la carpeta desde la que se lanzó `claude`). Del **proyecto** sa
 la memoria, el historial (`~/.claude/projects/<slug>/`) y el `CLAUDE.md` de
 proyecto que se cargó al inicio — un `/cd` a otro repo **no** los cambia.
 
-Por eso `statusline.sh` muestra los dos cuando difieren (`proyecto ↦ cwd`, el cwd
+Por eso `statusline.sh` muestra los dos cuando difieren (`proyecto ⚠️ cwd`, el cwd
 en amarillo) y la ruta relativa cuando el cwd está dentro del proyecto. Sin eso la
 línea decía solo el cwd y trabajar en un repo con las reglas y la memoria de otro
 no se notaba (menos todavía si ambos están en `main`).

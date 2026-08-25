@@ -10,7 +10,10 @@
 #     de la cuenta Anthropic normal.
 #   - Colores: paleta Claude Code (256-color), espejo de LS_COLORS del bashrc.
 #   Claude Code ejecuta este script en cada refresco y le pasa un JSON por stdin.
-#   Glyphs: requieren una Nerd Font (FiraCode Nerd Font ya esta en el bootstrap).
+#   Iconos: emoji a color, NO glyphs de Nerd Font. Linux los resuelve con Noto
+#   Color Emoji (lo prioriza el fontconfig/ de este repo) y Windows con Segoe UI
+#   Emoji; el set se cambia en el bloque "Iconos" de abajo. Ocupan dos columnas,
+#   asi que la linea es mas ancha que con glyphs.
 # ==============================================================================
 
 input="$(cat)"
@@ -20,6 +23,12 @@ c() { printf '\033[38;5;%sm' "$1"; }
 RESET=$'\033[0m'
 ORANGE=172; CYAN=73; PURPLE=141; GREEN=114; YELLOW=220; RED=203; DIM=240
 SEP="$(c "$DIM") · ${RESET}"
+
+# --- Iconos (editar aca para cambiar el set) ---
+# Los emoji traen su propio color: no se les aplica SGR (lo ignoran las fuentes
+# COLRv1), el color queda solo en el texto que los sigue.
+I_DIR="📁"; I_DRIFT="⚠️"; I_BRANCH="🌿"; I_MODEL="🤖"
+I_ANTHROPIC="✨"; I_BEDROCK="☁️"; I_CTX="📊"; I_STYLE="🎨"
 
 # --- Lectura del JSON ---
 # Usa jq si esta disponible; si no (ej. Git Bash en Windows, donde jq no suele
@@ -72,7 +81,7 @@ ctx="$(_json_get num "$input" 'context_window.used_percentage')"
 # para que el /cd no pase desapercibido:
 #   iguales           →  proyecto
 #   cwd bajo proyecto →  proyecto/ruta/relativa
-#   cwd afuera        →  proyecto ↦ cwd   (el cwd en amarillo)
+#   cwd afuera        →  proyecto ⚠️ cwd   (el cwd en amarillo)
 # Sin project_dir (Claude Code viejo) cae al comportamiento historico: solo cwd.
 _norm_path() {  # backslashes de Windows a /, sin barras repetidas ni barra final
     # Sin jq los backslashes llegan escapados (C:\\Users), asi que la conversion
@@ -100,7 +109,7 @@ elif [[ "$cwd_n" == "$proj_n"/* ]]; then
     dir="$(c "$ORANGE")$(_display_dir "$proj_n")/${cwd_n#"$proj_n"/}${RESET}"
 else
     dir="$(c "$ORANGE")$(_display_dir "$proj_n")${RESET}"
-    dir+="$(c "$DIM") ↦ ${RESET}$(c "$YELLOW")$(_display_dir "$cwd_n")${RESET}"
+    dir+=" ${I_DRIFT} $(c "$YELLOW")$(_display_dir "$cwd_n")${RESET}"
 fi
 
 # --- Rama git (si estamos dentro de un repo) ---
@@ -112,9 +121,9 @@ fi
 
 # --- Cuenta: Bedrock (claude-smg) vs Anthropic ---
 if [[ "${CLAUDE_CODE_USE_BEDROCK:-}" == "1" ]]; then
-    account="$(c "$YELLOW") ${AWS_PROFILE:-SMG}/Bedrock${RESET}"
+    account="${I_BEDROCK} $(c "$YELLOW")${AWS_PROFILE:-SMG}/Bedrock${RESET}"
 else
-    account="$(c "$PURPLE")✻ Anthropic${RESET}"
+    account="${I_ANTHROPIC} $(c "$PURPLE")Anthropic${RESET}"
 fi
 
 # --- Contexto usado (context_window.used_percentage) ---
@@ -128,20 +137,20 @@ if [[ "$ctx" =~ ^[0-9] ]]; then
         elif (( ctx_pct >= 60 )); then ctx_color=$YELLOW
         else                           ctx_color=$DIM
         fi
-        ctx_seg="$(c "$ctx_color") ${ctx_pct}%${RESET}"
+        ctx_seg="${I_CTX} $(c "$ctx_color")${ctx_pct}%${RESET}"
     fi
 fi
 
 # --- Construir la linea ---
-line="$(c "$ORANGE") ${RESET}${dir}"
-[[ -n "$branch" ]] && line+="${SEP}$(c "$GREEN") ${branch}${RESET}"
+line="${I_DIR} ${dir}"
+[[ -n "$branch" ]] && line+="${SEP}${I_BRANCH} $(c "$GREEN")${branch}${RESET}"
 line+="${SEP}${account}"
-line+="${SEP}$(c "$CYAN") ${model}${RESET}"
+line+="${SEP}${I_MODEL} $(c "$CYAN")${model}${RESET}"
 # effort solo viene si el modelo lo soporta; el output style, solo si no es el default
 [[ -n "$effort" ]] && line+="$(c "$DIM") ${effort}${RESET}"
 [[ -n "$ctx_seg" ]] && line+="${SEP}${ctx_seg}"
 if [[ -n "$style" ]] && [[ "$(printf '%s' "$style" | tr '[:upper:]' '[:lower:]')" != "default" ]]; then
-    line+="${SEP}$(c "$DIM")${style}${RESET}"
+    line+="${SEP}${I_STYLE} $(c "$DIM")${style}${RESET}"
 fi
 
 printf '%s' "$line"

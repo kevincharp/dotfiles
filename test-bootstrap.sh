@@ -560,7 +560,90 @@ for _bs in "$_bs_sh" "$_repo_root/install.sh" "$_repo_root/uninstall.sh"; do
 done
 unset _bs _bad
 
-unset _repo_root _bs_sh _bs_ps _gated_sh _entry _pat _tool _ln
+unset _bs_sh _bs_ps _gated_sh _entry _pat _tool _ln
+
+# ==============================================================================
+# 14. STATUSLINE DE CLAUDE CODE
+# ==============================================================================
+# Se ejercita de verdad (alimentando el JSON por stdin) porque tiene DOS caminos:
+# con jq y el fallback grep/sed que se usa en Git Bash, donde jq no viene.
+# Lo que se protege: que la linea muestre el PROYECTO de la sesion y el cwd
+# cuando /cd los separa. /cd mueve workspace.current_dir pero NO
+# workspace.project_dir (de ahi salen memoria, historial y CLAUDE.md de
+# proyecto): sin ese aviso se trabaja en otro repo con las reglas del original.
+# ==============================================================================
+
+section "14. Statusline de Claude Code"
+
+_sl="$_repo_root/.claude/statusline.sh"
+
+# PATH reducido para forzar el fallback: un dir con solo los binarios que el
+# statusline usa, sin jq. Hace falta un dir aparte porque jq vive en /usr/bin
+# junto a grep/sed. OJO: 'PATH=... bash' busca bash EN ese PATH, por eso se
+# invoca "$BASH" con ruta absoluta.
+_sl_nojq="$(mktemp -d)"
+for _b in grep sed head tr cat git; do
+    _p="$(command -v "$_b" 2>/dev/null)" && ln -sf "$_p" "$_sl_nojq/$_b"
+done
+unset _b _p
+
+_sl_run() {  # $1 = json, $2 = jq|nojq → imprime la linea sin secuencias ANSI
+    local out
+    if [[ "$2" == "nojq" ]]; then
+        out="$(printf '%s' "$1" | PATH="$_sl_nojq" "$BASH" "$_sl" 2>/dev/null)"
+    else
+        out="$(printf '%s' "$1" | "$BASH" "$_sl" 2>/dev/null)"
+    fi
+    printf '%s' "$out" | sed -E 's/\x1b\[[0-9;]*m//g'
+}
+
+# Casos: <descripcion>|<json>|<subcadena que debe estar>|<subcadena prohibida>
+# El campo prohibido puede quedar vacio. Los paths NO existen a proposito: asi no
+# aparece rama git y la salida es determinista.
+_sl_ctx='"context_window":{"current_usage":{"input_tokens":9},"used_percentage":12.3456},"rate_limits":{"five_hour":{"used_percentage":99.9}}'
+_sl_cases=(
+    "cwd == proyecto|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy|↦"
+    "cwd bajo el proyecto|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy/nvim/lua\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy/nvim/lua\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy/nvim/lua|↦"
+    "cwd fuera del proyecto (/cd)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-otro\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-otro\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy ↦ no-existe-otro|"
+    "sin project_dir (Claude Code viejo)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-otro\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-otro\"}}|no-existe-otro|↦"
+    "contexto redondeado, no el de rate_limits|{\"model\":{\"display_name\":\"M\"},${_sl_ctx},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|12%|99"
+    # En el texto JSON los paths de Windows llegan con \\ (jq los devuelve con uno
+    # solo, el fallback grep con los dos): las dos formas tienen que dar dot/nvim.
+    "paths de Windows sin barras dobles|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"C:\\\\Users\\\\k\\\\dot\\\\nvim\",\"workspace\":{\"current_dir\":\"C:\\\\Users\\\\k\\\\dot\\\\nvim\",\"project_dir\":\"C:\\\\Users\\\\k\\\\dot\"}}|dot/nvim|//"
+    "output_style custom (name tambien esta en agent)|{\"model\":{\"display_name\":\"M\"},\"agent\":{\"name\":\"Explorador\"},\"output_style\":{\"name\":\"Explanatory\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|Explanatory|Explorador"
+    "output_style default se omite|{\"model\":{\"display_name\":\"M\"},\"output_style\":{\"name\":\"default\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy|default"
+)
+
+if [[ ! -f "$_sl" ]]; then
+    test_fail "statusline.sh" "no existe en $_sl"
+else
+    if bash -n "$_sl" 2>/dev/null; then
+        test_ok "statusline.sh: sintaxis valida"
+    else
+        test_fail "statusline.sh" "error de sintaxis (bash -n)"
+    fi
+    has_cmd jq || test_warn "statusline.sh" "sin jq instalado: el modo 'con jq' repite el fallback"
+    for _mode in jq nojq; do
+        for _case in "${_sl_cases[@]}"; do
+            IFS='|' read -r _desc _json _want _deny <<< "$_case"
+            _out="$(_sl_run "$_json" "$_mode")"
+            if [[ "$_out" != *"$_want"* ]]; then
+                test_fail "statusline ($_mode): $_desc" "esperaba '$_want' en: $_out"
+            elif [[ -n "$_deny" && "$_out" == *"$_deny"* ]]; then
+                test_fail "statusline ($_mode): $_desc" "no deberia contener '$_deny': $_out"
+            else
+                test_ok "statusline ($_mode): $_desc"
+            fi
+        done
+    done
+    unset _mode _case _desc _json _want _deny _out
+fi
+
+rm -rf "$_sl_nojq"
+unset _sl _sl_nojq _sl_cases _sl_ctx
+unset -f _sl_run
+
+unset _repo_root
 
 # ==============================================================================
 # RESUMEN

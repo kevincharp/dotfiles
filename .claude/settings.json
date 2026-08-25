@@ -8,7 +8,16 @@
     "command": "bash ~/.dotfiles/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": true
+    "claude-code-setup@claude-plugins-official": true,
+    "example-skills@anthropic-agent-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/anthropics/skills.git"
+      }
+    }
   },
   "effortLevel": "medium",
   "tui": "fullscreen",

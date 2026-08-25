@@ -454,6 +454,58 @@ function Test-DeveloperMode {
     } catch { return $false }
 }
 
+function Get-NetskopeCaBundle {
+    # Devuelve la ruta de ~/combined-ca.pem (CA de Netskope + bundle publico) o
+    # $null si la maquina no tiene el proxy corporativo. Lo construye si falta.
+    #
+    # OJO con Set-StrictMode: si el Where-Object no encuentra nada (o sea, en
+    # cualquier maquina SIN el proxy corporativo), el pipeline devuelve $null y
+    # leerle .Thumbprint lanza PropertyNotFoundException. De ahi el $null
+    # explicito y el try/catch (el drive Cert: tampoco existe fuera de Windows).
+    $netskopeThumb = $null
+    try {
+        $netskopeCert = Get-ChildItem -Path Cert:\LocalMachine\Root -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Subject -match "Netskope" } |
+                        Select-Object -First 1
+        if ($netskopeCert) { $netskopeThumb = $netskopeCert.Thumbprint }
+    } catch {
+        Write-Log "No se pudo leer el almacen de certificados — salteo el ajuste de CA bundle" 'SKIP'
+        return $null
+    }
+    if (-not $netskopeThumb) { return $null }
+
+    $bundle = Join-Path $HOME 'combined-ca.pem'
+    if (Test-Path $bundle) { return $bundle }
+    if ($DryRun) {
+        Write-Log "[DryRun] Exportar cert Netskope y crear combined-ca.pem" 'SKIP'
+        return $null
+    }
+
+    Invoke-Step "Exportar cert Netskope y crear combined-ca.pem" {
+        $cert  = Get-ChildItem -Path Cert:\LocalMachine\Root |
+                 Where-Object { $_.Thumbprint -eq $netskopeThumb }
+        $bytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+        [System.IO.File]::WriteAllBytes("$HOME\netskope-root.cer", $bytes)
+        certutil -encode "$HOME\netskope-root.cer" "$HOME\netskope-root.pem" | Out-Null
+
+        # Buscar cacert.pem o descargarlo. OJO: descargar justamente un CA
+        # bundle con la verificacion TLS apagada (curl -k) seria lo peor;
+        # Invoke-WebRequest usa el cert store de Windows, que ya confia en
+        # el certificado de Netskope, asi que valida el TLS sin -k.
+        $cacert = Get-ChildItem -Path "$HOME\.vscode\extensions" -Recurse -Filter "cacert.pem" `
+                    -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $cacert) {
+            Write-Log "cacert.pem no encontrado en VSCode, descargando..." 'WARN'
+            Invoke-WebRequest -Uri 'https://curl.se/ca/cacert.pem' -OutFile "$HOME\cacert.pem" -UseBasicParsing
+            $cacert = "$HOME\cacert.pem"
+        }
+
+        Get-Content "$HOME\netskope-root.pem", $cacert | Set-Content $bundle
+    }
+    if (Test-Path $bundle) { return $bundle }
+    return $null
+}
+
 function Install-WingetPackage {
     param(
         [string]$Id,
@@ -1518,46 +1570,12 @@ if (-not $WithAws) {
     # AWS con certificados + login por navegador: todo interactivo/verboso -> fuera
     # de la barra.
     Suspend-Bar
-    # Configurar combined-ca.pem para Netskope (solo si existe el cert).
-    # OJO con Set-StrictMode: si el Where-Object no encuentra nada (o sea, en
-    # cualquier maquina SIN el proxy corporativo), el pipeline devuelve $null y
-    # leerle .Thumbprint lanza PropertyNotFoundException; el 'if' de abajo
-    # fallaba despues por variable no asignada. Dos volcados rojos en el paso de
-    # Bedrock para todo el que no tenga Netskope. De ahi el $null explicito y el
-    # try/catch (el drive Cert: tampoco existe fuera de Windows).
-    $netskopeThumb = $null
-    try {
-        $netskopeCert = Get-ChildItem -Path Cert:\LocalMachine\Root -ErrorAction SilentlyContinue |
-                        Where-Object { $_.Subject -match "Netskope" } |
-                        Select-Object -First 1
-        if ($netskopeCert) { $netskopeThumb = $netskopeCert.Thumbprint }
-    } catch {
-        Write-Log "No se pudo leer el almacen de certificados — salteo el ajuste de CA bundle" 'SKIP'
-    }
-
-    if ($netskopeThumb) {
-        Invoke-Step "Exportar cert Netskope y crear combined-ca.pem" {
-            $cert  = Get-ChildItem -Path Cert:\LocalMachine\Root |
-                     Where-Object { $_.Thumbprint -eq $netskopeThumb }
-            $bytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
-            [System.IO.File]::WriteAllBytes("$HOME\netskope-root.cer", $bytes)
-            certutil -encode "$HOME\netskope-root.cer" "$HOME\netskope-root.pem" | Out-Null
-
-            # Buscar cacert.pem o descargarlo. OJO: descargar justamente un CA
-            # bundle con la verificacion TLS apagada (curl -k) seria lo peor;
-            # Invoke-WebRequest usa el cert store de Windows, que ya confia en
-            # el certificado de Netskope, asi que valida el TLS sin -k.
-            $cacert = Get-ChildItem -Path "$HOME\.vscode\extensions" -Recurse -Filter "cacert.pem" `
-                        -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-            if (-not $cacert) {
-                Write-Log "cacert.pem no encontrado en VSCode, descargando..." 'WARN'
-                Invoke-WebRequest -Uri 'https://curl.se/ca/cacert.pem' -OutFile "$HOME\cacert.pem" -UseBasicParsing
-                $cacert = "$HOME\cacert.pem"
-            }
-
-            Get-Content "$HOME\netskope-root.pem", $cacert | Set-Content "$HOME\combined-ca.pem"
-            [System.Environment]::SetEnvironmentVariable("AWS_CA_BUNDLE", "$HOME\combined-ca.pem", "User")
-            Write-Log "AWS_CA_BUNDLE configurado: $HOME\combined-ca.pem" 'OK'
+    # Configurar combined-ca.pem para Netskope (solo si existe el cert). El bundle
+    # lo arma Get-NetskopeCaBundle, que tambien usa el paso 9 para el SSL de git.
+    $caBundle = Get-NetskopeCaBundle
+    if ($caBundle) {
+        Invoke-Step "Configurar AWS_CA_BUNDLE → $caBundle" {
+            [System.Environment]::SetEnvironmentVariable("AWS_CA_BUNDLE", $caBundle, "User")
         }
     } else {
         Write-Log "Cert Netskope no encontrado — máquina sin Netskope, SSL de AWS debería funcionar directo" 'INFO'
@@ -1723,6 +1741,38 @@ if (Test-Path $loaderProfile) {
         New-Item -ItemType File -Path $loaderProfile -Force | Out-Null
         Set-Content $loaderProfile $loaderContent
     }
+}
+
+# --- SSL de git detras del proxy corporativo (parte del paso 9) ---
+# El gitconfig DE SISTEMA de Git for Windows fija http.sslbackend=openssl con su
+# propio ca-bundle.crt, que NO tiene la CA de Netskope: todo clone por HTTPS muere
+# con "self-signed certificate in certificate chain". Y por SSH tampoco anda, porque
+# aca los remotes usan host aliases (git@github.com pelado no engancha ninguna clave).
+# Sintoma concreto: 'claude plugin marketplace add' falla siempre, o sea no se puede
+# instalar NINGUN plugin/skill de terceros.
+#
+# Se arregla con GIT_SSL_CAINFO (= http.sslCAInfo) apuntando al mismo combined-ca.pem
+# del paso 8. Por que asi y no de las formas "obvias":
+#   - 'git config --global' escribiria DENTRO DEL VAULT (~/.gitconfig es symlink a
+#     $VAULT_DIR/git/config) y ademas viajaria a Fedora, que no necesita nada de esto.
+#   - 'http.sslBackend=schannel' tambien funciona, pero es una opcion sin sentido
+#     fuera de Windows y no hay includeIf por SO donde encerrarla.
+#   - GIT_SSL_CAINFO es una variable dedicada: no secuestra GIT_CONFIG_COUNT (que
+#     pisaria cualquier otra herramienta que la use) y al ser variable de usuario de
+#     Windows no existe en Linux.
+Sub-Bar 60 "SSL de git (proxy corporativo)"
+$gitCaBundle = Get-NetskopeCaBundle
+if ($gitCaBundle) {
+    if ($env:GIT_SSL_CAINFO -eq $gitCaBundle) {
+        Write-Log "GIT_SSL_CAINFO ya configurado, saltando" 'SKIP'
+    } else {
+        Invoke-Step "Configurar GIT_SSL_CAINFO → $gitCaBundle" {
+            [System.Environment]::SetEnvironmentVariable("GIT_SSL_CAINFO", $gitCaBundle, "User")
+            $env:GIT_SSL_CAINFO = $gitCaBundle
+        }
+    }
+} else {
+    Write-Log "Sin Netskope — el SSL de git no necesita CA bundle propio" 'INFO'
 }
 
 # --- Validaciones post-bootstrap (parte del paso 9) ---

@@ -1383,9 +1383,13 @@ if ($SkipDotfiles) {
     # Gateado: sin esto, quien no eligio Neovim se llevaba %LOCALAPPDATA%\nvim
     # apuntando a esta config, y al instalar nvim mas adelante arrancaba con ESTA
     # en vez de la propia (paridad con el want_tool neovim de bootstrap.sh).
+    # Si $XDG_CONFIG_HOME esta seteada (algunas maquinas la fijan a mano, ver
+    # reference_xdg_windows), Neovim la respeta tambien en Windows y resuelve
+    # stdpath('config') ahi en vez de %LOCALAPPDATA%\nvim: symlinkear solo el
+    # segundo deja a nvim sin encontrar la config (arranca con defaults).
     Sub-Bar 65 "config de nvim"
     $nvimSrc = Join-Path $REPO_ROOT 'nvim'
-    $nvimDst = Join-Path $env:LOCALAPPDATA 'nvim'
+    $nvimDst = if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME 'nvim' } else { Join-Path $env:LOCALAPPDATA 'nvim' }
     if ((Test-Path $nvimSrc) -and -not (Test-ToolWanted 'neovim')) {
         Write-Log "Neovim no seleccionado ni instalado, saltando config de nvim" 'SKIP'
     } elseif (Test-Path $nvimSrc) {

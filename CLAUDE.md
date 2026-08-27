@@ -448,9 +448,10 @@ hace peor, no como reemplazo). Config propia estilo kickstart: `init.lua` +
 
 - **Symlink de DIRECTORIO, con path distinto por SO:** Linux →
   `~/.config/nvim`; Windows → **`%LOCALAPPDATA%\nvim`** (no `~/.config`), salvo
-  que la máquina tenga `$XDG_CONFIG_HOME` seteada (ver
-  [[reference_xdg_windows]]): Neovim la respeta también en Windows y resuelve
-  `stdpath('config')` ahí, así que `bootstrap.ps1` symlinkea a
+  que la máquina tenga `$XDG_CONFIG_HOME` seteada a mano (algunas la fijan
+  para que varias apps usen paths estilo Linux también en Windows): Neovim la
+  respeta también en Windows y resuelve `stdpath('config')` ahí, así que
+  `bootstrap.ps1` symlinkea a
   `$env:XDG_CONFIG_HOME\nvim` cuando existe esa variable, no a
   `%LOCALAPPDATA%\nvim` a secas — symlinkear el segundo en esa máquina deja a
   nvim sin encontrar la config (arranca con defaults, sin tema ni lualine).

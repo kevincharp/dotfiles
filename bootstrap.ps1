@@ -103,6 +103,10 @@ $WINGET_PACKAGES = @(
     # Requisito de nvim-treesitter rama 'main': compila los parsers. Sin esto,
     # nvim abre pero sin resaltado de sintaxis (ver nvim/lua/plugins/treesitter.lua).
     @{ Id='tree-sitter.tree-sitter-cli';    Name='tree-sitter CLI';         Optional=$false; Key='tree-sitter-cli';  Group='core'   }
+    # Compilador C para los parsers de arriba: en Linux ya hay gcc, en Windows no
+    # hay ninguno de fabrica. zig trae 'zig cc', que nvim-treesitter detecta solo
+    # (liviano: un solo binario via winget, sin instalar Visual Studio).
+    @{ Id='zig.zig';                        Name='Zig (compilador C)';      Optional=$false; Key='zig';              Group='core'   }
     @{ Id='junegunn.fzf';                   Name='fzf';                     Optional=$false; Key='fzf';              Group='core'   }
     @{ Id='JanDeDobbeleer.OhMyPosh';        Name='Oh My Posh';              Optional=$false; Key='oh-my-posh';       Group='shell'  }
     @{ Id='ajeetdsouza.zoxide';             Name='zoxide';                  Optional=$false; Key='zoxide';           Group='shell'  }
@@ -1431,6 +1435,70 @@ if ($SkipDotfiles) {
                 Write-Log $msg 'ERROR'
                 $ERRORS.Add($msg)
             }
+        }
+    }
+
+    # --- Shim de compilador C para nvim-treesitter (zig actuando como 'cc') ---
+    # Ver la cabecera de nvim/windows-cc-shim.c para el por que completo: en
+    # resumen, tree-sitter-cli invoca literalmente un programa llamado "cc" (no
+    # entiende CC="zig cc", usa solo la primera palabra) y le pasa un target
+    # triple en formato Rust ("x86_64-pc-windows-msvc") que el parser de zig no
+    # entiende sin MSVC instalado. Este shim resuelve ambas cosas.
+    # OJO: CC queda seteada a nivel de USUARIO (no solo para nvim) — cualquier
+    # otra herramienta en esta maquina que lea CC (make, cargo build scripts,
+    # node-gyp...) va a compilar via zig-como-gnu en vez de cl.exe/MSVC.
+    # Aceptado a proposito: la alternativa es no tener resaltado de sintaxis.
+    Sub-Bar 66 "shim de compilador (zig -> cc) para treesitter"
+    $ccShimSrc = Join-Path $REPO_ROOT 'nvim\windows-cc-shim.c'
+    $ccShimBin = Join-Path $HOME '.local\bin\cc.exe'
+    $ccShimUpToDate = (Test-Path $ccShimBin) -and (Test-Path $ccShimSrc) -and
+        ((Get-Item $ccShimBin).LastWriteTime -ge (Get-Item $ccShimSrc).LastWriteTime)
+    if (-not (Test-Path $ccShimSrc)) {
+        Write-Log "nvim/windows-cc-shim.c no existe en el repo, saltando" 'SKIP'
+    } elseif (-not (Test-ToolWanted 'neovim')) {
+        Write-Log "Neovim no seleccionado ni instalado, saltando shim de compilador" 'SKIP'
+    } elseif (-not (Test-CommandAvailable 'zig')) {
+        $msg = "zig no esta disponible (la instalacion via winget puede haber fallado detras del proxy): nvim-treesitter no va a poder compilar parsers"
+        Write-Log $msg 'WARN'
+        $WARNINGS.Add($msg)
+    } elseif ($DryRun) {
+        Write-Log "[DryRun] Compilar $ccShimBin con zig y setear CC=cc" 'SKIP'
+    } elseif ($ccShimUpToDate -and $env:CC -eq 'cc') {
+        Write-Log "Shim de compilador ya compilado y CC seteada, saltando" 'SKIP'
+    } else {
+        $binDir = Join-Path $HOME '.local\bin'
+        if (-not $ccShimUpToDate) {
+            Invoke-Step "Compilar shim de compilador (zig build-exe)" {
+                New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+                Push-Location $binDir
+                try {
+                    & zig build-exe $ccShimSrc -O ReleaseSmall "-femit-bin=$ccShimBin" -lc 2>&1 | Out-Null
+                    if ($LASTEXITCODE -ne 0) { throw "zig build-exe fallo (exit $LASTEXITCODE)" }
+                } finally {
+                    Pop-Location
+                    Get-ChildItem -Path $binDir -Filter 'windows-cc-shim.obj' -ErrorAction SilentlyContinue | Remove-Item -Force
+                    Get-ChildItem -Path $binDir -Filter '*.pdb' -ErrorAction SilentlyContinue | Remove-Item -Force
+                }
+            }
+        }
+        if ($env:CC -ne 'cc') {
+            Invoke-Step "Setear CC=cc (User)" {
+                [Environment]::SetEnvironmentVariable('CC', 'cc', 'User')
+                $env:CC = 'cc'
+            }
+        }
+        # Asegurar que ~/.local/bin este en el PATH de usuario: hoy lo unico
+        # que lo garantiza es el paso de lazyssh, y no corre si no se elige.
+        $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+        if ($userPath -notlike "*$binDir*") {
+            [Environment]::SetEnvironmentVariable('Path', "$userPath;$binDir", 'User')
+            $env:Path += ";$binDir"
+            Write-Log "  Agregado $binDir al PATH de usuario (reinicia la terminal)" 'INFO'
+        }
+        if (-not (Test-Path $ccShimBin)) {
+            $msg = "Shim de compilador no quedo en $ccShimBin — nvim-treesitter va a fallar al compilar parsers"
+            Write-Log $msg 'ERROR'
+            $ERRORS.Add($msg)
         }
     }
 

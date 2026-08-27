@@ -447,9 +447,16 @@ hace peor, no como reemplazo). Config propia estilo kickstart: `init.lua` +
 `lua/plugins/`. Sumar un plugin = crear un archivo; sacarlo = borrarlo.
 
 - **Symlink de DIRECTORIO, con path distinto por SO:** Linux →
-  `~/.config/nvim`; Windows → **`%LOCALAPPDATA%\nvim`** (no `~/.config`). Tiene
-  que ser el directorio entero, no archivo por archivo, porque lazy.nvim escribe
-  el `lazy-lock.json` adentro y así el cambio queda versionado al instante.
+  `~/.config/nvim`; Windows → **`%LOCALAPPDATA%\nvim`** (no `~/.config`), salvo
+  que la máquina tenga `$XDG_CONFIG_HOME` seteada (ver
+  [[reference_xdg_windows]]): Neovim la respeta también en Windows y resuelve
+  `stdpath('config')` ahí, así que `bootstrap.ps1` symlinkea a
+  `$env:XDG_CONFIG_HOME\nvim` cuando existe esa variable, no a
+  `%LOCALAPPDATA%\nvim` a secas — symlinkear el segundo en esa máquina deja a
+  nvim sin encontrar la config (arranca con defaults, sin tema ni lualine).
+  Tiene que ser el directorio entero, no archivo por archivo, porque lazy.nvim
+  escribe el `lazy-lock.json` adentro y así el cambio queda versionado al
+  instante.
 - **Gateado por el selector:** si no elegiste neovim, el bootstrap NO crea el
   link. Sin el gate, quien no lo quería se llevaba un `~/.config/nvim` apuntando
   acá y el día que instalara nvim arrancaba con ESTA config.
@@ -468,9 +475,28 @@ hace peor, no como reemplazo). Config propia estilo kickstart: `init.lua` +
 - **`tree-sitter-cli`** (>= 0.25): nvim-treesitter rama `main` compila los
   parsers con él. Está en el catálogo `core` del bootstrap (Fedora lo tiene en
   repos base; Windows es winget). Sin esto **no hay resaltado de sintaxis**.
-- **Compilador C:** en Linux ya hay gcc. En **Windows el bootstrap NO instala
-  ninguno** (haría falta zig o MSVC) → hoy es un hueco conocido: los parsers
-  pueden fallar al compilar.
+- **Compilador C:** en Linux ya hay gcc. En Windows no viene de fábrica — el
+  bootstrap instala **zig** (catálogo `core`, `zig.zig`) porque es liviano (un
+  binario vía winget, sin Visual Studio), pero zig solo **no alcanza**: hacen
+  falta dos ajustes más, hechos en el paso "shim de compilador" de
+  `bootstrap.ps1`:
+  1. `tree-sitter-cli` invoca literalmente un programa llamado `cc` (ver su
+     `do_compile`). No entiende `CC="zig cc"` — usa solo la primera palabra
+     como programa y descarta el resto, así que termina llamando `zig` con
+     `-O2` (u otro flag) como si fuera un subcomando, y zig lo rechaza
+     (`unknown command`). Hace falta un único ejecutable `cc.exe` que reenvíe
+     todo a `zig cc` — es `nvim/windows-cc-shim.c`, que el bootstrap compila
+     con `zig build-exe` a `~/.local/bin/cc.exe`.
+  2. `tree-sitter-cli` le pasa a `cc` el target triple con el que se compiló
+     la propia herramienta, en formato Rust/LLVM (`x86_64-pc-windows-msvc`).
+     El parser de targets de zig no tiene campo de *vendor* y no entiende ese
+     string tal cual (`UnknownOperatingSystem`). El shim lo reescribe a
+     `x86_64-windows-gnu`, que zig resuelve con sus propios headers de
+     mingw-w64 embebidos, sin depender de Visual Studio.
+  `CC=cc` queda seteada a nivel de **usuario** (no solo para nvim) — cualquier
+  otra herramienta en la máquina que lea `CC` (make, cargo build scripts,
+  node-gyp…) va a compilar vía zig-como-gnu en vez de cl.exe/MSVC. Aceptado a
+  propósito: la alternativa es no tener resaltado de sintaxis en Windows.
 - **node** para varios servidores de Mason. Detrás del **proxy corporativo**
   algunos paquetes de Mason no bajan; el síntoma es un servidor que nunca
   aparece, no un error visible.

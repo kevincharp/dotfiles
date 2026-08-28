@@ -36,7 +36,6 @@
       "autoUpdate": true
     }
   },
-  "effortLevel": "medium",
   "tui": "fullscreen",
   "theme": "auto"
 }

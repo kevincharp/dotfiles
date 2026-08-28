@@ -290,6 +290,41 @@ no se notaba (menos todavía si ambos están en `main`).
 - **Redondear el porcentaje con `LC_ALL=C printf '%.0f'`:** con el locale `es_AR`
   la coma decimal rompe el formateo de un valor como `12.3456`.
 
+### Updates de plugins: tres mecanismos, y ninguno es `claude update`
+
+`claude update` actualiza **solo el CLI**. Lo demás:
+
+- **`"autoUpdate": true`** en cada entrada de `extraKnownMarketplaces` — es lo
+  que los actualiza solos al arrancar. **Hay que ponerlo a mano en los
+  marketplaces de terceros:** el default sale de una **allowlist de nombres
+  oficiales** hardcodeada en el binario (`claude-plugins-official`,
+  `anthropic-agent-skills`, `agent-skills`, `life-sciences`,
+  `claude-for-legal`…, menos `knowledge-work-plugins` y `first-party-plugins`).
+  Cualquier otro nombre arranca en `false`, en silencio.
+- **`claude plugin marketplace update [nombre]`** (todos si no se le pasa
+  nombre) refresca el *índice*; **`claude plugin update <plugin>`** actualiza el
+  código, de a uno — **no existe un "update all" de plugins**.
+- **El bootstrap y `update.sh` NO tocan nada de esto**: solo symlinkean
+  `settings.json`. Lo que viaja entre máquinas es el *registro*, no el clon
+  (`~/.claude/plugins/`, que se rebaja solo).
+
+**La trampa: el update compara el string `version`, no el commit.** Verificado
+con un repo-plugin de prueba: con un commit nuevo y la misma `version` en
+`plugin.json`, `claude plugin update` dice *"already at the latest version"* y
+el caché **se queda con el contenido viejo**; recién al bumpear la versión baja
+el commit nuevo. Consecuencias por plugin:
+
+- Sin `version` en ningún lado (caso `all-deploy`), Claude Code usa el **sha
+  corto** como versión (`a1423f2660d6`) → cada commit upstream es una versión
+  nueva y el update lo agarra siempre.
+- Con `version` fija (`cyber-neo` 0.1.0, `the-architect` 2.5.0) depende de que
+  el autor la bumpee. Para forzar el último commit igual: **reinstalar**
+  (`claude plugin install <plugin>@<marketplace> -y` sobre la misma versión
+  re-clona y pisa el caché — verificado).
+- `installed_plugins.json` guarda un `gitCommitSha` que **queda desactualizado**
+  tras un update (mostró el sha viejo junto al contenido nuevo): no sirve para
+  saber qué commit está instalado.
+
 ### Instalar plugins en Windows: lo bloquea el SSL de git, no Claude Code
 
 Detrás del proxy corporativo (Netskope) `/plugin marketplace add` **falla siempre**,

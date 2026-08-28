@@ -10,7 +10,9 @@
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": true,
     "example-skills@anthropic-agent-skills": true,
-    "the-architect@soyenriquerocha": true
+    "the-architect@soyenriquerocha": true,
+    "cyber-neo@kevincharp-dotfiles": true,
+    "all-deploy@kevincharp-dotfiles": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -23,6 +25,12 @@
       "source": {
         "source": "github",
         "repo": "Hainrixz/the-architect"
+      }
+    },
+    "kevincharp-dotfiles": {
+      "source": {
+        "source": "github",
+        "repo": "kevincharp/dotfiles"
       }
     }
   },

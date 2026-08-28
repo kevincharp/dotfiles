@@ -617,6 +617,9 @@ _sl_cases=(
     "fast_mode true (booleano sin comillas)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"fast_mode\":true,\"thinking\":{\"enabled\":false}}|🚀|🧠"
     "thinking.enabled true (booleano sin comillas)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"fast_mode\":false,\"thinking\":{\"enabled\":true}}|🧠|🚀"
     "cost.total_cost_usd redondeado a 2 decimales|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"cost\":{\"total_cost_usd\":3.14159}}|\$3.14|\$3.14159"
+    # total_*_tokens formateados compacto (k/M), nunca el numero crudo.
+    "tokens de contexto en formato k|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"context_window\":{\"used_percentage\":58,\"total_input_tokens\":577328,\"total_output_tokens\":289}}|58% (577k)|577328"
+    "tokens de contexto en formato M|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"context_window\":{\"used_percentage\":99,\"total_input_tokens\":1234567,\"total_output_tokens\":0}}|99% (1.2M)|1234567"
 )
 
 if [[ ! -f "$_sl" ]]; then

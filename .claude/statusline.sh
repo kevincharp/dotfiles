@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
 #   statusline.sh — linea de estado de Claude Code
-#   Muestra:  carpeta · rama git · cuenta · modelo · effort · fast · thinking · contexto · estilo · costo
+#   Muestra:  carpeta · rama git · cuenta · modelo · effort · fast · thinking ·
+#             contexto (% + tokens) · estilo · costo
 #   - Carpeta: el PROYECTO de la sesion y, si /cd movio el cwd afuera, tambien
 #     el cwd (ver "Carpeta" mas abajo). No son lo mismo: /cd mueve el cwd pero
 #     la memoria, el historial y el CLAUDE.md de proyecto siguen siendo los del
@@ -77,6 +78,8 @@ project="$(_json_get str "$input" 'workspace.project_dir')"
 effort="$(_json_get str "$input" 'effort.level')"
 style="$(_json_get str "$input" 'output_style.name')"
 ctx="$(_json_get num "$input" 'context_window.used_percentage')"
+tok_in="$(_json_get num "$input" 'context_window.total_input_tokens')"
+tok_out="$(_json_get num "$input" 'context_window.total_output_tokens')"
 fast="$(_json_get bool "$input" 'fast_mode')"
 thinking="$(_json_get bool "$input" 'thinking.enabled')"
 cost="$(_json_get num "$input" 'cost.total_cost_usd')"
@@ -135,9 +138,20 @@ else
     account="${I_ANTHROPIC} $(c "$PURPLE")Anthropic${RESET}"
 fi
 
-# --- Contexto usado (context_window.used_percentage) ---
+# --- Contexto usado (context_window.used_percentage + total_*_tokens) ---
 # Redondeo con LC_ALL=C: el locale es_AR usa coma decimal y rompe el %.0f de un
 # valor como 12.3456.
+# Los tokens son los del CONTEXTO ACTUAL (lo que se reenvia cada turno), no un
+# acumulado historico de toda la sesion - ese campo no existe en el payload
+# (cost.* solo trae USD/duracion/lineas, sin tokens). Es el numero honesto
+# disponible: coincide con el % de arriba, en unidades absolutas.
+_fmt_tokens() {  # entero -> "577k" / "1.2M" (aritmetica entera, sin awk/bc)
+    local n="$1"
+    if   (( n >= 1000000 )); then printf '%d.%dM' $((n / 1000000)) $(( (n % 1000000) / 100000 ))
+    elif (( n >= 1000 ));    then printf '%dk' $((n / 1000))
+    else                          printf '%d' "$n"
+    fi
+}
 ctx_seg=""
 if [[ "$ctx" =~ ^[0-9] ]]; then
     ctx_pct="$(LC_ALL=C printf '%.0f' "$ctx" 2>/dev/null)"
@@ -147,6 +161,12 @@ if [[ "$ctx" =~ ^[0-9] ]]; then
         else                           ctx_color=$DIM
         fi
         ctx_seg="${I_CTX} $(c "$ctx_color")${ctx_pct}%${RESET}"
+        if [[ "$tok_in" =~ ^[0-9]+$ ]]; then
+            tok_out_n=0
+            [[ "$tok_out" =~ ^[0-9]+$ ]] && tok_out_n="$tok_out"
+            tok_total=$(( tok_in + tok_out_n ))
+            ctx_seg+=" $(c "$DIM")($(_fmt_tokens "$tok_total"))${RESET}"
+        fi
     fi
 fi
 

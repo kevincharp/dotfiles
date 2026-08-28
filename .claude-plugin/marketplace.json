@@ -1,0 +1,42 @@
+{
+  "name": "kevincharp-dotfiles",
+  "owner": {
+    "name": "Kevin Charpentier",
+    "url": "https://github.com/kevincharp"
+  },
+  "metadata": {
+    "description": "Marketplace envoltorio: publica como plugins de Claude Code repos de terceros que no traen su propio marketplace.json, para que viajen versionados en settings.json en vez de vivir sueltos en ~/.claude/skills/."
+  },
+  "plugins": [
+    {
+      "name": "cyber-neo",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Hainrixz/cyber-neo.git"
+      },
+      "description": "Auditor de seguridad read-only: escanea codigo, dependencias, secretos, configuracion e infraestructura contra OWASP 2025 Top 10 y CWE Top 25, y deja un reporte priorizado. Se invoca con /cyber-neo [ruta].",
+      "keywords": ["security", "SAST", "SCA", "OWASP", "CWE", "audit"],
+      "author": {
+        "name": "Enrique Rocha",
+        "url": "https://github.com/Hainrixz"
+      },
+      "license": "MIT",
+      "category": "development"
+    },
+    {
+      "name": "all-deploy",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Hainrixz/all-deploy.git"
+      },
+      "description": "Despliegue de apps web/API/agentes con auditoria de seguridad previa obligatoria y flujo preview -> health-check -> produccion con confirmacion. Targets: Vercel, Railway, Docker+VPS y tunel de cloudflared. Se invoca con /all-deploy.",
+      "keywords": ["deploy", "vercel", "railway", "docker", "audit"],
+      "author": {
+        "name": "Enrique Rocha",
+        "url": "https://github.com/Hainrixz"
+      },
+      "license": "MIT",
+      "category": "development"
+    }
+  ]
+}

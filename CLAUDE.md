@@ -186,6 +186,30 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   es el clon en `~/.claude/plugins/`, que se rebaja solo. **Las skills globales de
   `~/.claude/skills/` NO se versionan** (el bootstrap solo symlinkea `CLAUDE.md` y
   `settings.json`): lo que quieras portable va como plugin, no como carpeta suelta.
+- **`.claude-plugin/marketplace.json` (raíz del repo) — marketplace envoltorio.**
+  Muchos repos de skills útiles **no publican `marketplace.json`** (algunos ni
+  siquiera `plugin.json`), y sin eso `/plugin marketplace add` no los toma: la
+  única vía sería clonarlos sueltos en `~/.claude/skills/`, que NO se versiona.
+  Este marketplace los declara apuntando a sus repos de origen
+  (`"source": {"source": "url", "url": "https://…​.git"}`), así que quedan
+  registrados en `settings.json` y viajan solos. Hoy envuelve `cyber-neo` y
+  `all-deploy`. Detalles no obvios:
+  - **Un `SKILL.md` en la RAÍZ del repo alcanza** — no hace falta
+    `skills/<nombre>/SKILL.md`. Verificado con `claude plugin details`:
+    `all-deploy` (SKILL.md pelado en la raíz, sin `plugin.json`) expone su skill
+    igual que `cyber-neo` (que sí tiene ambos).
+  - **El marketplace se declara con `source: github` + `repo`, nunca con una
+    ruta local.** Un `claude plugin marketplace add <ruta>` guarda
+    `{"source": "directory", "path": "C:\\…"}` — ruta **absoluta**, que en Fedora
+    no existe. La forma `github` es la única portable.
+  - **Consecuencia: hay que pushear antes de que resuelva.** Registrarlo lee el
+    `marketplace.json` **del remoto**, no del working tree; sin push falla con
+    `Marketplace file not found`. Los plugins nuevos se agregan editando el JSON
+    → commit → push → reiniciar Claude Code.
+  - **Nada se pinea a un sha** (a diferencia del marketplace oficial): se sigue
+    la rama por default de cada repo upstream, así `claude plugin update` trae lo
+    último sin tocar este repo. El costo es que un cambio upstream entra sin
+    revisión — son repos de terceros.
 - `statusline.sh` → **no se copia**; `settings.json` lo referencia desde el repo.
   Lo verifica la **sección 14 de `test-bootstrap.sh`** (le mete el JSON por stdin,
   con jq y con un `PATH` sin jq para ejercitar el fallback de Git Bash).

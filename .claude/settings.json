@@ -9,13 +9,20 @@
   },
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": true,
-    "example-skills@anthropic-agent-skills": true
+    "example-skills@anthropic-agent-skills": true,
+    "the-architect@soyenriquerocha": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
       "source": {
         "source": "git",
         "url": "https://github.com/anthropics/skills.git"
+      }
+    },
+    "soyenriquerocha": {
+      "source": {
+        "source": "github",
+        "repo": "Hainrixz/the-architect"
       }
     }
   },

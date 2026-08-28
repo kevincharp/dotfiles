@@ -612,6 +612,11 @@ _sl_cases=(
     "paths de Windows sin barras dobles|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"C:\\\\Users\\\\k\\\\dot\\\\nvim\",\"workspace\":{\"current_dir\":\"C:\\\\Users\\\\k\\\\dot\\\\nvim\",\"project_dir\":\"C:\\\\Users\\\\k\\\\dot\"}}|dot/nvim|//"
     "output_style custom (name tambien esta en agent)|{\"model\":{\"display_name\":\"M\"},\"agent\":{\"name\":\"Explorador\"},\"output_style\":{\"name\":\"Explanatory\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|Explanatory|Explorador"
     "output_style default se omite|{\"model\":{\"display_name\":\"M\"},\"output_style\":{\"name\":\"default\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"}}|no-existe-proy|default"
+    # fast_mode/thinking.enabled llegan como true/false SIN comillas (no son
+    # strings): protege contra que el fallback sin jq los trate como si lo fueran.
+    "fast_mode true (booleano sin comillas)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"fast_mode\":true,\"thinking\":{\"enabled\":false}}|🚀|🧠"
+    "thinking.enabled true (booleano sin comillas)|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"fast_mode\":false,\"thinking\":{\"enabled\":true}}|🧠|🚀"
+    "cost.total_cost_usd redondeado a 2 decimales|{\"model\":{\"display_name\":\"M\"},\"cwd\":\"/tmp/no-existe-proy\",\"workspace\":{\"current_dir\":\"/tmp/no-existe-proy\",\"project_dir\":\"/tmp/no-existe-proy\"},\"cost\":{\"total_cost_usd\":3.14159}}|\$3.14|\$3.14159"
 )
 
 if [[ ! -f "$_sl" ]]; then

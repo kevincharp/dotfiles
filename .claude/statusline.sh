@@ -40,7 +40,10 @@ I_FAST="🚀"; I_THINKING="🧠"; I_COST="💰"
 # hija: hace falta porque hay nombres repetidos (`name` esta en output_style,
 # agent y worktree; `used_percentage` tambien en rate_limits).
 _json_get() {
-    # $1 = str|num, $2 = json, $3... = claves candidatas (por preferencia)
+    # $1 = str|num|bool, $2 = json, $3... = claves candidatas (por preferencia)
+    # bool: fast_mode/thinking.enabled llegan como true/false SIN comillas (no
+    # son strings) - el regex de "str" nunca los matchea y el campo queda
+    # vacio en el modo sin jq, sin importar el valor real (visto en Windows).
     local kind="$1" json="$2"; shift 2
     local key val frag part re
     if command -v jq &>/dev/null; then
@@ -50,7 +53,9 @@ _json_get() {
         done
         return
     fi
-    if [[ "$kind" == "num" ]]; then re='-\?[0-9][0-9.eE+-]*'; else re='"[^"]*"'; fi
+    if [[ "$kind" == "num" ]]; then re='-\?[0-9][0-9.eE+-]*'
+    elif [[ "$kind" == "bool" ]]; then re='true\|false'
+    else re='"[^"]*"'; fi
     for key in "$@"; do
         frag="$json"
         while [[ "$key" == *.* ]]; do
@@ -72,9 +77,9 @@ project="$(_json_get str "$input" 'workspace.project_dir')"
 effort="$(_json_get str "$input" 'effort.level')"
 style="$(_json_get str "$input" 'output_style.name')"
 ctx="$(_json_get num "$input" 'context_window.used_percentage')"
-fast="$(_json_get str "$input" 'fast_mode')"
-thinking="$(_json_get str "$input" 'thinking.enabled')"
-cost="$(_json_get num "$input" 'cost.total')"
+fast="$(_json_get bool "$input" 'fast_mode')"
+thinking="$(_json_get bool "$input" 'thinking.enabled')"
+cost="$(_json_get num "$input" 'cost.total_cost_usd')"
 [[ -z "$model" ]] && model="?"
 [[ -z "$cwd" ]] && cwd="$PWD"
 
@@ -160,7 +165,8 @@ if [[ -n "$style" ]] && [[ "$(printf '%s' "$style" | tr '[:upper:]' '[:lower:]')
 fi
 # Costo: si esta disponible, mostrarlo en gris (siempre crece, no necesita color de alarma)
 if [[ "$cost" =~ ^[0-9] ]]; then
-    line+="${SEP}${I_COST} $(c "$DIM")\$${cost}${RESET}"
+    cost_fmt="$(LC_ALL=C printf '%.2f' "$cost" 2>/dev/null)"
+    [[ -n "$cost_fmt" ]] && line+="${SEP}${I_COST} $(c "$DIM")\$${cost_fmt}${RESET}"
 fi
 
 printf '%s' "$line"

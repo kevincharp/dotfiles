@@ -119,6 +119,7 @@ PACKAGES=(
     ulauncher
     samba
     google-chrome-stable
+    onlyoffice-desktopeditors
     openlogi
     flameshot
     yazi

@@ -324,6 +324,7 @@ TOOLS_CATALOG=(
     "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
     "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
     "chrome|apps|Google Chrome (RPM oficial + repo para updates)"
+    "onlyoffice|apps|Suite ofimatica compatible con Word/Excel/PowerPoint (RPM oficial)"
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
     "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
     "remmina|apps|Cliente RDP/VNC (conexiones a servers Windows)"
@@ -364,6 +365,7 @@ tool_installed() {
         samba)           # listo si el paquete esta y el servicio quedo habilitado
                          rpm -q samba &>/dev/null && systemctl is-enabled smb &>/dev/null ;;
         chrome)          rpm -q google-chrome-stable &>/dev/null ;;
+        onlyoffice)      rpm -q onlyoffice-desktopeditors &>/dev/null ;;
         openlogi)        rpm -q openlogi &>/dev/null ;;
         flameshot)       has_cmd flameshot ;;
         remmina)         has_cmd remmina ;;
@@ -689,6 +691,20 @@ install_tool() {
                 run_step "Instalar Google Chrome (.rpm oficial)" \
                     sudo dnf install -y \
                     "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
+            fi
+            ;;
+        onlyoffice)
+            # OnlyOffice Desktop Editors via el .rpm oficial (mismo patron que
+            # chrome): dnf instalado desde la URL directa resuelve las deps
+            # (fuentes, gtk3, etc.) contra los repos base. No agrega repo propio,
+            # a diferencia del .rpm de Chrome. Solo Fedora/dnf (rpm).
+            if [[ "$PKG_MANAGER" != "dnf" ]]; then
+                log "onlyoffice: cableado solo para Fedora/dnf (.rpm) — instalar manual en esta distro" "WARN"
+                WARNINGS+=("onlyoffice no instalado — distro no soportada por el bootstrap")
+            else
+                run_step "Instalar OnlyOffice Desktop Editors (.rpm oficial)" \
+                    sudo dnf install -y \
+                    "https://download.onlyoffice.com/install/desktop/editors/linux/onlyoffice-desktopeditors.x86_64.rpm"
             fi
             ;;
         openlogi)

@@ -120,6 +120,7 @@ $WINGET_PACKAGES = @(
     @{ Id='FiloSottile.age';                Name='age (encriptacion)';      Optional=$true ; Key='age';              Group='cloud'  }
     @{ Id='Flow-Launcher.Flow-Launcher';    Name='Flow Launcher';           Optional=$true ; Key='flowlauncher';     Group='extras' }
     @{ Id='Obsidian.Obsidian';              Name='Obsidian';                Optional=$true ; Key='obsidian';         Group='extras' }
+    @{ Id='ONLYOFFICE.DesktopEditors';      Name='OnlyOffice Editors';      Optional=$true ; Key='onlyoffice';       Group='extras' }
     @{ Id='Logitech.OptionsPlus';           Name='Logitech Options+';       Optional=$true ; Key='logitech';         Group='extras' }
     @{ Id='Microsoft.Sysinternals.SDelete'; Name='SDelete (Sysinternals)';  Optional=$true ; Key='sdelete';          Group='extras' }
     @{ Id='Microsoft.PowerBI';              Name='Power BI Desktop';        Optional=$true ; Key='powerbi';          Group='extras' }

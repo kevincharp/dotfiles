@@ -328,6 +328,7 @@ TOOLS_CATALOG=(
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
     "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
     "remmina|apps|Cliente RDP/VNC (conexiones a servers Windows)"
+    "obsidian|apps|Notas en Markdown (Flatpak, sin .rpm oficial)"
 )
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
@@ -369,6 +370,7 @@ tool_installed() {
         openlogi)        rpm -q openlogi &>/dev/null ;;
         flameshot)       has_cmd flameshot ;;
         remmina)         has_cmd remmina ;;
+        obsidian)        has_cmd flatpak && flatpak info md.obsidian.Obsidian &>/dev/null ;;
         *)               return 1 ;;
     esac
 }
@@ -749,6 +751,24 @@ install_tool() {
                 *)      log "remmina: gestor no soportado — instalar manual en esta distro" "WARN"
                         WARNINGS+=("remmina no instalado — distro no soportada por el bootstrap") ;;
             esac
+            ;;
+        obsidian)
+            # Notas en Markdown. Sin .rpm oficial mantenido para Fedora (a
+            # diferencia de chrome/onlyoffice/openlogi): se instala via Flatpak
+            # (Flathub), que es portable entre distros.
+            if ! has_cmd flatpak; then
+                run_step "Instalar flatpak" $PKG_INSTALL flatpak
+            fi
+            if has_cmd flatpak; then
+                run_step "Agregar remote Flathub" \
+                    sudo flatpak remote-add --if-not-exists flathub \
+                    https://flathub.org/repo/flathub.flatpakrepo
+                run_step "Instalar Obsidian (Flatpak)" \
+                    sudo flatpak install -y flathub md.obsidian.Obsidian
+            else
+                log "obsidian: no se pudo instalar flatpak en esta distro" "WARN"
+                WARNINGS+=("obsidian no instalado — falta flatpak")
+            fi
             ;;
         *)
             log "Herramienta desconocida: $1" "WARN"

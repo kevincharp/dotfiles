@@ -83,6 +83,8 @@ tok_out="$(_json_get num "$input" 'context_window.total_output_tokens')"
 fast="$(_json_get bool "$input" 'fast_mode')"
 thinking="$(_json_get bool "$input" 'thinking.enabled')"
 cost="$(_json_get num "$input" 'cost.total_cost_usd')"
+lines_added="$(_json_get num "$input" 'cost.total_lines_added')"
+lines_removed="$(_json_get num "$input" 'cost.total_lines_removed')"
 [[ -z "$model" ]] && model="?"
 [[ -z "$cwd" ]] && cwd="$PWD"
 
@@ -188,5 +190,11 @@ if [[ "$cost" =~ ^[0-9] ]]; then
     cost_fmt="$(LC_ALL=C printf '%.2f' "$cost" 2>/dev/null)"
     [[ -n "$cost_fmt" ]] && line+="${SEP}${I_COST} $(c "$DIM")\$${cost_fmt}${RESET}"
 fi
+# Lineas +/- acumuladas de la sesion (cost.total_lines_added/removed): no es un
+# git diff --stat del repo, es lo que Claude fue escribiendo con Edit/Write.
+diff_seg=""
+[[ "$lines_added" =~ ^[0-9]+$ ]] && (( lines_added > 0 )) && diff_seg+="$(c "$GREEN")+${lines_added}${RESET}"
+[[ "$lines_removed" =~ ^[0-9]+$ ]] && (( lines_removed > 0 )) && diff_seg+="${diff_seg:+ }$(c "$RED")-${lines_removed}${RESET}"
+[[ -n "$diff_seg" ]] && line+=" ${diff_seg}"
 
 printf '%s' "$line"

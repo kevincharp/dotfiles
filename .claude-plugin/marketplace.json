@@ -37,6 +37,13 @@
       },
       "license": "MIT",
       "category": "development"
+    },
+    {
+      "name": "premium-website-generator",
+      "source": "./claude-skills/premium-website-generator",
+      "description": "Genera sitios web estaticos premium (HTML/CSS/JS vanilla, sin build) listos para Hostinger/hosting estatico: 10 arquetipos visuales, catalogo de efectos, pipeline de imagenes (Openverse/WebP) y verificacion post-generacion.",
+      "keywords": ["web", "static-site", "hostinger", "design", "html", "css"],
+      "category": "design"
     }
   ]
 }

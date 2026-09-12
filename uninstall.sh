@@ -126,6 +126,7 @@ PACKAGES=(
     remmina
     rclone
     lazyssh
+    obsidian
 )
 
 # ==============================================================================
@@ -363,6 +364,14 @@ else
                     if rpm -q openlogi &>/dev/null; then
                         systemctl --user disable --now openlogi-agent.service &>/dev/null || true
                         $PKG_REMOVE openlogi && log "Desinstalado: openlogi" "OK" || log "Fallo al desinstalar openlogi" "WARN"
+                    fi
+                    ;;
+                obsidian)
+                    # Instalado via Flatpak (Flathub), no por el gestor de paquetes.
+                    if has_cmd flatpak && flatpak info md.obsidian.Obsidian &>/dev/null; then
+                        sudo flatpak uninstall -y md.obsidian.Obsidian \
+                            && log "Desinstalado: obsidian (Flatpak)" "OK" \
+                            || log "Fallo al desinstalar obsidian" "WARN"
                     fi
                     ;;
                 google-chrome-stable)

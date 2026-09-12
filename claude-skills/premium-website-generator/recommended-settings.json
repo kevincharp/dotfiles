@@ -1,0 +1,22 @@
+{
+  "_comment": "Optional pre-authorization for the premium-website skill. Copy these entries into your ~/.claude/settings.json (or .claude/settings.json at the project root) under permissions.allow. With these, the skill runs without per-command prompts.",
+
+  "permissions": {
+    "allow": [
+      "Bash(python *premium-website-generator/scripts/*.py*)",
+      "Bash(python3 *premium-website-generator/scripts/*.py*)",
+      "Bash(bash *premium-website-generator/scripts/*.sh*)",
+
+      "Bash(mkdir -p *)",
+      "Bash(ls *)",
+      "Bash(cp *)",
+      "Bash(grep *)",
+
+      "Bash(command -v *)",
+      "Bash(which *)",
+
+      "Bash(python -m http.server *)",
+      "Bash(python3 -m http.server *)"
+    ]
+  }
+}

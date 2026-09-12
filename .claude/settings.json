@@ -12,7 +12,8 @@
     "example-skills@anthropic-agent-skills": true,
     "the-architect@soyenriquerocha": true,
     "cyber-neo@kevincharp-dotfiles": true,
-    "all-deploy@kevincharp-dotfiles": true
+    "all-deploy@kevincharp-dotfiles": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -32,6 +33,13 @@
       "source": {
         "source": "github",
         "repo": "kevincharp/dotfiles"
+      },
+      "autoUpdate": true
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
       },
       "autoUpdate": true
     }

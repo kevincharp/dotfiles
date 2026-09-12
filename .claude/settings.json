@@ -13,7 +13,9 @@
     "the-architect@soyenriquerocha": true,
     "cyber-neo@kevincharp-dotfiles": true,
     "all-deploy@kevincharp-dotfiles": true,
-    "ui-ux-pro-max@ui-ux-pro-max-skill": true
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "premium-website-generator@kevincharp-dotfiles": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {

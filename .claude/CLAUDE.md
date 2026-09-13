@@ -66,3 +66,7 @@ sección, **Preferencias**, es personal: editala a tu gusto.
 - **Responder siempre en español.**
 - Comentarios, docs y mensajes de commit **en español** (los identificadores
   del código siguen la convención del proyecto/lenguaje).
+- **Deploy: Vercel y Cloudflare son mis plataformas por defecto** (Cloudflare
+  para DNS/dominios/Workers/Pages, Vercel para frontends). Ante un despliegue
+  nuevo sin destino explícito, proponer una de estas dos antes que otra opción
+  (Railway, Docker+VPS, etc.).

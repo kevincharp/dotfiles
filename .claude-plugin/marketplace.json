@@ -44,6 +44,20 @@
       "description": "Genera sitios web estaticos premium (HTML/CSS/JS vanilla, sin build) listos para Hostinger/hosting estatico: 10 arquetipos visuales, catalogo de efectos, pipeline de imagenes (Openverse/WebP) y verificacion post-generacion.",
       "keywords": ["web", "static-site", "hostinger", "design", "html", "css"],
       "category": "design"
+    },
+    {
+      "name": "landing-cro",
+      "source": "./claude-skills/landing-cro",
+      "description": "Genera una landing de venta directa (HTML autocontenido, CRO/conversion, mobile-first) a partir de una sola URL: web de marca de referencia o link de producto de marketplace (AliExpress/Amazon/Temu/Alibaba). Placeholders vacios, sin copiar fotos/texto real.",
+      "keywords": ["landing", "cro", "shopify", "ecommerce", "dropshipping", "conversion"],
+      "category": "design"
+    },
+    {
+      "name": "landing-a-secciones",
+      "source": "./claude-skills/landing-a-secciones",
+      "description": "Convierte un HTML de landing (por ejemplo el de landing-cro) en secciones .liquid independientes del tema Dawn de Shopify, una por bloque, con schema completo y settings duales escritorio/movil.",
+      "keywords": ["shopify", "liquid", "dawn", "ecommerce", "theme"],
+      "category": "design"
     }
   ]
 }

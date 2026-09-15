@@ -39,17 +39,8 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `superpowers` | `superpowers` | Brainstorming y desarrollo dirigido por subagentes | Oficial |
 | `code-review` | `code-review` | Revisión automatizada de PRs con specs múltiples | Oficial |
 | `skill-creator` | `skill-creator` | Crear, mejorar y medir skills nuevas o existentes | Oficial |
-
-## Declaradas pero deshabilitadas
-
-Están en nuestro propio marketplace (`kevincharp-dotfiles`) pero no en
-`enabledPlugins` — no se auto-activan en una máquina nueva hasta que se
-prendan a mano (`claude plugin enable <nombre>@kevincharp-dotfiles`):
-
-| Plugin | Para qué sirve |
-|---|---|
-| `landing-cro` | Genera una landing de venta directa (HTML autocontenido, CRO/conversión) a partir de una URL de referencia o de marketplace |
-| `landing-a-secciones` | Convierte un HTML de landing en secciones `.liquid` del tema Dawn de Shopify |
+| `landing-cro` | `landing-cro` | Genera una landing de venta directa (HTML autocontenido, CRO/conversión, mobile-first) a partir de una URL de referencia o de marketplace (AliExpress/Amazon/Temu/Alibaba) | **Propia** (`claude-skills/landing-cro`) |
+| `landing-a-secciones` | `landing-a-secciones` | Convierte un HTML de landing (p. ej. el de `landing-cro`) en secciones `.liquid` del tema Dawn de Shopify | **Propia** (`claude-skills/landing-a-secciones`) |
 
 ## Deshabilitado a propósito: `example-skills`
 

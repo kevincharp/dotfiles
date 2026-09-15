@@ -19,7 +19,9 @@
     "frontend-design@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true
+    "skill-creator@claude-plugins-official": true,
+    "landing-cro@kevincharp-dotfiles": true,
+    "landing-a-secciones@kevincharp-dotfiles": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {

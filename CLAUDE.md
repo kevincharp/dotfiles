@@ -210,6 +210,13 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
     la rama por default de cada repo upstream, así `claude plugin update` trae lo
     último sin tocar este repo. El costo es que un cambio upstream entra sin
     revisión — son repos de terceros.
+- **Catálogo de skills:** `docs/agent-skills-catalogo.md` documenta qué
+  plugins/skills están habilitados hoy y por qué. **Actualizarlo en el mismo
+  commit** que toque `enabledPlugins` (`settings.json`) o
+  `.claude-plugin/marketplace.json` — agregar, sacar, o mover algo de
+  "declarado" a "habilitado" (o viceversa). Sin esta disciplina el doc queda
+  desincronizado en el primer cambio y hay que reconstruirlo de memoria, que es
+  justo lo que buscaba evitar.
 - `statusline.sh` → **no se copia**; `settings.json` lo referencia desde el repo.
   Lo verifica la **sección 14 de `test-bootstrap.sh`** (le mete el JSON por stdin,
   con jq y con un `PATH` sin jq para ejercitar el fallback de Git Bash).

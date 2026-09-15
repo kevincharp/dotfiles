@@ -67,26 +67,27 @@ Confirmado leyendo los manifests instalados, no solo los README:
   consciente: se evaluó escoparlo a un proyecto puntual y se optó por dejarlo
   global.
 
-## Deshabilitados a propósito: `frontend-design` y `skill-creator` standalone
+## Desinstalados a propósito: `frontend-design` y `skill-creator` standalone
 
 `example-skills@anthropic-agent-skills` (el bundle de ejemplos oficiales de
 Anthropic) trae 12 skills, y **2 duplicaban** exactamente el contenido de
 plugins standalone que se habían agregado por separado (`frontend-design`,
 `skill-creator`). Claude Code no tiene forma de sacar una sola skill de
 adentro de un plugin-bundle (confirmado contra la doc oficial: `enabledPlugins`
-es todo/nada por plugin completo), así que la resolución fue al revés de lo
-que se probó primero: en vez de apagar el bundle entero (perdiendo las otras
-10 skills sin reemplazo en el marketplace oficial), se dejó `example-skills`
-prendido y se **deshabilitaron los 2 plugins standalone**
-(`frontend-design@claude-plugins-official`,
-`skill-creator@claude-plugins-official`).
+es todo/nada por plugin completo), así que se decidió al revés de lo que se
+probó primero: en vez de apagar el bundle entero (perdiendo las otras 10
+skills sin reemplazo en el marketplace oficial), se dejó `example-skills`
+prendido y se **desinstalaron los 2 plugins standalone**
+(`claude plugin uninstall "frontend-design@claude-plugins-official"` /
+`... "skill-creator@claude-plugins-official"`) — no solo deshabilitados: ya no
+figuran en `enabledPlugins` en absoluto.
 
 Costo aceptado: esas dos ahora solo se listan con el prefijo
 `example-skills:frontend-design` / `example-skills:skill-creator`, no peladas.
-Si en algún momento se prioriza el nombre limpio por sobre las 10 skills
-extra, es al revés: `claude plugin disable "example-skills@anthropic-agent-skills"`
-+ `claude plugin enable "frontend-design@claude-plugins-official"` +
-`claude plugin enable "skill-creator@claude-plugins-official"`.
+Si en algún momento se prioriza el nombre limpio por sobre las 10 skills extra,
+es al revés: `claude plugin disable "example-skills@anthropic-agent-skills"` +
+`claude plugin install "frontend-design@claude-plugins-official" -y` +
+`claude plugin install "skill-creator@claude-plugins-official" -y`.
 
 ## No son plugins: built-ins del CLI
 

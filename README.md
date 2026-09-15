@@ -104,6 +104,7 @@ La guía paso a paso (incluida la estructura exacta del vault):
 | [Referencia de comandos](docs/comandos.md) | Todas las funciones y aliases, por categoría |
 | [Arquitectura](docs/arquitectura.md) | Dos repos, symlink vs copia, dconf, paridad de shells, decisiones de diseño |
 | [Idea: generador de dotfiles](docs/idea-generador-de-dotfiles.md) | *(pausada)* Convertir el repo en una herramienta que genere **tu** dotfiles y lo versione en tu cuenta |
+| [Catálogo de Agent Skills](docs/agent-skills-catalogo.md) | Qué plugins/skills de Claude Code tenemos habilitados, de dónde salen, y qué es Claude-específico vs. formato abierto |
 
 ## Desinstalar
 

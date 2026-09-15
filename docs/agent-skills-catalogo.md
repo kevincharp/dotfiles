@@ -41,6 +41,32 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `skill-creator` | `skill-creator` | Crear, mejorar y medir skills nuevas o existentes | Oficial |
 | `landing-cro` | `landing-cro` | Genera una landing de venta directa (HTML autocontenido, CRO/conversión, mobile-first) a partir de una URL de referencia o de marketplace (AliExpress/Amazon/Temu/Alibaba) | **Propia** (`claude-skills/landing-cro`) |
 | `landing-a-secciones` | `landing-a-secciones` | Convierte un HTML de landing (p. ej. el de `landing-cro`) en secciones `.liquid` del tema Dawn de Shopify | **Propia** (`claude-skills/landing-a-secciones`) |
+| `diagram-design` | `diagram-design` | 40 tipos de diagramas técnicos (arquitectura, ER, UML, flowcharts, Gantt, Sankey…) como HTML+SVG autocontenido; redibuja `.drawio`/Mermaid/Excalidraw | Tercero (`diagram-design`, marketplace propio) |
+| `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
+| `impeccable` | `impeccable` (24 comandos: `polish`, `audit`, `critique`, `animate`…) | Fluidez de diseño frontend: detección de anti-patrones + comandos de refinamiento. Ver nota de hook abajo | Tercero (`impeccable`, marketplace propio) |
+
+## Mecanismos de invocación (no todas las skills se llaman igual)
+
+Confirmado leyendo los manifests instalados, no solo los README:
+
+- **Auto por descripción** (la mayoría): Claude lee `name`+`description` de
+  todas las skills habilitadas todo el tiempo y carga la que matchea, sin que
+  la nombres. Así funcionan `frontend-design`, `ui-ux-pro-max`,
+  `diagram-design` y las 12 sub-skills de `taste-skill`.
+- **Slash command explícito**: además de lo anterior, algunas declaran
+  `user-invocable: true` + `argument-hint` en el frontmatter y quedan
+  disponibles como `/nombre <verbo> [target]`. Hoy solo `impeccable` lo hace
+  (`/impeccable polish`, `/impeccable audit`, etc., 24 comandos).
+- **Hook automático** (`hooks/hooks.json` del plugin, no el frontmatter de la
+  skill): corre solo, disparado por un evento del sistema, no por relevancia
+  de la tarea. Solo `impeccable` trae esto: `PostToolUse` con matcher
+  `Edit|Write` (dispara su script tras **cualquier** edición de archivo, no
+  solo de UI, timeout 5s) y `Stop` (pase profundo al terminar la respuesta,
+  timeout 30s). Como `impeccable` está habilitado en el `settings.json`
+  **global**, este hook corre en *todos* los proyectos donde se use Claude
+  Code en cualquier máquina, no solo en trabajo de frontend — decisión
+  consciente: se evaluó escoparlo a un proyecto puntual y se optó por dejarlo
+  global.
 
 ## Deshabilitado a propósito: `example-skills`
 

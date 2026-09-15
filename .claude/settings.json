@@ -21,7 +21,10 @@
     "code-review@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "landing-cro@kevincharp-dotfiles": true,
-    "landing-a-secciones@kevincharp-dotfiles": true
+    "landing-a-secciones@kevincharp-dotfiles": true,
+    "diagram-design@diagram-design": true,
+    "taste-skill@taste-skill": true,
+    "impeccable@impeccable": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -50,6 +53,24 @@
         "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
       },
       "autoUpdate": true
+    },
+    "diagram-design": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/cathrynlavery/diagram-design.git"
+      }
+    },
+    "taste-skill": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/Leonxlnx/taste-skill.git"
+      }
+    },
+    "impeccable": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/pbakaus/impeccable.git"
+      }
     }
   },
   "tui": "fullscreen",

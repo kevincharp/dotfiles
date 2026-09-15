@@ -35,10 +35,9 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `ui-ux-pro-max` | `banner-design`, `brand`, `design`, `design-system`, `slides`, `ui-styling`, `ui-ux-pro-max` | Diseño UI/UX: tokens, paletas, tipografías, componentes shadcn/Tailwind, banners, slides, brand voice | Tercero (`ui-ux-pro-max-skill`) |
 | `rust-analyzer-lsp` | *(LSP, no es skill con `/`)* | Autocompletado/análisis de código Rust en vivo | Oficial |
 | `premium-website-generator` | `premium-website-generator` | Genera sitios estáticos premium (HTML/CSS/JS vanilla) listos para Hostinger | **Propia** (`claude-skills/premium-website-generator`) |
-| `frontend-design` | `frontend-design` | Guía de diseño visual distintivo para UI | Oficial |
 | `superpowers` | `superpowers` | Brainstorming y desarrollo dirigido por subagentes | Oficial |
 | `code-review` | `code-review` | Revisión automatizada de PRs con specs múltiples | Oficial |
-| `skill-creator` | `skill-creator` | Crear, mejorar y medir skills nuevas o existentes | Oficial |
+| `example-skills` | `algorithmic-art`, `brand-guidelines`, `canvas-design`, `doc-coauthoring`, `frontend-design`, `internal-comms`, `mcp-builder`, `skill-creator`, `slack-gif-creator`, `theme-factory`, `web-artifacts-builder`, `webapp-testing` | Bundle de 12 skills de ejemplo de Anthropic — diseño visual, arte generativo, co-escritura de docs, comms internas, builder de MCP, testing con Playwright, artifacts, temas, GIFs de Slack. Se listan con el prefijo `example-skills:<nombre>` | Oficial (`anthropic-agent-skills`) |
 | `landing-cro` | `landing-cro` | Genera una landing de venta directa (HTML autocontenido, CRO/conversión, mobile-first) a partir de una URL de referencia o de marketplace (AliExpress/Amazon/Temu/Alibaba) | **Propia** (`claude-skills/landing-cro`) |
 | `landing-a-secciones` | `landing-a-secciones` | Convierte un HTML de landing (p. ej. el de `landing-cro`) en secciones `.liquid` del tema Dawn de Shopify | **Propia** (`claude-skills/landing-a-secciones`) |
 | `diagram-design` | `diagram-design` | 40 tipos de diagramas técnicos (arquitectura, ER, UML, flowcharts, Gantt, Sankey…) como HTML+SVG autocontenido; redibuja `.drawio`/Mermaid/Excalidraw | Tercero (`diagram-design`, marketplace propio) |
@@ -68,24 +67,26 @@ Confirmado leyendo los manifests instalados, no solo los README:
   consciente: se evaluó escoparlo a un proyecto puntual y se optó por dejarlo
   global.
 
-## Deshabilitado a propósito: `example-skills`
+## Deshabilitados a propósito: `frontend-design` y `skill-creator` standalone
 
 `example-skills@anthropic-agent-skills` (el bundle de ejemplos oficiales de
-Anthropic) traía 12 skills, pero **2 duplicaban** exactamente el contenido de
-plugins standalone que ya teníamos (`frontend-design`, `skill-creator`) — se
-listaban con el prefijo `example-skills:` en vez de pelado. Claude Code no
-tiene forma de deshabilitar una sola skill dentro de un plugin-bundle
-(confirmado contra la doc oficial: `enabledPlugins` es todo/nada por plugin
-completo), así que se deshabilitó el bundle entero y se perdieron sin
-reemplazo standalone en el marketplace oficial:
+Anthropic) trae 12 skills, y **2 duplicaban** exactamente el contenido de
+plugins standalone que se habían agregado por separado (`frontend-design`,
+`skill-creator`). Claude Code no tiene forma de sacar una sola skill de
+adentro de un plugin-bundle (confirmado contra la doc oficial: `enabledPlugins`
+es todo/nada por plugin completo), así que la resolución fue al revés de lo
+que se probó primero: en vez de apagar el bundle entero (perdiendo las otras
+10 skills sin reemplazo en el marketplace oficial), se dejó `example-skills`
+prendido y se **deshabilitaron los 2 plugins standalone**
+(`frontend-design@claude-plugins-official`,
+`skill-creator@claude-plugins-official`).
 
-`algorithmic-art`, `brand-guidelines`, `canvas-design`, `doc-coauthoring`,
-`internal-comms`, `mcp-builder`, `slack-gif-creator`, `theme-factory`,
-`web-artifacts-builder`, `webapp-testing`.
-
-De estas, las que más podrían servir a este uso son `webapp-testing`
-(Playwright para probar lo que se despliega con `all-deploy`) y `mcp-builder`.
-Si hacen falta: `claude plugin enable "example-skills@anthropic-agent-skills"`.
+Costo aceptado: esas dos ahora solo se listan con el prefijo
+`example-skills:frontend-design` / `example-skills:skill-creator`, no peladas.
+Si en algún momento se prioriza el nombre limpio por sobre las 10 skills
+extra, es al revés: `claude plugin disable "example-skills@anthropic-agent-skills"`
++ `claude plugin enable "frontend-design@claude-plugins-official"` +
+`claude plugin enable "skill-creator@claude-plugins-official"`.
 
 ## No son plugins: built-ins del CLI
 

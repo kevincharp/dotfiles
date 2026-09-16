@@ -80,7 +80,7 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
   proyecto exista — no confundir con "instalar el plugin", que ya está hecho
   y es global.
 
-## Vendorizado, pendiente de push + install: `thermos`
+## Vendorizado, pendiente de push + install: `thermos` y `landing-team`
 
 `thermos` ya está en `claude-skills/thermos/` y registrado en
 `.claude-plugin/marketplace.json`, pero **todavía no aparece en la tabla de
@@ -112,6 +112,15 @@ orquestación funcione de verdad, no solo el contenido de las 2 skills base
 true` en el frontmatter (campo de Cursor, fuera del spec base de
 agentskills.io — no confirmado si Claude Code lo respeta), así que en teoría
 no se autodisparan por descripción, solo por invocación explícita.
+
+**`landing-team`** — 4 agentes propios (`planner`, `builder`, `qa`,
+`security`) para el [equipo de landing pages](guia-landing-pages.md), con
+`tools` restringidos (planner/qa/security de solo lectura, builder con
+acceso completo). Sin skills — son agentes puros, invocables vía el Agent
+tool (`landing-team:builder`, etc.) o desde el workflow `landing-pipeline`.
+100% propio, sin vendorizar nada de terceros. Mismo bloqueo que `thermos`:
+`claude plugin install "landing-team@kevincharp-dotfiles"` falla hasta el
+push.
 
 ## Mecanismos de invocación (no todas las skills se llaman igual)
 

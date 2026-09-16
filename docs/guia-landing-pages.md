@@ -6,18 +6,30 @@ Pensado para uso recurrente (varias landings por mes), no para un caso único.
 
 ## El equipo
 
-| Rol | Skill(s) | Cuándo actúa |
-|---|---|---|
-| **Planner** | `grill-me`/`grilling` (`mattpocock-skills`) para entrevistar, o la intake propia de `landing-cro` si el pedido ya es una URL | Antes de todo — produce el brief |
-| **Builder** | `landing-cro` (dropship) o `premium-website-generator` (agencia) + `landing-a-secciones` si hace falta Shopify | Genera el HTML/CSS/JS completo en un solo paso |
-| **Backend** | *(dormido — ver abajo)* | Solo si el brief pide formulario propio, checkout propio o integraciones |
-| **QA** | `webapp-testing` (Playwright) + `/impeccable audit` | Después del build: ¿funciona? ¿se ve bien en mobile? |
-| **Seguridad/Calidad** | `cyber-neo` + `code-review` (o `thermos` una vez instalado) | En paralelo con QA: ¿hay secretos filtrados? ¿el código es limpio? |
-| **Deploy** | `all-deploy` | Última etapa — preview → health-check → prod |
+4 roles viven como agentes propios en el plugin **`landing-team`**
+(`claude-skills/landing-team/agents/*.md`), con `tools` restringidos —
+mismo criterio que un setup manual de sesiones nombradas: los roles que
+solo evalúan (planner/QA/seguridad) son de lectura, solo `builder` escribe
+código:
 
-`impeccable` (el hook automático) y el `disable-model-invocation` de las
-skills de `taste-skill`/`ui-ux-pro-max` ya corren pasivamente durante el
-Build, no son un paso explícito del equipo.
+| Rol | Agente | Tools | Skill(s) que usa | Cuándo actúa |
+|---|---|---|---|---|
+| **Planner** | `landing-team:planner` | Read, Grep, Glob, Bash | clasifica el brief ya armado | Dentro del Workflow, después de la entrevista inline |
+| **Builder** | `landing-team:builder` | Read, Write, Edit, Bash, Grep, Glob | `landing-cro`/`premium-website-generator` + `landing-a-secciones` si hace falta Shopify | Genera el HTML/CSS/JS completo en un solo paso, y aplica los fixes que pida Review |
+| **Backend** | *(no existe todavía — ver abajo)* | — | — | Solo si el brief pide formulario propio, checkout propio o integraciones |
+| **QA** | `landing-team:qa` | Read, Grep, Glob, Bash | `webapp-testing` (Playwright) + `/impeccable audit` | En paralelo con Seguridad, después del build |
+| **Seguridad/Calidad** | `landing-team:security` | Read, Grep, Glob, Bash | `cyber-neo` + `code-review` (o `thermos` una vez instalado) | En paralelo con QA |
+
+`impeccable` (el hook automático) y las skills de `taste-skill`/`ui-ux-pro-max`
+ya corren pasivamente durante el Build, no son un paso explícito del equipo.
+
+**Deploy queda afuera del Workflow a propósito** — no hay agente ni fase
+para eso. Es un paso separado y explícito: una vez que ves el resultado de
+Plan→Build→Review→Fix, si te convence, le decís a Claude que deploye y ahí
+se invoca la skill `all-deploy` (que ya trae su propia auditoría +
+preview→health-check→prod con confirmación). Un Workflow corre en
+background y no puede pausar a mitad de camino a pedir un OK — por eso
+producción no puede estar en el mismo run automático que el resto.
 
 ## Por qué la entrevista NO está en el Workflow
 
@@ -25,10 +37,39 @@ Los workflows corren en background y no pueden pausar a preguntar. El
 Planner se parte en dos:
 
 1. **Inline, en conversación normal** (con Claude, antes de invocar nada):
-   grilling/interview → brief estructurado.
-2. **Dentro del Workflow**: un agente liviano que solo clasifica el brief ya
-   armado (dropship vs. agencia, `buildSkill`, si hace falta Shopify, si hay
-   que flagear backend) — no vuelve a entrevistar.
+   `grill-me`/`grilling` de `mattpocock-skills`, o la intake propia de
+   `landing-cro` si el pedido ya es una URL → brief estructurado.
+2. **Dentro del Workflow** (`landing-team:planner`): solo clasifica el brief
+   ya armado (dropship vs. agencia, `buildSkill`, si hace falta Shopify, si
+   hay que flagear backend) — no vuelve a entrevistar.
+
+## Cómo se compara con tu patrón manual de sesiones nombradas
+
+Si ya armaste un equipo a mano alguna vez (agentes propios en
+`.claude/agents/`, una sesión por rol con `/rename`, `SendMessage` entre
+ellas, worktrees cuando dos roles tocan los mismos archivos en paralelo):
+este Workflow hace lo mismo que ese patrón, pero:
+
+- **Automatizado, no manual**: no abrís sesiones ni relayeás nada — un
+  script dispara los 4 agentes en el momento que corresponde.
+- **De una sola pasada, no persistente**: los agentes del Workflow no
+  quedan vivos para retomarlos en otro momento — hacen su tarea y
+  desaparecen. Para algo repetible y acotado como una landing, alcanza. Para
+  un proyecto grande con ida y vuelta de días (tipo integración
+  backend+frontend), tu patrón manual sigue siendo mejor — ahí sí conviene
+  supervisar paso a paso.
+- **Sin worktrees**: el Build es un solo agente (no hay dos escribiendo el
+  mismo archivo a la vez) y Review es de solo lectura, así que no hace falta
+  la isolación que sí necesitás cuando varios roles mutan el mismo repo en
+  simultáneo. El día que Backend se vuelva real y corra en paralelo con
+  Builder, ahí sí habría que sumar `isolation: 'worktree'` a esos agentes,
+  igual que en tu setup manual.
+
+Los 4 agentes de `landing-team` no están atados al Workflow — también se
+pueden invocar sueltos con el Agent tool (`subagent_type:
+"landing-team:builder"`, etc.), o manejarlos a mano con tu propio patrón de
+sesiones nombradas + `SendMessage` si algún día preferís supervisar una
+landing particular paso a paso en vez de dejarla correr sola.
 
 ## Cómo correrlo
 
@@ -48,17 +89,24 @@ Workflow({
 
 Fases: **Plan** (clasifica) → **Build** (genera) → **Review** (QA +
 Seguridad/Calidad en paralelo) → **Fix** (solo si Review encontró algo
-bloqueante) → **Deploy**.
+bloqueante). Deploy, como se explicó arriba, es aparte.
 
 ## Backend: punto de extensión, no código muerto
 
 Hoy (2026-09) las landings son 100% estáticas. El Plan del workflow ya
 detecta si el brief pide algo que necesite backend real (formulario propio,
 checkout propio, integraciones) y lo marca en `needsBackendFlag` +
-`backendReason`, pero **no construye nada** — se decidió no escribir una
-fase "Backend" vacía. El día que haga falta: agregar una fase `Backend`
-entre `Build` y `Review` en `landing-pipeline.js`, gateada por
-`brief.needsBackendFlag`, con su propio agente.
+`backendReason`, pero **no construye nada** — no existe todavía un agente
+`landing-team:backend` ni una fase para eso, a propósito (no tiene sentido
+un rol sin nada que hacer). El día que haga falta:
+
+1. Crear `claude-skills/landing-team/agents/backend.md` (tools completos,
+   igual que `builder`).
+2. Agregar una fase `Backend` entre `Build` y `Review` en
+   `landing-pipeline.js`, gateada por `brief.needsBackendFlag`.
+3. Si Backend y Builder van a tocar el mismo repo en paralelo, sumar
+   `isolation: 'worktree'` a esos dos `agent()` calls (ver sección de
+   arriba).
 
 ## Antes de la primera corrida real: setup de mattpocock-skills
 
@@ -66,15 +114,21 @@ Muchas de las skills de `engineering/` (`to-spec`, `to-tickets`, `triage`)
 necesitan `/setup-matt-pocock-skills` corrido una vez **en el repo del
 proyecto de landing**, no en dotfiles (decisión ya tomada, ver
 [catálogo](agent-skills-catalogo.md#notas-sobre-mattpocock-skills)). El
-Planner/Builder de este pipeline no dependen de ese setup — son opcionales,
-para cuando quieras trackear cada landing como ticket formal.
+equipo de este pipeline no depende de ese setup — es opcional, para cuando
+quieras trackear cada landing como ticket formal.
 
-## Pendiente: hacerlo invocable por nombre desde cualquier máquina
+## Pendiente: push + install, y hacerlo invocable por nombre
 
-Hoy hay que pasar `scriptPath` a mano porque el bootstrap solo symlinkea
-`CLAUDE.md` y `settings.json`, no `.claude/workflows/`. Si esto se usa
-seguido, vale la pena sumar ese symlink al bootstrap (con su chequeo de
-paridad en `test-bootstrap.sh`) para poder invocarlo como
-`Workflow({name: "landing-pipeline", args: {...}})` desde cualquier
-proyecto, en cualquier máquina. No implementado todavía — evaluar cuando se
-use un par de veces y se sienta el dolor de pasar la ruta a mano.
+Dos cosas sin resolver todavía:
+
+- **`thermos` y `landing-team` están vendorizados pero no instalados** —
+  confirmado en vivo que `claude plugin install "landing-team@kevincharp-dotfiles"`
+  falla hasta que se pushee (el marketplace propio lee del remoto, no del
+  working tree). Falta: push → `claude plugin install "landing-team@kevincharp-dotfiles" -y`
+  (y lo mismo para `thermos`).
+- **El Workflow no es invocable por nombre** — hoy hay que pasar `scriptPath`
+  a mano porque el bootstrap solo symlinkea `CLAUDE.md` y `settings.json`,
+  no `.claude/workflows/`. Si esto se usa seguido, vale la pena sumar ese
+  symlink al bootstrap (con su chequeo de paridad en `test-bootstrap.sh`)
+  para poder invocarlo como `Workflow({name: "landing-pipeline", args: {...}})`
+  desde cualquier proyecto, en cualquier máquina. No implementado todavía.

@@ -70,6 +70,13 @@
       },
       "license": "MIT",
       "category": "development"
+    },
+    {
+      "name": "landing-team",
+      "source": "./claude-skills/landing-team",
+      "description": "4 agentes propios (planner, builder, qa, security) para el equipo de landing pages: planner/qa/security de solo lectura, builder con acceso completo -- mismo criterio de tools restringidos que un setup manual de sesiones nombradas. Usados por el workflow landing-pipeline y disponibles tambien via el Agent tool directo.",
+      "keywords": ["landing", "agents", "subagents", "planner", "qa", "security"],
+      "category": "development"
     }
   ]
 }

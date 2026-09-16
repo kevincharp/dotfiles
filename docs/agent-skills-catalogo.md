@@ -67,10 +67,18 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
   - `handoff` hace lo mismo que la memoria nativa de Claude Code que ya
     usamos y que `LOOP/CURRENT.md` del "DEF Starter Kit" (pendiente):
     comprimir la sesión en un doc para continuar después.
-- **Requiere un paso de setup**, no es plug-and-play: correr
-  `/setup-matt-pocock-skills` una vez por repo (pregunta issue tracker,
-  labels de triage, dónde guardar docs) antes de que el resto de las skills
-  de `engineering/` tengan dónde escribir.
+- **Requiere un paso de setup POR REPO**, no es plug-and-play ni global:
+  correr `/setup-matt-pocock-skills` una vez por repo (pregunta issue
+  tracker, labels de triage, dónde guardar docs) antes de que el resto de
+  las skills de `engineering/` tengan dónde escribir. Le agrega una sección
+  `## Agent skills` a `CLAUDE.md`/`AGENTS.md` **del repo donde se corre** y
+  crea `docs/agents/*.md` ahí — no es algo que se configure una vez para
+  todas las máquinas vía `settings.json`.
+  **Decisión (2026-09-16): NO correrlo en dotfiles.** El plan original era
+  para "el desarrollo web que quiero arrancar" (un proyecto que todavía no
+  existe), no para este repo. Queda pendiente correrlo el día que ese
+  proyecto exista — no confundir con "instalar el plugin", que ya está hecho
+  y es global.
 
 ## Vendorizado, pendiente de push + install: `thermos`
 

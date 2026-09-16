@@ -117,18 +117,33 @@ proyecto de landing**, no en dotfiles (decisión ya tomada, ver
 equipo de este pipeline no depende de ese setup — es opcional, para cuando
 quieras trackear cada landing como ticket formal.
 
-## Pendiente: push + install, y hacerlo invocable por nombre
+## Estado: instalado (2026-09-16)
 
-Dos cosas sin resolver todavía:
+`thermos` y `landing-team` ya están pusheados e instalados
+(`claude plugin install "<nombre>@kevincharp-dotfiles" -y`, después de
+`claude plugin marketplace update kevincharp-dotfiles`).
 
-- **`thermos` y `landing-team` están vendorizados pero no instalados** —
-  confirmado en vivo que `claude plugin install "landing-team@kevincharp-dotfiles"`
-  falla hasta que se pushee (el marketplace propio lee del remoto, no del
-  working tree). Falta: push → `claude plugin install "landing-team@kevincharp-dotfiles" -y`
-  (y lo mismo para `thermos`).
-- **El Workflow no es invocable por nombre** — hoy hay que pasar `scriptPath`
-  a mano porque el bootstrap solo symlinkea `CLAUDE.md` y `settings.json`,
-  no `.claude/workflows/`. Si esto se usa seguido, vale la pena sumar ese
-  symlink al bootstrap (con su chequeo de paridad en `test-bootstrap.sh`)
-  para poder invocarlo como `Workflow({name: "landing-pipeline", args: {...}})`
-  desde cualquier proyecto, en cualquier máquina. No implementado todavía.
+**Corrección a lo que decía antes:** apenas se instaló `landing-team`,
+`landing-pipeline` apareció solo como skill invocable por nombre — sin
+pasar `scriptPath`. La invocación por nombre (`Workflow({name:
+"landing-pipeline", args: {...}})`) parece resolverse **relativa al
+proyecto actual** (`.claude/workflows/` del cwd), no globalmente: funciona
+así, sin nada más, cuando se trabaja **desde este mismo repo** (dotfiles).
+
+**Sigue sin confirmar** si esa resolución por nombre funciona también desde
+la carpeta de un proyecto de landing real (fuera de dotfiles) — ahí el cwd
+no tiene su propio `.claude/workflows/landing-pipeline.js`. Si al probarlo
+`{name: "landing-pipeline"}` no resuelve desde otro proyecto, usar
+`scriptPath` con la ruta absoluta como respaldo seguro:
+
+```
+Workflow({
+  scriptPath: "<ruta absoluta a>/.claude/workflows/landing-pipeline.js",
+  args: { brief: "...", projectPath: "..." }
+})
+```
+
+Si hace falta invocarlo por nombre desde cualquier proyecto y no alcanza con
+lo anterior, la vía sería sumar el symlink de `.claude/workflows/` al
+bootstrap (con su chequeo de paridad en `test-bootstrap.sh`) — no
+implementado, evaluar si se siente el dolor en el uso real.

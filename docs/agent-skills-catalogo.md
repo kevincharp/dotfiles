@@ -44,6 +44,8 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
 | `impeccable` | `impeccable` (24 comandos: `polish`, `audit`, `critique`, `animate`…) | Fluidez de diseño frontend: detección de anti-patrones + comandos de refinamiento. Ver nota de hook abajo | Tercero (`impeccable`, marketplace propio) |
 | `mattpocock-skills` | **engineering:** `ask-matt`, `grill-with-docs`, `triage`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `to-spec`, `to-tickets`, `implement`, `wayfinder`, `prototype`, `diagnosing-bugs`, `research`, `tdd`, `domain-modeling`, `codebase-design`, `code-review`, `resolving-merge-conflicts`, `wizard` · **productivity:** `grill-me`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `grilling`, `writing-for-agents` · **misc (sin documentar en el README, no explorado):** `git-guardrails-claude-code`, `migrate-to-shoehorn`, `scaffold-exercises`, `setup-pre-commit` | Disciplina de ingeniería real: alineación por "grilling" antes de codear, TDD, diagnóstico de bugs, domain modeling, flujo spec→tickets→implement contra un issue tracker, review por Standards+Spec en paralelo. Requiere correr `/setup-matt-pocock-skills` una vez por repo | Oficial (`claude-plugins-official`, autor Matt Pocock/aihero.dev) |
+| `thermos` | `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `thermos` (orquestador) | Doble revisión de branch/PR en paralelo: bugs/breaking changes/seguridad/devex/feature-gate leaks + mantenibilidad/estructura, sintetizadas. Ver nota de adaptación abajo | Tercero, adaptado de Cursor (`thermos`, marketplace propio) |
+| `landing-team` | *(sin skills — 4 agentes: `planner`, `builder`, `qa`, `security`)* | Agentes con `tools` restringidos para el [equipo de landing pages](guia-landing-pages.md); usados por el workflow `landing-pipeline` o sueltos vía el Agent tool | **Propia** (`claude-skills/landing-team`) |
 
 ### Notas sobre `mattpocock-skills`
 
@@ -80,25 +82,9 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
   proyecto exista — no confundir con "instalar el plugin", que ya está hecho
   y es global.
 
-## Vendorizado, pendiente de push + install: `thermos` y `landing-team`
+## Notas sobre `thermos` y `landing-team`
 
-`thermos` ya está en `claude-skills/thermos/` y registrado en
-`.claude-plugin/marketplace.json`, pero **todavía no aparece en la tabla de
-arriba** porque `claude plugin install "thermos@kevincharp-dotfiles"` falla
-hasta que esto se pushee — confirmado en vivo: el marketplace
-`kevincharp-dotfiles` resuelve contra el `marketplace.json` **remoto**, no el
-working tree (mismo comportamiento que ya documenta este `CLAUDE.md` sobre
-este marketplace). Después del push, falta:
-
-```
-claude plugin install "thermos@kevincharp-dotfiles" -y
-```
-
-Qué trae: 3 skills (`thermo-nuclear-review` = audit de bugs/breaking changes/
-seguridad/devex/feature-gate leaks acotado al diff;
-`thermo-nuclear-code-quality-review` = mantenibilidad/estructura, la misma
-rúbrica que la skill homónima de `code-review`-adyacentes; `thermos` =
-orquestador) + 2 agentes propios
+`thermos` trae, además de las 2 skills de review, 2 agentes propios
 (`thermos:thermo-nuclear-review-subagent`,
 `thermos:thermo-nuclear-code-quality-review-subagent`) para correr las dos
 revisiones en paralelo. **Adaptado, no vendorizado tal cual:** el original de
@@ -118,9 +104,7 @@ no se autodisparan por descripción, solo por invocación explícita.
 `tools` restringidos (planner/qa/security de solo lectura, builder con
 acceso completo). Sin skills — son agentes puros, invocables vía el Agent
 tool (`landing-team:builder`, etc.) o desde el workflow `landing-pipeline`.
-100% propio, sin vendorizar nada de terceros. Mismo bloqueo que `thermos`:
-`claude plugin install "landing-team@kevincharp-dotfiles"` falla hasta el
-push.
+100% propio, sin vendorizar nada de terceros.
 
 ## Mecanismos de invocación (no todas las skills se llaman igual)
 

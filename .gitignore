@@ -14,12 +14,13 @@ ulauncher/user-themes/*/generated.css
 !.claude/settings.json
 !.claude/statusline.sh
 !.claude/CLAUDE.md
-# Configs propias (skills/agents/commands/hooks/estilos) — se versionan si existen
+# Configs propias (skills/agents/commands/hooks/estilos/workflows) — se versionan si existen
 !.claude/skills/
 !.claude/agents/
 !.claude/commands/
 !.claude/hooks/
 !.claude/output-styles/
+!.claude/workflows/
 # Plugins: NO se versionan. installed_plugins.json y known_marketplaces.json
 # llevan rutas absolutas por-SO incrustadas (installPath/installLocation), que
 # difieren Linux/Windows y rompen /doctor al cruzarse. Son estado local que

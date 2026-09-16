@@ -1,4 +1,17 @@
-// Equipo de agentes para armar, revisar y deployar una landing page.
+// Equipo de agentes para armar y revisar una landing page. Deploy queda
+// AFUERA a proposito: es un paso separado y explicito que se dispara aparte
+// (skill "all-deploy"), nunca automatico dentro de este run -- production es
+// dificil de revertir y un Workflow no puede pausar a mitad de camino a
+// pedir un OK, asi que el OK se pide fuera de este script, despues de ver
+// el resultado.
+//
+// Los 4 roles (planner/builder/qa/security) viven como agentes propios en
+// el plugin "landing-team" (claude-skills/landing-team/agents/*.md), no
+// inline en este script -- asi son reutilizables tambien fuera del
+// Workflow: via el Agent tool directo, o con el patron manual de sesiones
+// nombradas + SendMessage si algun dia se prefiere trabajar una landing
+// particular a mano en vez de con este script.
+//
 // No auto-descubierto todavia por Claude Code (el bootstrap solo symlinkea
 // CLAUDE.md y settings.json, no .claude/workflows/) -- invocar con scriptPath:
 //   Workflow({ scriptPath: "<esta ruta>", args: { brief: "...", projectPath: "..." } })
@@ -8,13 +21,12 @@
 
 export const meta = {
   name: 'landing-pipeline',
-  description: 'Equipo de agentes para armar, revisar y deployar una landing page (dropshipping o agencia)',
+  description: 'Equipo de agentes para armar y revisar una landing page (deploy es un paso aparte, explicito)',
   phases: [
     { title: 'Plan', detail: 'clasifica el tipo de landing y arma el brief estructurado' },
     { title: 'Build', detail: 'genera la landing con landing-cro o premium-website-generator' },
     { title: 'Review', detail: 'QA (Playwright + impeccable) y Seguridad/calidad (cyber-neo + code-review) en paralelo' },
     { title: 'Fix', detail: 'corrige los hallazgos bloqueantes del Review, si hay' },
-    { title: 'Deploy', detail: 'despliega con all-deploy (preview -> health-check -> prod)' },
   ],
 }
 
@@ -63,59 +75,36 @@ const FINDINGS_SCHEMA = {
 
 phase('Plan')
 const brief = await agent(`
-Sos el planner de una landing page. Este es el pedido crudo del usuario:
+Pedido crudo del usuario:
 
 """
 ${args.brief}
 """
 
-Clasifica el tipo de landing: "dropship" (venta directa de un producto de
-marketplace o de una marca de referencia, via la skill landing-cro) o
-"agency" (sitio de marca/servicio/portfolio, via la skill
-premium-website-generator). Decidi que skill de build corresponde
-(buildSkill). Si el pedido menciona convertir a Shopify, marca
-needsShopifySections=true (se usara la skill landing-a-secciones despues del
-build). Si el pedido menciona algo que requiera backend real (formulario
-propio que guarda datos, checkout propio, integraciones de pago/CRM), marca
-needsBackendFlag=true y explica por que en backendReason -- NO intentes
-construir ese backend, solo flagealo. Armá un briefSummary claro y, si el
-pedido lo sugiere, una styleDirection (ej: minimalista, brutalista, alta
-gama, editorial).
-`, { schema: BRIEF_SCHEMA, phase: 'Plan' })
+Clasifica este pedido y arma el brief estructurado.
+`, { schema: BRIEF_SCHEMA, phase: 'Plan', agentType: 'landing-team:planner' })
 
 log(`Plan: ${brief.landingType} -> ${brief.buildSkill}${brief.needsShopifySections ? ' + landing-a-secciones' : ''}${brief.needsBackendFlag ? ' (backend flageado, no se construye en este pipeline)' : ''}`)
 
 phase('Build')
 const build = await agent(`
-Usa la skill "${brief.buildSkill}" para construir la landing en ${args.projectPath}.
-
+Carpeta de proyecto: ${args.projectPath}
+Skill de build a usar: ${brief.buildSkill}
 Brief: ${brief.briefSummary}
 Direccion de estilo: ${brief.styleDirection || 'sin preferencia explicita, usa tu mejor criterio'}
+Necesita secciones Shopify despues del build: ${brief.needsShopifySections}
 
-${brief.needsShopifySections ? 'Al terminar el HTML, usa la skill "landing-a-secciones" para convertirlo en secciones .liquid del tema Dawn, y mencionalo en el resumen.' : ''}
-
-Devolve la ruta del proyecto y un resumen de lo que construiste.
-`, { schema: BUILD_SCHEMA, phase: 'Build' })
+Construi la landing.
+`, { schema: BUILD_SCHEMA, phase: 'Build', agentType: 'landing-team:builder' })
 
 phase('Review')
 const [qa, security] = await parallel([
-  () => agent(`
-Hace QA de la landing en ${build.projectPath}.
-Usa Playwright (skill de testing de apps web) para: screenshot desktop y
-mobile, revisar links rotos, errores de consola, y comportamiento responsive.
-Corre tambien "/impeccable audit" sobre el proyecto para el chequeo de diseño
-anti-generico.
-Devolve SOLO los hallazgos bloqueantes (rompe la pagina, se ve mal en mobile,
-link roto) en "blocking", y cualquier otra observacion en "notes".
-`, { schema: FINDINGS_SCHEMA, phase: 'Review' }),
-  () => agent(`
-Hace una revision de seguridad y calidad de codigo de la landing en ${build.projectPath}.
-Usa la skill de auditoria de seguridad (cyber-neo) para escanear secretos o
-config expuesta (API keys de analytics, webhooks hardcodeados, etc.) y una
-revision de code review general sobre el HTML/CSS/JS generado.
-Devolve SOLO los hallazgos bloqueantes (secreto expuesto, vulnerabilidad
-real) en "blocking", y cualquier otra observacion en "notes".
-`, { schema: FINDINGS_SCHEMA, phase: 'Review' }),
+  () => agent(`Proyecto en ${build.projectPath}. Hace QA completo y reporta los hallazgos.`, {
+    schema: FINDINGS_SCHEMA, phase: 'Review', agentType: 'landing-team:qa',
+  }),
+  () => agent(`Proyecto en ${build.projectPath}. Hace la revision de seguridad y calidad de codigo y reporta los hallazgos.`, {
+    schema: FINDINGS_SCHEMA, phase: 'Review', agentType: 'landing-team:security',
+  }),
 ])
 
 const blocking = [...(qa?.blocking || []), ...(security?.blocking || [])]
@@ -127,19 +116,13 @@ if (blocking.length) {
 Corregi estos hallazgos bloqueantes en ${build.projectPath}, sin romper nada mas:
 
 ${blocking.map((b, i) => `${i + 1}. [${b.area}] ${b.issue} -- sugerencia: ${b.fix}`).join('\n')}
-`, { phase: 'Fix' })
+`, { phase: 'Fix', agentType: 'landing-team:builder' })
 }
-
-phase('Deploy')
-const deploy = await agent(`
-Deploya el proyecto en ${build.projectPath} usando la skill "all-deploy"
-(con su auditoria previa y flujo preview -> health-check -> prod).
-`, { phase: 'Deploy' })
 
 return {
   brief,
   build,
   review: { qaNotes: qa?.notes, securityNotes: security?.notes, blocking },
   fix: fixSummary,
-  deploy,
+  nextStep: `Listo para revisar a ojo. Cuando confirmes, deployar con la skill "all-deploy" sobre ${build.projectPath}.`,
 }

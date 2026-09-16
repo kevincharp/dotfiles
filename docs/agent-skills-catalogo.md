@@ -43,6 +43,34 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `diagram-design` | `diagram-design` | 40 tipos de diagramas técnicos (arquitectura, ER, UML, flowcharts, Gantt, Sankey…) como HTML+SVG autocontenido; redibuja `.drawio`/Mermaid/Excalidraw | Tercero (`diagram-design`, marketplace propio) |
 | `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
 | `impeccable` | `impeccable` (24 comandos: `polish`, `audit`, `critique`, `animate`…) | Fluidez de diseño frontend: detección de anti-patrones + comandos de refinamiento. Ver nota de hook abajo | Tercero (`impeccable`, marketplace propio) |
+| `mattpocock-skills` | **engineering:** `ask-matt`, `grill-with-docs`, `triage`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `to-spec`, `to-tickets`, `implement`, `wayfinder`, `prototype`, `diagnosing-bugs`, `research`, `tdd`, `domain-modeling`, `codebase-design`, `code-review`, `resolving-merge-conflicts`, `wizard` · **productivity:** `grill-me`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `grilling`, `writing-for-agents` · **misc (sin documentar en el README, no explorado):** `git-guardrails-claude-code`, `migrate-to-shoehorn`, `scaffold-exercises`, `setup-pre-commit` | Disciplina de ingeniería real: alineación por "grilling" antes de codear, TDD, diagnóstico de bugs, domain modeling, flujo spec→tickets→implement contra un issue tracker, review por Standards+Spec en paralelo. Requiere correr `/setup-matt-pocock-skills` una vez por repo | Oficial (`claude-plugins-official`, autor Matt Pocock/aihero.dev) |
+
+### Notas sobre `mattpocock-skills`
+
+- **Dos filosofías de instalación, no mezclar.** El propio README lo advierte:
+  el plugin de Claude Code (lo que instalamos, `/plugin install
+  mattpocock-skills`) es un bundle gestionado de solo lectura que se
+  actualiza solo. La alternativa (`npx skills@latest add mattpocock/skills`)
+  copia archivos editables **dentro de un proyecto puntual**, sin
+  auto-update, con selección skill por skill — es otro modelo de
+  distribución, no encaja con "el stack global" que veníamos armando en
+  `settings.json`. Instalar las dos deja cada skill duplicada.
+- **Solapamientos reales a tener en cuenta:**
+  - `code-review` (acá adentro) vs `code-review@claude-plugins-official`
+    (ya instalado): mismo nombre, ejes distintos (Standards+fidelidad-al-spec
+    en paralelo vs. review genérico de PR). Convive como `code-review` y
+    `mattpocock-skills:code-review`.
+  - `grill-me`/`grilling` es casi seguro lo que la skill pendiente
+    **"handshake"** (`flowstate.help`, ver memoria de pendientes) esperaba
+    como paso siguiente — su propio doc decía literalmente "run `/grill-me`
+    on the doc". Con esto instalado, `handshake` pierde prioridad.
+  - `handoff` hace lo mismo que la memoria nativa de Claude Code que ya
+    usamos y que `LOOP/CURRENT.md` del "DEF Starter Kit" (pendiente):
+    comprimir la sesión en un doc para continuar después.
+- **Requiere un paso de setup**, no es plug-and-play: correr
+  `/setup-matt-pocock-skills` una vez por repo (pregunta issue tracker,
+  labels de triage, dónde guardar docs) antes de que el resto de las skills
+  de `engineering/` tengan dónde escribir.
 
 ## Vendorizado, pendiente de push + install: `thermos`
 

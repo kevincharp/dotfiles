@@ -44,6 +44,39 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
 | `impeccable` | `impeccable` (24 comandos: `polish`, `audit`, `critique`, `animate`…) | Fluidez de diseño frontend: detección de anti-patrones + comandos de refinamiento. Ver nota de hook abajo | Tercero (`impeccable`, marketplace propio) |
 
+## Vendorizado, pendiente de push + install: `thermos`
+
+`thermos` ya está en `claude-skills/thermos/` y registrado en
+`.claude-plugin/marketplace.json`, pero **todavía no aparece en la tabla de
+arriba** porque `claude plugin install "thermos@kevincharp-dotfiles"` falla
+hasta que esto se pushee — confirmado en vivo: el marketplace
+`kevincharp-dotfiles` resuelve contra el `marketplace.json` **remoto**, no el
+working tree (mismo comportamiento que ya documenta este `CLAUDE.md` sobre
+este marketplace). Después del push, falta:
+
+```
+claude plugin install "thermos@kevincharp-dotfiles" -y
+```
+
+Qué trae: 3 skills (`thermo-nuclear-review` = audit de bugs/breaking changes/
+seguridad/devex/feature-gate leaks acotado al diff;
+`thermo-nuclear-code-quality-review` = mantenibilidad/estructura, la misma
+rúbrica que la skill homónima de `code-review`-adyacentes; `thermos` =
+orquestador) + 2 agentes propios
+(`thermos:thermo-nuclear-review-subagent`,
+`thermos:thermo-nuclear-code-quality-review-subagent`) para correr las dos
+revisiones en paralelo. **Adaptado, no vendorizado tal cual:** el original de
+Cursor (`github.com/cursor/plugins/tree/main/thermos`, MIT) orquesta con
+`subagent_type` propios de Cursor (`shell`, `explore`,
+`thermo-nuclear-*-subagent`) que no existen en Claude Code — se reescribió el
+`SKILL.md` de `thermos` y se convirtió el frontmatter de los 2 agentes al
+formato de Claude Code (`name`/`description`/`tools`/`model`) para que la
+orquestación funcione de verdad, no solo el contenido de las 2 skills base
+(esas sí son copia literal). Las 3 skills traen `disable-model-invocation:
+true` en el frontmatter (campo de Cursor, fuera del spec base de
+agentskills.io — no confirmado si Claude Code lo respeta), así que en teoría
+no se autodisparan por descripción, solo por invocación explícita.
+
 ## Mecanismos de invocación (no todas las skills se llaman igual)
 
 Confirmado leyendo los manifests instalados, no solo los README:

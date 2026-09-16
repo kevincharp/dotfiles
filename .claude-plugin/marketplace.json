@@ -58,6 +58,18 @@
       "description": "Convierte un HTML de landing (por ejemplo el de landing-cro) en secciones .liquid independientes del tema Dawn de Shopify, una por bloque, con schema completo y settings duales escritorio/movil.",
       "keywords": ["shopify", "liquid", "dawn", "ecommerce", "theme"],
       "category": "design"
+    },
+    {
+      "name": "thermos",
+      "source": "./claude-skills/thermos",
+      "description": "Doble revision de branch/PR en paralelo: thermo-nuclear-review (bugs, breaking changes, seguridad, devex, feature-flag leaks) + thermo-nuclear-code-quality-review (mantenibilidad/estructura, code-judo, regla de 1k lineas), sintetizadas por el orquestador thermos. Adaptado del plugin thermos de Cursor (MIT) a los subagentes de Claude Code.",
+      "keywords": ["code-review", "security-review", "code-quality", "maintainability", "subagents"],
+      "author": {
+        "name": "Cursor",
+        "url": "https://github.com/cursor/plugins"
+      },
+      "license": "MIT",
+      "category": "development"
     }
   ]
 }

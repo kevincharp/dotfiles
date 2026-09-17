@@ -1802,16 +1802,19 @@ fi
 
 # VS Code — NO se symlinkea ~/.config/Code/User/settings.json (a diferencia
 # de ulauncher/openlogi). Motivo real, no teorico: con Settings Sync activo
-# (uso normal de VS Code entre maquinas), la primera sincronizacion PISA el
-# archivo completo con el perfil synced — de-symlinkea el destino de git sin
-# avisar y de paso mete ahi cualquier dato personal/privado que el perfil
-# synced traiga (probado: trajo credenciales de conexion a un server interno).
-# Automatizar esto es peor que no tocarlo. El fix real vive en
-# settingsSync.ignoredSettings (ver vscode/settings.json de referencia): asi
-# telemetry.telemetryLevel sobrevive a cualquier sync futuro. Manual, como la
-# contrasena de Samba o las claves SSH.
+# (se sincroniza a proposito entre todas las maquinas via cuenta de GitHub),
+# la primera sincronizacion en una maquina nueva PISA el archivo completo con
+# el perfil synced — de-symlinkea el destino de git sin avisar y de paso mete
+# ahi cualquier dato personal/privado que el perfil synced traiga (paso en la
+# practica: trajo credenciales de conexion a un server interno). Automatizar
+# esto es peor que no tocarlo.
+# Las 2 claves de telemetria (ver vscode/settings.json) se setean a mano UNA
+# vez, en cualquier maquina, y Settings Sync las propaga solas al resto — no
+# van a settingsSync.ignoredSettings (eso las excluiria del sync en los dos
+# sentidos y quedarian prendidas en las demas maquinas, que es lo que NO se
+# quiere: la telemetria tiene que quedar apagada en TODAS).
 if want_tool vscode; then
-    log "  VS Code: aplica a mano las 2 claves de telemetria (ver vscode/settings.json) y agregalas a settingsSync.ignoredSettings si usas Settings Sync" "INFO"
+    log "  VS Code: aplica a mano las 2 claves de telemetria (ver vscode/settings.json); con Settings Sync activo se propagan solas al resto de tus maquinas" "INFO"
     WARNINGS+=("VS Code: telemetria no se symlinkea (choca con Settings Sync) — aplicar vscode/settings.json a mano")
 fi
 

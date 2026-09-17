@@ -1800,13 +1800,19 @@ if want_tool openlogi; then
     copy_dotfile "openlogi/config.toml" "$HOME/.config/openlogi/config.toml" "link"
 fi
 
-# VS Code — settings.json va por symlink (editarlo desde el editor se versiona
-# al instante). Solo apaga telemetria/experimentos; el resto de las prefs del
-# editor (tema, fuente, extensiones) queda fuera de este repo a proposito, para
-# no imponer gustos personales via bootstrap. Gateado por want_tool: quien no
-# eligio VS Code no se lleva un settings.json apuntando a este repo.
+# VS Code — NO se symlinkea ~/.config/Code/User/settings.json (a diferencia
+# de ulauncher/openlogi). Motivo real, no teorico: con Settings Sync activo
+# (uso normal de VS Code entre maquinas), la primera sincronizacion PISA el
+# archivo completo con el perfil synced — de-symlinkea el destino de git sin
+# avisar y de paso mete ahi cualquier dato personal/privado que el perfil
+# synced traiga (probado: trajo credenciales de conexion a un server interno).
+# Automatizar esto es peor que no tocarlo. El fix real vive en
+# settingsSync.ignoredSettings (ver vscode/settings.json de referencia): asi
+# telemetry.telemetryLevel sobrevive a cualquier sync futuro. Manual, como la
+# contrasena de Samba o las claves SSH.
 if want_tool vscode; then
-    copy_dotfile "vscode/settings.json" "$HOME/.config/Code/User/settings.json" "link"
+    log "  VS Code: aplica a mano las 2 claves de telemetria (ver vscode/settings.json) y agregalas a settingsSync.ignoredSettings si usas Settings Sync" "INFO"
+    WARNINGS+=("VS Code: telemetria no se symlinkea (choca con Settings Sync) — aplicar vscode/settings.json a mano")
 fi
 
 # Google Chrome — deduplicar la entrada "Web" de Ajustes > Aplicaciones

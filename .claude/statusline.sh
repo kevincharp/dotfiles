@@ -176,58 +176,72 @@ if [[ "$ctx" =~ ^[0-9] ]]; then
 fi
 
 # --- Construir la linea ---
-# Grupo 1 (identidad/ubicacion) y grupo 2 (metricas) se miden juntos contra
-# $COLUMNS; si no entran, se imprimen en 2 lineas en vez de que la terminal
-# corte o envuelva a lo bruto - el panel de status de Claude Code crece solo
-# para acomodar la linea extra (confirmado contra la doc oficial: soporta
+# Cada dato es un segmento independiente. Se empaquetan de a uno por linea
+# tipo word-wrap: el que no entra en $COLUMNS arranca linea nueva, en vez de
+# fijar 2 mitades - una mitad fija podia seguir siendo mas ancha que un panel
+# angosto (con varias sesiones abiertas) y la terminal la truncaba con "..."
+# igual. Claude Code hace crecer el panel de status solo para acomodar las
+# lineas que hagan falta (confirmado contra la doc oficial: soporta
 # multi-linea partiendo el output por "\n", y $COLUMNS/$LINES ya vienen
 # seteados en el entorno del script - "tput cols" NO funciona aca porque
 # Claude Code captura el stdout del script, no lo conecta al tty).
-line1="${I_DIR} ${dir}"
-[[ -n "$branch" ]] && line1+="${SEP}${I_BRANCH} $(c "$GREEN")${branch}${RESET}"
-line1+="${SEP}${account}"
-line1+="${SEP}${I_MODEL} $(c "$CYAN")${model}${RESET}"
-# effort solo viene si el modelo lo soporta; el output style, solo si no es el default
-[[ -n "$effort" ]] && line1+="$(c "$DIM") ${effort}${RESET}"
-[[ "$fast" == "true" ]] && line1+=" ${I_FAST}"
-[[ "$thinking" == "true" ]] && line1+=" ${I_THINKING}"
-
-line2=""
-[[ -n "$ctx_seg" ]] && line2+="${ctx_seg}"
+declare -a segs=()
+segs+=("${I_DIR} ${dir}")
+[[ -n "$branch" ]] && segs+=("${I_BRANCH} $(c "$GREEN")${branch}${RESET}")
+segs+=("${account}")
+model_seg="${I_MODEL} $(c "$CYAN")${model}${RESET}"
+# effort solo viene si el modelo lo soporta
+[[ -n "$effort" ]] && model_seg+="$(c "$DIM") ${effort}${RESET}"
+[[ "$fast" == "true" ]] && model_seg+=" ${I_FAST}"
+[[ "$thinking" == "true" ]] && model_seg+=" ${I_THINKING}"
+segs+=("$model_seg")
+[[ -n "$ctx_seg" ]] && segs+=("$ctx_seg")
+# output style: solo si no es el default
 if [[ -n "$style" ]] && [[ "$(printf '%s' "$style" | tr '[:upper:]' '[:lower:]')" != "default" ]]; then
-    line2+="${line2:+${SEP}}${I_STYLE} $(c "$DIM")${style}${RESET}"
+    segs+=("${I_STYLE} $(c "$DIM")${style}${RESET}")
 fi
 # Costo: si esta disponible, mostrarlo en gris (siempre crece, no necesita color de alarma)
 if [[ "$cost" =~ ^[0-9] ]]; then
     cost_fmt="$(LC_ALL=C printf '%.2f' "$cost" 2>/dev/null)"
-    [[ -n "$cost_fmt" ]] && line2+="${line2:+${SEP}}${I_COST} $(c "$DIM")\$${cost_fmt}${RESET}"
+    [[ -n "$cost_fmt" ]] && segs+=("${I_COST} $(c "$DIM")\$${cost_fmt}${RESET}")
 fi
 # Lineas +/- acumuladas de la sesion (cost.total_lines_added/removed): no es un
 # git diff --stat del repo, es lo que Claude fue escribiendo con Edit/Write.
 diff_seg=""
 [[ "$lines_added" =~ ^[0-9]+$ ]] && (( lines_added > 0 )) && diff_seg+="$(c "$GREEN")+${lines_added}${RESET}"
 [[ "$lines_removed" =~ ^[0-9]+$ ]] && (( lines_removed > 0 )) && diff_seg+="${diff_seg:+ }$(c "$RED")-${lines_removed}${RESET}"
-[[ -n "$diff_seg" ]] && line2+="${line2:+ }${diff_seg}"
+[[ -n "$diff_seg" ]] && segs+=("$diff_seg")
 
 # Ancho visible sin ANSI. Los emoji ocupan 2 columnas en la terminal pero
-# bash los cuenta como 1 caracter, de ahi el margen fijo en vez de un conteo
-# exacto (probado: hasta ~7 emoji posibles entre ambas lineas, margen de 10
-# cubre el desvio con aire de sobra).
+# bash los cuenta como 1 caracter, de ahi el margen fijo por linea en vez de
+# un conteo exacto (cada segmento trae a lo sumo 1-2 emoji).
 _visible_width() {
     local esc=$'\033' s
     s="$(printf '%s' "$1" | sed -E "s/${esc}\[[0-9;]*m//g")"
     printf '%s' "${#s}"
 }
-VISUAL_MARGIN=10
+VISUAL_MARGIN=6
 cols="${COLUMNS:-80}"
 
-if [[ -n "$line2" ]]; then
-    combined_width=$(( $(_visible_width "$line1") + 3 + $(_visible_width "$line2") + VISUAL_MARGIN ))
-    if (( combined_width <= cols )); then
-        printf '%s%s%s' "$line1" "$SEP" "$line2"
-    else
-        printf '%s\n%s' "$line1" "$line2"
+declare -a out_lines=()
+cur=""
+for seg in "${segs[@]}"; do
+    if [[ -z "$cur" ]]; then
+        cur="$seg"
+        continue
     fi
-else
-    printf '%s' "$line1"
-fi
+    candidate="${cur}${SEP}${seg}"
+    if (( $(_visible_width "$candidate") + VISUAL_MARGIN <= cols )); then
+        cur="$candidate"
+    else
+        out_lines+=("$cur")
+        cur="$seg"
+    fi
+done
+[[ -n "$cur" ]] && out_lines+=("$cur")
+
+first=1
+for l in "${out_lines[@]}"; do
+    if (( first )); then printf '%s' "$l"; first=0
+    else printf '\n%s' "$l"; fi
+done

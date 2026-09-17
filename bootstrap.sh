@@ -329,6 +329,7 @@ TOOLS_CATALOG=(
     "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
     "remmina|apps|Cliente RDP/VNC (conexiones a servers Windows)"
     "obsidian|apps|Notas en Markdown (Flatpak, sin .rpm oficial)"
+    "vscode|apps|Editor de codigo (VS Code, repo oficial de Microsoft)"
 )
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
@@ -371,6 +372,7 @@ tool_installed() {
         flameshot)       has_cmd flameshot ;;
         remmina)         has_cmd remmina ;;
         obsidian)        has_cmd flatpak && flatpak info md.obsidian.Obsidian &>/dev/null ;;
+        vscode)          has_cmd code ;;
         *)               return 1 ;;
     esac
 }
@@ -768,6 +770,25 @@ install_tool() {
             else
                 log "obsidian: no se pudo instalar flatpak en esta distro" "WARN"
                 WARNINGS+=("obsidian no instalado — falta flatpak")
+            fi
+            ;;
+        vscode)
+            # VS Code via el repo oficial de Microsoft (mismo patron que chrome:
+            # agrega su propio repo, asi que las updates llegan despues por
+            # 'dnf update'). A diferencia de chrome, Microsoft no publica una URL
+            # estable de .rpm "current": el metodo documentado es importar la
+            # clave GPG y declarar el repo yum antes de instalar. Solo Fedora/dnf.
+            if [[ "$PKG_MANAGER" != "dnf" ]]; then
+                log "vscode: cableado solo para Fedora/dnf (repo yum) — instalar manual en esta distro" "WARN"
+                WARNINGS+=("vscode no instalado — distro no soportada por el bootstrap")
+            else
+                run_step "Importar clave GPG de Microsoft" \
+                    sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+                run_step "Agregar repo de VS Code" bash -c '
+                    echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" \
+                        | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
+                '
+                run_step "Instalar VS Code" sudo dnf install -y code
             fi
             ;;
         *)
@@ -1777,6 +1798,15 @@ fi
 # asi que es best-effort (sirve con el mismo mouse; si cambia, OpenLogi regenera).
 if want_tool openlogi; then
     copy_dotfile "openlogi/config.toml" "$HOME/.config/openlogi/config.toml" "link"
+fi
+
+# VS Code — settings.json va por symlink (editarlo desde el editor se versiona
+# al instante). Solo apaga telemetria/experimentos; el resto de las prefs del
+# editor (tema, fuente, extensiones) queda fuera de este repo a proposito, para
+# no imponer gustos personales via bootstrap. Gateado por want_tool: quien no
+# eligio VS Code no se lleva un settings.json apuntando a este repo.
+if want_tool vscode; then
+    copy_dotfile "vscode/settings.json" "$HOME/.config/Code/User/settings.json" "link"
 fi
 
 # Google Chrome — deduplicar la entrada "Web" de Ajustes > Aplicaciones

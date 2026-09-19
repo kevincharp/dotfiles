@@ -1819,15 +1819,20 @@ if want_tool vscode; then
 fi
 
 # Google Chrome — deduplicar la entrada "Web" de Ajustes > Aplicaciones
-# predeterminadas. El .rpm de Google instala DOS .desktop: google-chrome.desktop
-# (historico) y com.google.Chrome.desktop (nuevo, formato reverse-DNS), y ambos
-# declaran x-scheme-handler/http(s). El panel de GNOME NO respeta Hidden/NoDisplay
-# (de hecho el .rpm ya marca el segundo con NoDisplay y aun asi aparece): lista
-# cualquier .desktop que registre el esquema, asi que Chrome sale DOS veces. Se
+# predeterminadas Y el "Abrir con" de Nautilus. El .rpm de Google instala DOS
+# .desktop: google-chrome.desktop (historico) y com.google.Chrome.desktop (nuevo,
+# formato reverse-DNS), y ambos declaran x-scheme-handler/http(s). El panel de
+# GNOME y el "Abrir con" de Nautilus NO respetan NoDisplay (de hecho el .rpm ya
+# marca el segundo con NoDisplay y aun asi aparece en ambos lados): listan
+# cualquier .desktop que registre el tipo, asi que Chrome sale DOS veces. Se
 # neutraliza con un override local de com.google.Chrome.desktop SIN los
-# scheme-handlers (conserva PDF/imagenes), copiado a ~/.local/share/applications
-# (tiene prioridad sobre /usr/share y sobrevive a los updates de Chrome). Si algun
-# dia Google unifica los .desktop, basta con borrar el override.
+# scheme-handlers (conserva PDF/imagenes, cubiertos igual por google-chrome.desktop)
+# Y con Hidden=true, copiado a ~/.local/share/applications (tiene prioridad sobre
+# /usr/share y sobrevive a los updates de Chrome). A diferencia de NoDisplay,
+# Hidden=true SI se respeta: GLib lo borra por completo de g_app_info_get_all()
+# (verificado con Gio.AppInfo.get_all() antes/despues), no solo le pone
+# should_show()=false — por eso hace falta la combinacion de los dos fixes. Si
+# algun dia Google unifica los .desktop, basta con borrar el override.
 _chrome_sys_desktop="/usr/share/applications/com.google.Chrome.desktop"
 _chrome_override="$HOME/.local/share/applications/com.google.Chrome.desktop"
 if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys_desktop" ]]; then
@@ -1837,12 +1842,34 @@ if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys
         mkdir -p "$(dirname "$_chrome_override")"
         sed -E 's#x-scheme-handler/(http|https|google-chrome);##g' \
             "$_chrome_sys_desktop" > "$_chrome_override"
+        sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nHidden=true/' "$_chrome_override"
         has_cmd update-desktop-database \
             && update-desktop-database "$(dirname "$_chrome_override")" &>/dev/null || true
-        log "Override Chrome aplicado (una sola entrada Web en GNOME)" "OK"
+        log "Override Chrome aplicado (una sola entrada Web/Abrir con en GNOME)" "OK"
     fi
 fi
 unset _chrome_sys_desktop _chrome_override
+
+# Google Maps — mismo patron: kf6-kguiaddons (dependencia transitiva de KDE)
+# instala google-maps-geo-handler.desktop (NoDisplay, solo maneja
+# x-scheme-handler/geo) junto a org.gnome.Maps.desktop, que YA declara ese
+# mismo esquema. Es redundante del todo (Mapas sigue abriendo enlaces geo: sin
+# el), asi que el override es directo: copia + Hidden=true, sin tocar mimetypes.
+_maps_sys_desktop="/usr/share/applications/google-maps-geo-handler.desktop"
+_maps_override="$HOME/.local/share/applications/google-maps-geo-handler.desktop"
+if [[ -f "$_maps_sys_desktop" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+        log "[DryRun] Override Google Maps geo-handler (dedup Abrir con)" "SKIP"
+    else
+        mkdir -p "$(dirname "$_maps_override")"
+        cp "$_maps_sys_desktop" "$_maps_override"
+        sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nHidden=true/' "$_maps_override"
+        has_cmd update-desktop-database \
+            && update-desktop-database "$(dirname "$_maps_override")" &>/dev/null || true
+        log "Override Google Maps geo-handler aplicado (una sola entrada Mapas)" "OK"
+    fi
+fi
+unset _maps_sys_desktop _maps_override
 
 # Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un
 # archivo), asi que no se puede symlinkear: se restaura con 'dconf load'. Cuenta

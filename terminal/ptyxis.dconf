@@ -1,4 +1,5 @@
 [/]
+audible-bell=false
 default-profile-uuid='efb537879e29f6d38e04d1e56a2e4ff5'
 font-name='FiraCode Nerd Font Mono Semi-Bold 10'
 interface-style='dark'
@@ -6,7 +7,8 @@ profile-uuids=['efb537879e29f6d38e04d1e56a2e4ff5']
 restore-session=false
 restore-window-size=true
 use-system-font=false
-window-size=(uint32 118, uint32 61)
+visual-bell=false
+window-size=(uint32 80, uint32 24)
 
 [Profiles/8caec5e3863a9c03618dd2a46a1ccfb6]
 login-shell=true
@@ -20,7 +22,8 @@ login-shell=false
 palette='linux'
 
 [Shortcuts]
-close-tab='<Control>F4'
+close-tab='<Alt>w'
+focus-tab-last=''
 reset=''
 set-title='<Control><Alt>r'
 undo-close-tab='<Shift><Control>t'

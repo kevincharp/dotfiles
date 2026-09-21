@@ -6,18 +6,10 @@
         {
             "command": 
             {
-                "action": "swapPane",
-                "direction": "left"
+                "action": "copy",
+                "singleLine": false
             },
-            "id": "User.swapPane.2A0DA8E0"
-        },
-        {
-            "command": 
-            {
-                "action": "moveFocus",
-                "direction": "previousInOrder"
-            },
-            "id": "User.moveFocus.787314EB"
+            "id": "User.copy.644BA8F2"
         },
         {
             "command": 
@@ -30,14 +22,35 @@
         {
             "command": 
             {
-                "action": "copy",
-                "singleLine": false
+                "action": "moveFocus",
+                "direction": "previousInOrder"
             },
-            "id": "User.copy.644BA8F2"
+            "id": "User.moveFocus.787314EB"
+        },
+        {
+            "command": 
+            {
+                "action": "swapPane",
+                "direction": "left"
+            },
+            "id": "User.swapPane.2A0DA8E0"
         },
         {
             "command": "paste",
             "id": "User.paste"
+        },
+        {
+            "command": 
+            {
+                "action": "splitPane",
+                "split": "auto",
+                "splitMode": "duplicate"
+            },
+            "id": "User.splitPane.A6751878"
+        },
+        {
+            "command": "find",
+            "id": "User.find"
         },
         {
             "command": 
@@ -48,17 +61,22 @@
             "id": "User.swapPane.6CD791B"
         },
         {
-            "command": "find",
-            "id": "User.find"
-        },
-        {
             "command": 
             {
-                "action": "splitPane",
-                "split": "auto",
-                "splitMode": "duplicate"
+                "action": "multipleActions",
+                "actions": 
+                [
+                    {
+                        "action": "clearBuffer",
+                        "clear": "all"
+                    },
+                    {
+                        "action": "sendInput",
+                        "input": "\f"
+                    }
+                ]
             },
-            "id": "User.splitPane.A6751878"
+            "id": "User.clearBufferAndRedraw"
         },
         {
             "command": 
@@ -79,18 +97,18 @@
         {
             "command": 
             {
-                "action": "sendInput",
-                "input": "\u001b\r"
-            },
-            "id": "User.sendInput.ShiftEnter"
-        },
-        {
-            "command": 
-            {
                 "action": "openSettings",
                 "target": "settingsFile"
             },
             "id": "User.openSettings.D3F0B923"
+        },
+        {
+            "command": 
+            {
+                "action": "sendInput",
+                "input": "\u001b\r"
+            },
+            "id": "User.sendInput.ShiftEnter"
         },
         {
             "command": "openTabRenamer",
@@ -121,24 +139,6 @@
         {
             "command": "openTabColorPicker",
             "id": "User.openTabColorPicker"
-        },
-        {
-            "command":
-            {
-                "action": "multipleActions",
-                "actions":
-                [
-                    {
-                        "action": "clearBuffer",
-                        "clear": "all"
-                    },
-                    {
-                        "action": "sendInput",
-                        "input": "\u000c"
-                    }
-                ]
-            },
-            "id": "User.clearBufferAndRedraw"
         }
     ],
     "alwaysShowTabs": true,
@@ -155,20 +155,16 @@
             "keys": "ctrl+c"
         },
         {
-            "id": "User.find",
-            "keys": "ctrl+shift+f"
+            "id": "User.clearBufferAndRedraw",
+            "keys": "ctrl+shift+k"
         },
         {
             "id": "Terminal.PasteFromClipboard",
             "keys": "ctrl+v"
         },
         {
-            "id": "User.swapPane.F747588A",
-            "keys": "ctrl+down"
-        },
-        {
-            "id": null,
-            "keys": "ctrl+shift+3"
+            "id": "User.find",
+            "keys": "ctrl+shift+f"
         },
         {
             "id": "Terminal.DuplicatePaneAuto",
@@ -176,11 +172,19 @@
         },
         {
             "id": null,
-            "keys": "ctrl+shift+8"
+            "keys": "ctrl+shift+3"
+        },
+        {
+            "id": "User.swapPane.F747588A",
+            "keys": "ctrl+down"
         },
         {
             "id": "User.swapPane.87C324ED",
             "keys": "ctrl+right"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+8"
         },
         {
             "id": "User.swapPane.2A0DA8E0",
@@ -291,10 +295,6 @@
             "keys": "alt+shift+plus"
         },
         {
-            "id": "User.closeTab.0",
-            "keys": "ctrl+f4"
-        },
-        {
             "id": "User.globalSummon.51A3D78C",
             "keys": "ctrl+alt+t"
         },
@@ -311,8 +311,8 @@
             "keys": "ctrl+t"
         },
         {
-            "id": "User.clearBufferAndRedraw",
-            "keys": "ctrl+shift+k"
+            "id": "User.closeTab.0",
+            "keys": "ctrl+w"
         }
     ],
     "newTabMenu": [],

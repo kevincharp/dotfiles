@@ -8,7 +8,7 @@ restore-session=false
 restore-window-size=true
 use-system-font=false
 visual-bell=false
-window-size=(uint32 80, uint32 24)
+window-size=(uint32 238, uint32 59)
 
 [Profiles/8caec5e3863a9c03618dd2a46a1ccfb6]
 login-shell=true
@@ -22,7 +22,7 @@ login-shell=false
 palette='linux'
 
 [Shortcuts]
-close-tab='<Alt>w'
+close-tab='<Control>w'
 focus-tab-last=''
 reset=''
 set-title='<Control><Alt>r'

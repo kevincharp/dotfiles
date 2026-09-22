@@ -316,6 +316,7 @@ TOOLS_CATALOG=(
     "opencode|dev|opencode (SST)"
     "aws|cloud|AWS CLI (Bedrock)"
     "lazyssh|shell|TUI para gestionar conexiones SSH (estilo lazygit)"
+    "lazysql|shell|TUI para administrar bases de datos (MySQL/PostgreSQL/MSSQL/SQLite)"
     "gh|cloud|GitHub CLI (PRs/issues + clonado del vault)"
     "glab|cloud|GitLab CLI"
     "age|cloud|Encriptacion de claves SSH"
@@ -348,6 +349,7 @@ tool_installed() {
         lazygit)         has_cmd lazygit ;;
         yazi)            has_cmd yazi ;;
         lazyssh)         has_cmd lazyssh ;;
+        lazysql)         has_cmd lazysql ;;
         blesh)           [[ -f "$HOME/.local/share/blesh/ble.sh" ]] ;;
         zsh)                     has_cmd zsh ;;
         zsh-autosuggestions)     [[ -f "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] ;;
@@ -456,6 +458,20 @@ install_tool() {
                 tar xzf "$tmp/lazyssh.tar.gz" -C "$tmp"
                 mkdir -p "$HOME/.local/bin"
                 install "$tmp/lazyssh" "$HOME/.local/bin/lazyssh"
+                rm -rf "$tmp"
+            '
+            ;;
+        lazysql)
+            # TUI para MySQL/PostgreSQL/MSSQL/SQLite. No esta en repos de distro
+            # ni en gestores; mismo patron que lazyssh: binario del release oficial
+            # a ~/.local/bin (ya en PATH, sin sudo).
+            run_step "Instalar lazysql (binario)" bash -c '
+                tag=$(curl -fsSL "https://api.github.com/repos/jorgerojas26/lazysql/releases/latest" | grep -Po "\"tag_name\": \"\K[^\"]*")
+                tmp="$(mktemp -d)"
+                curl -fsSL "https://github.com/jorgerojas26/lazysql/releases/download/${tag}/lazysql_$(uname)_$(uname -m).tar.gz" -o "$tmp/lazysql.tar.gz"
+                tar xzf "$tmp/lazysql.tar.gz" -C "$tmp"
+                mkdir -p "$HOME/.local/bin"
+                install "$tmp/lazysql" "$HOME/.local/bin/lazysql"
                 rm -rf "$tmp"
             '
             ;;

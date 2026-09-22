@@ -126,6 +126,7 @@ PACKAGES=(
     remmina
     rclone
     lazyssh
+    lazysql
     obsidian
 )
 
@@ -350,6 +351,13 @@ else
                     # paquete del gestor): se borra directo.
                     if [[ -f "$HOME/.local/bin/lazyssh" ]]; then
                         rm -f "$HOME/.local/bin/lazyssh" && log "Removido: lazyssh (~/.local/bin)" "OK"
+                    fi
+                    ;;
+                lazysql)
+                    # Binario bajado del release de GitHub a ~/.local/bin (no es
+                    # paquete del gestor): se borra directo.
+                    if [[ -f "$HOME/.local/bin/lazysql" ]]; then
+                        rm -f "$HOME/.local/bin/lazysql" && log "Removido: lazysql (~/.local/bin)" "OK"
                     fi
                     ;;
                 samba)

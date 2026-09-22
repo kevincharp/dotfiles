@@ -1574,7 +1574,7 @@ update-all() {
             echo "   kernel al dia"
         fi
     fi
-    echo "Listo. Nota: lazyssh (binario GitHub) y los instalados por curl"
+    echo "Listo. Nota: lazyssh y lazysql (binarios GitHub) y los instalados por curl"
     echo "(oh-my-posh, zoxide, opencode, claude) se actualizan aparte."
 }
 

@@ -373,7 +373,7 @@ if (Get-Command yazi -ErrorAction SilentlyContinue) {
 .SYNOPSIS actualizar todo lo que winget no cubre, en un solo comando
 .DESCRIPTION Espejo del update-all de bash/zsh (paridad). winget cubre la mayoria
 de las apps; esta funcion suma npm (codex). Claude Code se autoactualiza solo;
-lazyssh (binario GitHub) se actualiza re-corriendo el bootstrap.
+lazyssh y lazysql (binarios GitHub) se actualizan re-corriendo el bootstrap.
 .EXAMPLE update-all
 #>
 function update-all {
@@ -385,7 +385,7 @@ function update-all {
         Write-Host "==> npm (paquetes globales, p.ej. codex)" -ForegroundColor Cyan
         npm update -g
     }
-    Write-Host "Listo. Nota: lazyssh (binario GitHub) se actualiza re-corriendo el bootstrap;"
+    Write-Host "Listo. Nota: lazyssh y lazysql (binarios GitHub) se actualizan re-corriendo el bootstrap;"
     Write-Host "Claude Code se autoactualiza solo."
 }
 

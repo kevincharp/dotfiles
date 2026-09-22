@@ -136,6 +136,7 @@ $EXTRA_TOOLS = @(
     @{ Key='codex';    Name='Codex CLI';            Group='dev'   }
     @{ Key='claude';   Name='Claude Code';          Group='dev'   }
     @{ Key='lazyssh';  Name='lazyssh (TUI SSH)';    Group='shell' }
+    @{ Key='lazysql';  Name='lazysql (TUI DB)';     Group='shell' }
     @{ Key='firacode'; Name='FiraCode Nerd Font';   Group='fonts' }
 )
 
@@ -1109,6 +1110,41 @@ if ($SkipWinget) {
             if (Test-Path $ext) { Remove-Item $ext -Recurse -Force }
             Expand-Archive -Path $zip -DestinationPath $ext -Force
             Copy-Item -LiteralPath (Join-Path $ext 'lazyssh.exe') -Destination (Join-Path $binDir 'lazyssh.exe') -Force
+            Remove-Item $zip -Force -ErrorAction SilentlyContinue
+            Remove-Item $ext -Recurse -Force -ErrorAction SilentlyContinue
+
+            # Asegurar que ~/.local/bin este en el PATH de usuario
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+            if ($userPath -notlike "*$binDir*") {
+                [Environment]::SetEnvironmentVariable('Path', "$userPath;$binDir", 'User')
+                $env:Path += ";$binDir"
+                Write-Log "  Agregado $binDir al PATH de usuario (reinicia la terminal)" 'INFO'
+            }
+        }
+    }
+
+    # --- lazysql (TUI para bases de datos) ---
+    # No esta en winget/scoop: mismo patron que lazyssh (binario del release
+    # oficial a ~/.local/bin, ya en PATH por el paso anterior).
+    Sub-Bar 95 "lazysql"
+    if (-not (Test-ToolSelected 'lazysql')) {
+        Write-Log "lazysql no seleccionado, saltando" 'SKIP'
+    } elseif (Test-CommandAvailable 'lazysql') {
+        Write-Log "lazysql ya instalado" 'SKIP'
+    } elseif ($DryRun) {
+        Write-Log "[DryRun] Descargar e instalar lazysql" 'SKIP'
+    } else {
+        Invoke-Step "Instalar lazysql (binario)" {
+            $binDir = Join-Path $HOME '.local\bin'
+            New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+            $tag = (Invoke-RestMethod -Uri 'https://api.github.com/repos/jorgerojas26/lazysql/releases/latest').tag_name
+            $zip = Join-Path $env:TEMP 'lazysql.zip'
+            $ext = Join-Path $env:TEMP 'lazysql-extract'
+            $arch = if ([Environment]::Is64BitOperatingSystem) { 'x86_64' } else { 'i386' }
+            Invoke-WebRequest -Uri "https://github.com/jorgerojas26/lazysql/releases/download/$tag/lazysql_Windows_$arch.zip" -OutFile $zip -UseBasicParsing
+            if (Test-Path $ext) { Remove-Item $ext -Recurse -Force }
+            Expand-Archive -Path $zip -DestinationPath $ext -Force
+            Copy-Item -LiteralPath (Join-Path $ext 'lazysql.exe') -Destination (Join-Path $binDir 'lazysql.exe') -Force
             Remove-Item $zip -Force -ErrorAction SilentlyContinue
             Remove-Item $ext -Recurse -Force -ErrorAction SilentlyContinue
 

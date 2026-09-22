@@ -42,6 +42,7 @@ $DOTFILES_TARGETS = @(
     "$env:APPDATA\yazi\config\yazi.toml"
     "$env:LOCALAPPDATA\nvim"
     "$HOME\.local\bin\lazyssh.exe"
+    "$HOME\.local\bin\lazysql.exe"
 )
 
 # Identidades git (~/.gitconfig-<sufijo>): los sufijos salen del vault si define

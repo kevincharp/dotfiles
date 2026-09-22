@@ -13,6 +13,7 @@
     "example-skills@anthropic-agent-skills": true,
     "the-architect@soyenriquerocha": true,
     "cyber-neo@kevincharp-dotfiles": true,
+    "security-audit-skill@kevincharp-dotfiles": true,
     "all-deploy@kevincharp-dotfiles": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
@@ -26,7 +27,8 @@
     "impeccable@impeccable": true,
     "mattpocock-skills@claude-plugins-official": true,
     "thermos@kevincharp-dotfiles": true,
-    "landing-team@kevincharp-dotfiles": true
+    "landing-team@kevincharp-dotfiles": true,
+    "cloudflare@cloudflare": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -73,6 +75,13 @@
         "source": "git",
         "url": "https://github.com/pbakaus/impeccable.git"
       }
+    },
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      },
+      "autoUpdate": true
     }
   },
   "modelSettings": {

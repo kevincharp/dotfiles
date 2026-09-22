@@ -24,6 +24,21 @@
       "category": "development"
     },
     {
+      "name": "security-audit-skill",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/cloudflare/security-audit-skill.git"
+      },
+      "description": "Auditoria de seguridad adversarial en 6 fases con sub-agentes aislados: reconocimiento, hunting guiado por cobertura, validacion adversarial de candidatos, salida estructurada (findings.json contra schema), re-verificacion independiente y reporte target-neutral. Requiere sandbox sin red externa para ejecutar builds/tests/fuzzers del target. Origen del harness de vulnerability-hunting interno de Cloudflare.",
+      "keywords": ["security", "pentest", "vulnerability-hunting", "audit", "sub-agents"],
+      "author": {
+        "name": "Cloudflare",
+        "url": "https://github.com/cloudflare"
+      },
+      "license": "MIT",
+      "category": "development"
+    },
+    {
       "name": "all-deploy",
       "source": {
         "source": "url",

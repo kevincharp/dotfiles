@@ -31,6 +31,7 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `claude-code-setup` | `claude-automation-recommender` | Analiza el código y recomienda automatizaciones de Claude Code (hooks, subagents, skills, plugins, MCP) | Oficial (`claude-plugins-official`) |
 | `the-architect` | `architect`, `architect-quick`, `architect-brownfield`, `architect-refresh`, `architect-audit`, `architect-next` | Entrevista, diseña y genera bundles de construcción para proyectos nuevos o cambios sobre un repo existente, con criterios de aceptación validados | Tercero (`soyenriquerocha`) |
 | `cyber-neo` | `cyber-neo` | Auditoría de seguridad read-only (SAST, SCA, secretos, OWASP/CWE) | Tercero, envuelto en **este repo** (`kevincharp-dotfiles`) |
+| `security-audit-skill` | `security-audit` | Auditoría de seguridad adversarial en 6 fases con sub-agentes aislados (recon → hunting con cobertura → validación adversarial → salida estructurada → re-verificación independiente → reporte). Ver nota de solapamiento con `cyber-neo` abajo | Tercero, envuelto en **este repo** (`kevincharp-dotfiles`) |
 | `all-deploy` | `all-deploy` | Deploy a Vercel/Railway/Docker+VPS/cloudflared con auditoría previa y flujo preview→prod | Tercero, envuelto en **este repo** |
 | `ui-ux-pro-max` | `banner-design`, `brand`, `design`, `design-system`, `slides`, `ui-styling`, `ui-ux-pro-max` | Diseño UI/UX: tokens, paletas, tipografías, componentes shadcn/Tailwind, banners, slides, brand voice | Tercero (`ui-ux-pro-max-skill`) |
 | `rust-analyzer-lsp` | *(LSP, no es skill con `/`)* | Autocompletado/análisis de código Rust en vivo | Oficial |
@@ -46,6 +47,7 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `mattpocock-skills` | **engineering:** `ask-matt`, `grill-with-docs`, `triage`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `to-spec`, `to-tickets`, `implement`, `wayfinder`, `prototype`, `diagnosing-bugs`, `research`, `tdd`, `domain-modeling`, `codebase-design`, `code-review`, `resolving-merge-conflicts`, `wizard` · **productivity:** `grill-me`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `grilling`, `writing-for-agents` · **misc (sin documentar en el README, no explorado):** `git-guardrails-claude-code`, `migrate-to-shoehorn`, `scaffold-exercises`, `setup-pre-commit` | Disciplina de ingeniería real: alineación por "grilling" antes de codear, TDD, diagnóstico de bugs, domain modeling, flujo spec→tickets→implement contra un issue tracker, review por Standards+Spec en paralelo. Requiere correr `/setup-matt-pocock-skills` una vez por repo | Oficial (`claude-plugins-official`, autor Matt Pocock/aihero.dev) |
 | `thermos` | `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `thermos` (orquestador) | Doble revisión de branch/PR en paralelo: bugs/breaking changes/seguridad/devex/feature-gate leaks + mantenibilidad/estructura, sintetizadas. Ver nota de adaptación abajo | Tercero, adaptado de Cursor (`thermos`, marketplace propio) |
 | `landing-team` | *(sin skills — 4 agentes: `planner`, `builder`, `qa`, `security`)* | Agentes con `tools` restringidos para el [equipo de landing pages](guia-landing-pages.md); usados por el workflow `landing-pipeline` o sueltos vía el Agent tool | **Propia** (`claude-skills/landing-team`) |
+| `cloudflare` | `agents-sdk`, `cloudflare-email-service`, `cloudflare-one-migrations`, `cloudflare-one`, `cloudflare`, `durable-objects`, `nextjs-on-cloudflare`, `sandbox-migrate-to-next`, `sandbox-next`, `sandbox-stable`, `turnstile-spin`, `web-perf`, `workers-best-practices`, `wrangler` | Guía oficial de la plataforma Cloudflare (Workers, Durable Objects, Agents SDK, Wrangler, Cloudflare One, etc.). También registra el MCP server remoto `mcp.cloudflare.com/mcp` — la primera vez que se use pide conectar la cuenta real de Cloudflare | Tercero (`cloudflare`, marketplace propio) |
 
 ### Notas sobre `mattpocock-skills`
 
@@ -81,6 +83,23 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
   existe), no para este repo. Queda pendiente correrlo el día que ese
   proyecto exista — no confundir con "instalar el plugin", que ya está hecho
   y es global.
+
+## Notas sobre `security-audit-skill` vs `cyber-neo`
+
+**Decisión (2026-09-22): convivir, no reemplazar.** Se evaluaron ambos y son
+complementarios, no duplicados: `cyber-neo` es una pasada rápida read-only
+(SAST/SCA/secretos/config contra OWASP-CWE, un solo agente); `security-audit-skill`
+es una auditoría adversarial mucho más cara — orquesta sub-agentes aislados que se
+verifican entre sí (el que encuentra un hallazgo nunca es el que lo valida) y
+exige un **sandbox sin red externa** para ejecutar builds/tests/fuzzers del
+target real. Para un pase rápido de rutina, `cyber-neo`; para una auditoría
+seria antes de exponer algo a producción, `security-audit-skill`.
+
+No trae `marketplace.json` propio (`skills/security-audit/SKILL.md` suelto en el
+repo), por eso está envuelto en el `marketplace.json` de este repo igual que
+`cyber-neo`/`all-deploy` — mismo mecanismo, mismo costo: **hay que pushear antes
+de que `claude plugin install security-audit-skill@kevincharp-dotfiles -y` (o el
+`marketplace update`) resuelva**, porque lee el remoto, no el working tree.
 
 ## Notas sobre `thermos` y `landing-team`
 

@@ -651,6 +651,38 @@ rm -rf "$_sl_nojq"
 unset _sl _sl_nojq _sl_cases _sl_ctx
 unset -f _sl_run
 
+# ==============================================================================
+# 15. DRIFT ENTRE BOOTSTRAP.SH Y UNINSTALL.SH
+# ------------------------------------------------------------------------------
+# uninstall.sh mantiene DOTFILES_TARGETS a mano, sin derivarlo de bootstrap.sh:
+# si se agrega un copy_dotfile/link_dir nuevo y no se refleja ahi, uninstall.sh
+# deja ese archivo huerfano tras desinstalar, en silencio. Se verifica ESTATICO
+# (grep sobre los dos scripts), no ejecutando ningun bootstrap real.
+# ==============================================================================
+
+section "15. Drift bootstrap <-> uninstall (Linux)"
+
+_bs_sh="$_repo_root/bootstrap.sh"
+_target_block=$(sed -n '/^DOTFILES_TARGETS=/,/^)/p' "$_repo_root/uninstall.sh")
+while IFS= read -r _dest; do
+    [[ -z "$_dest" ]] && continue
+    # ${XDG_CONFIG_HOME:-$HOME/.config}/... (opencode) normaliza a $HOME/.config/...
+    _norm="${_dest/\$\{XDG_CONFIG_HOME:-\$HOME\/.config\}/\$HOME/.config}"
+    # Variables dinamicas (ej. $HOME/.gitconfig-$_s, por identidad) no van en
+    # DOTFILES_TARGETS: uninstall.sh las cubre aparte, via el loop de sufijos
+    # del vault. Si despues de sacar $HOME queda otro '$', es dinamico: se salta.
+    _check="${_norm/\$HOME/}"
+    if [[ "$_check" == *'$'* ]]; then
+        continue
+    fi
+    if grep -qF "\"$_norm\"" <<< "$_target_block"; then
+        test_ok "uninstall.sh limpia $_norm"
+    else
+        test_fail "Drift bootstrap->uninstall" "bootstrap.sh crea '$_norm' pero uninstall.sh no lo tiene en DOTFILES_TARGETS (quedaria huerfano)"
+    fi
+done < <(grep -oP '(?:copy_dotfile|link_dir)\s+"[^"]+"\s+"\K[^"]+' "$_bs_sh")
+unset _target_block _dest _norm _check _bs_sh
+
 unset _repo_root
 
 # ==============================================================================

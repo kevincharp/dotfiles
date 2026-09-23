@@ -8,7 +8,7 @@ restore-session=false
 restore-window-size=true
 use-system-font=false
 visual-bell=false
-window-size=(uint32 238, uint32 59)
+window-size=(uint32 80, uint32 24)
 
 [Profiles/8caec5e3863a9c03618dd2a46a1ccfb6]
 login-shell=true
@@ -17,13 +17,15 @@ palette='linux'
 
 [Profiles/efb537879e29f6d38e04d1e56a2e4ff5]
 cell-width-scale=1.0
-label='dotfiles'
+label='kevincharp'
 login-shell=false
+opacity=1.0
 palette='linux'
 
 [Shortcuts]
 close-tab='<Control>w'
 focus-tab-last=''
+new-tab='<Control>t'
 reset=''
 set-title='<Control><Alt>r'
 undo-close-tab='<Shift><Control>t'

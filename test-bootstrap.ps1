@@ -485,6 +485,48 @@ if (-not (Test-CommandExists 'oh-my-posh')) {
 }
 
 # ==============================================================================
+# 14. DRIFT ENTRE BOOTSTRAP.PS1 Y UNINSTALL.PS1
+# ------------------------------------------------------------------------------
+# uninstall.ps1 mantiene $DOTFILES_TARGETS a mano, sin derivarlo de
+# bootstrap.ps1 (espejo de la seccion 15 de test-bootstrap.sh, ver ahi el
+# razonamiento completo). Estatico: parsea el texto de los dos scripts, no
+# ejecuta ningun bootstrap real.
+# ==============================================================================
+
+Write-Section "14. Drift bootstrap <-> uninstall (Windows)"
+
+# $repoRoot de la seccion 13 es condicional (solo se define si oh-my-posh esta
+# instalado, bajo Set-StrictMode referenciarla sin eso tira error) — variable
+# propia, independiente.
+$driftRepoRoot = $PSScriptRoot
+$bsContent = Get-Content -Raw (Join-Path $driftRepoRoot "bootstrap.ps1")
+$unContent = Get-Content -Raw (Join-Path $driftRepoRoot "uninstall.ps1")
+
+$expectedDsts = [System.Collections.Generic.List[string]]::new()
+foreach ($m in [regex]::Matches($bsContent, 'Dst="([^"]+)"')) {
+    $expectedDsts.Add($m.Groups[1].Value)
+}
+# Bloques especiales fuera del array $DOTFILES generico (mismo formato literal
+# que usan los dos scripts): AGENTS.md de Codex/opencode.
+$expectedDsts.Add('$HOME\.codex\AGENTS.md')
+$expectedDsts.Add('$HOME\.config\opencode\AGENTS.md')
+# nvim NO se chequea aca a proposito: bootstrap.ps1 y uninstall.ps1 lo resuelven
+# los dos con el mismo condicional XDG_CONFIG_HOME/LOCALAPPDATA (una expresion,
+# no un string literal), asi que no hay un unico string que matchear. Paridad
+# verificada a mano (2026-09-22): revisar ambos lados si se toca ese bloque.
+
+foreach ($dst in $expectedDsts) {
+    # Dinamicos ($HOME\.gitconfig-$s por identidad) no van en $DOTFILES_TARGETS:
+    # uninstall.ps1 los cubre aparte, via el loop de sufijos del vault.
+    if ($dst -match '\$s\b') { continue }
+    if ($unContent.Contains("`"$dst`"")) {
+        Test-OK "uninstall.ps1 limpia $dst"
+    } else {
+        Test-Fail "Drift bootstrap->uninstall" "bootstrap.ps1 crea '$dst' pero uninstall.ps1 no lo tiene en `$DOTFILES_TARGETS (quedaria huerfano)"
+    }
+}
+
+# ==============================================================================
 # RESUMEN
 # ==============================================================================
 

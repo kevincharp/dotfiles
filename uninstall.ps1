@@ -43,7 +43,10 @@ $DOTFILES_TARGETS = @(
     "$HOME\.codex\AGENTS.md"
     "$HOME\.config\opencode\AGENTS.md"
     "$env:APPDATA\yazi\config\yazi.toml"
-    "$env:LOCALAPPDATA\nvim"
+    # Mismo condicional que bootstrap.ps1: si XDG_CONFIG_HOME esta seteada, el
+    # symlink real quedo ahi, no en LOCALAPPDATA. Sin este if, esa maquina se
+    # queda con el symlink de nvim huerfano tras desinstalar.
+    $(if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME 'nvim' } else { Join-Path $env:LOCALAPPDATA 'nvim' })
     "$HOME\.local\bin\lazyssh.exe"
     "$HOME\.local\bin\lazysql.exe"
 )

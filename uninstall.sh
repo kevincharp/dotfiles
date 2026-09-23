@@ -57,7 +57,10 @@ DOTFILES_TARGETS=(
     "$HOME/.config/fontconfig/fonts.conf"
     "$HOME/.claude/settings.json"
     "$HOME/.claude/CLAUDE.md"
-    "$HOME/.claude/settings.local.json"
+    # settings.local.json NO va aca a proposito: bootstrap.sh nunca lo crea ni
+    # lo symlinkea (es per-maquina, el usuario lo edita a mano). Si estuviera
+    # en esta lista, el loop de abajo lo borraria como "archivo real" aunque
+    # nunca lo haya instalado este repo.
     "$HOME/.config/oh-my-posh/themes/claude-code.omp.json"
     "$HOME/.config/ulauncher/settings.json"
     "$HOME/.config/ulauncher/shortcuts.json"

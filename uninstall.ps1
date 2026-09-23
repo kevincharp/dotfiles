@@ -35,7 +35,10 @@ $DOTFILES_TARGETS = @(
     "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
     "$HOME\.editorconfig"
     "$HOME\.claude\settings.json"
-    "$HOME\.claude\settings.local.json"
+    # settings.local.json NO va aca a proposito: bootstrap.ps1 nunca lo crea ni
+    # lo symlinkea (es per-maquina, el usuario lo edita a mano). Si estuviera
+    # en esta lista, el loop de abajo lo borraria como "archivo real" aunque
+    # nunca lo haya instalado este repo.
     "$HOME\.claude\CLAUDE.md"
     "$HOME\.codex\AGENTS.md"
     "$HOME\.config\opencode\AGENTS.md"

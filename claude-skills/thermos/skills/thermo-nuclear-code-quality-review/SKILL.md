@@ -4,7 +4,7 @@ description: Run an extremely strict maintainability review for abstraction qual
 disable-model-invocation: true
 ---
 
-<!-- Vendorizado sin cambios desde https://github.com/cursor/plugins/tree/main/thermos (MIT, ver LICENSE en la raíz de este plugin). Reemplaza a la copia obsoleta de cursor-team-kit: el propio README de Cursor indica que esta skill se migró para acá. -->
+<!-- Vendorizado desde https://github.com/cursor/plugins/tree/main/thermos (MIT, ver LICENSE en la raíz de este plugin). Reemplaza a la copia obsoleta de cursor-team-kit: el propio README de Cursor indica que esta skill se migró para acá. Registro de énfasis bajado a tono normal vía /claude-api prompt-audit — mismas reglas, sin cambio de contrato. -->
 
 # Thermo-Nuclear Code Quality Review
 
@@ -20,7 +20,6 @@ Start from this baseline:
 > Rethink how to structure / implement the changes to meaningfully improve code quality without impacting behavior.
 > Work to improve abstractions, modularity, reduce Spaghetti code, improve succinctness and legibility.
 > Be ambitious, if there is a clear path to improving the implementation that involves restructuring some of the codebase, go for it.
-> Be extremely thorough and rigorous. Measure twice, cut once.
 
 ## Non-Negotiable Additional Standards
 

@@ -1682,9 +1682,11 @@ function claude-smg {
     $env:CLAUDE_CODE_USE_BEDROCK = "1"
     $env:AWS_PROFILE             = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
     $env:AWS_REGION              = if ($env:CLAUDE_SMG_AWS_REGION)  { $env:CLAUDE_SMG_AWS_REGION }  else { 'us-east-1' }
-    # Modelo Bedrock: por defecto NO se fija, para que Claude Code autodescubra los
-    # modelos de tu cuenta y los ofrezca todos en /model (elegis en caliente, como
-    # en Desktop). Solo se clava uno si defines CLAUDE_SMG_MODEL en el entorno.
+    # Modelo Bedrock: en la cuenta de SMG solo esta habilitado Sonnet 5.5, el
+    # resto de lo que Claude Code ofrece en /model es ruido que fallaria al
+    # invocarse. Si defines CLAUDE_SMG_MODEL en el entorno, se fija como default
+    # (ANTHROPIC_MODEL) y ademas se restringe el picker a ese unico modelo
+    # via --settings (mas abajo). Sin CLAUDE_SMG_MODEL no se fija ni restringe nada.
     if ($env:CLAUDE_SMG_MODEL) {
         $env:ANTHROPIC_MODEL = $env:CLAUDE_SMG_MODEL
     } else {
@@ -1719,7 +1721,11 @@ function claude-smg {
         }
     }
 
-    claude @args
+    if ($env:CLAUDE_SMG_MODEL) {
+        claude --settings "{`"availableModels`":[`"$($env:CLAUDE_SMG_MODEL)`"]}" @args
+    } else {
+        claude @args
+    }
     & $cleanup
 }
 

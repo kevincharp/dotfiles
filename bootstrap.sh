@@ -325,6 +325,7 @@ TOOLS_CATALOG=(
     "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
     "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
     "chrome|apps|Google Chrome (RPM oficial + repo para updates)"
+    "firefox|apps|Firefox (perfiles Personal/Aplicaciones, privacidad por user.js y PWA)"
     "onlyoffice|apps|Suite ofimatica compatible con Word/Excel/PowerPoint (RPM oficial)"
     "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
     "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
@@ -369,6 +370,7 @@ tool_installed() {
         samba)           # listo si el paquete esta y el servicio quedo habilitado
                          rpm -q samba &>/dev/null && systemctl is-enabled smb &>/dev/null ;;
         chrome)          rpm -q google-chrome-stable &>/dev/null ;;
+        firefox)         has_cmd firefox ;;
         onlyoffice)      rpm -q onlyoffice-desktopeditors &>/dev/null ;;
         openlogi)        rpm -q openlogi &>/dev/null ;;
         flameshot)       has_cmd flameshot ;;
@@ -711,6 +713,17 @@ install_tool() {
                 run_step "Instalar Google Chrome (.rpm oficial)" \
                     sudo dnf install -y \
                     "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
+            fi
+            ;;
+        firefox)
+            # Firefox de los repos (RPM en Fedora, suele venir preinstalado). Las
+            # web apps (Taskbar Tabs) no funcionan en el Snap que usa Ubuntu, asi
+            # que apt queda afuera: instalar el .deb/tar de Mozilla a mano.
+            if [[ "$PKG_MANAGER" == "apt" ]]; then
+                log "firefox: en apt instala Snap (sin web apps) — instalar manual desde Mozilla" "WARN"
+                WARNINGS+=("firefox no instalado — en apt el paquete es Snap; instalar el de Mozilla a mano")
+            else
+                run_step "Instalar Firefox" $PKG_INSTALL firefox
             fi
             ;;
         onlyoffice)
@@ -1740,6 +1753,35 @@ fi
 # si yazi esta instalado (evita crear un symlink huerfano en maquinas sin yazi).
 if want_tool yazi; then
     copy_dotfile "yazi/yazi.toml"   "$HOME/.config/yazi/yazi.toml"  "link"
+fi
+
+# Firefox: la config de privacidad vive en firefox/ (user.js por perfil, excepciones
+# de cookies, zoom y el .desktop que fija el perfil). No es un copy_dotfile: los
+# perfiles tienen carpetas aleatorias y hay que resolverlos por nombre, asi que lo
+# hace firefox/aplicar-perfiles.sh. Sale 3 cuando algo quedo sin aplicar (perfil
+# sin crear, Firefox abierto): es una advertencia, no un fallo.
+if want_tool firefox; then
+    _ff_args=()
+    if [[ "$DRY_RUN" == true ]]; then _ff_args=(--dry-run); fi
+    _ff_rc=0
+    _ff_out="$(bash "$REPO_ROOT/firefox/aplicar-perfiles.sh" ${_ff_args[@]+"${_ff_args[@]}"} 2>&1)" || _ff_rc=$?
+    printf '%s\n' "$_ff_out" >> "$LOG_FILE" 2>/dev/null || true
+    if [[ "$_ff_rc" -eq 0 ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            log "[DryRun] Firefox: config de perfiles" "SKIP"
+        else
+            log "Firefox: config de perfiles aplicada" "OK"
+        fi
+    elif [[ "$_ff_rc" -eq 3 ]]; then
+        log "Firefox: config incompleta (detalle en los avisos del final)" "WARN"
+        while IFS= read -r _ff_linea; do
+            WARNINGS+=("${_ff_linea#*\[WARN\] }")
+        done < <(grep -F '[WARN]' <<< "$_ff_out" || true)
+    else
+        log "Firefox: aplicar-perfiles.sh fallo (rc=$_ff_rc)" "ERROR"
+        ERRORS+=("Firefox: aplicar-perfiles.sh fallo (rc=$_ff_rc)")
+    fi
+    unset _ff_args _ff_rc _ff_out _ff_linea
 fi
 
 # Fontconfig: fuerza los emoji a color en Chrome/Chromium. Chrome en Linux NO usa

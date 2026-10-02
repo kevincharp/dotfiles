@@ -349,7 +349,12 @@ GNOME asocia mal algunos `.desktop`.
   `Aplicaciones` **no borra cookies ni storage** al cerrar
   (`privacy.clearOnShutdown_v2.cookiesAndStorage = false` en `user-aplicaciones.js`);
   historial y caché siguen borrándose. Verificado: la sesión sobrevive al cierre.
-  En `Personal` las excepciones no se re-verificaron después de este incidente.
+  En `Personal` las excepciones **sí funcionan** (verificado a mano el 2026-10-02:
+  las sesiones de GitHub y MercadoLibre sobreviven al cierre), así que el fallo es
+  específico de `Aplicaciones` (ventanas Taskbar Tabs, o filas insertadas por
+  `aplicar-perfiles.sh` en vez de por la UI; **sin discriminar**). Las filas de
+  Microsoft, WhatsApp y X en `Personal` también las insertó el script y no se
+  probaron.
 - Diagnóstico que sirvió: copiar `cookies.sqlite*` a un tmp y listar
   `host, name, expiry` (sin valores) antes y después de cerrar. `expiry` está en ms.
 

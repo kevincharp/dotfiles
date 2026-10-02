@@ -396,9 +396,9 @@ perfil predeterminado que se mueve, borrado al cerrar):
   subconjunto).
 - **`Aplicaciones` no borra cookies al cerrar** (`user-aplicaciones.js`): el
   borrado se llevó incluso los sitios con excepción "Permitir" y cada apertura
-  pedía login. `Personal` sí las borra y depende de las excepciones de
-  `excepciones-cookies.txt`; si allí se pierden sesiones, mismo diagnóstico (ver
-  las notas técnicas).
+  pedía login. `Personal` sí las borra y las excepciones de
+  `excepciones-cookies.txt` ahí funcionan (verificado con GitHub y MercadoLibre);
+  si algún día se pierden sesiones, diagnóstico en las notas técnicas.
 - **Sqlite solo con Firefox cerrado** (excepciones de cookies, zoom): el script
   lo detecta y lo saltea con aviso.
 - **Pendiente a propósito:** `network.trr.excluded-domains` vacío (dominios

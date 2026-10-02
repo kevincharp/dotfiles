@@ -1,0 +1,13 @@
+# Origenes con cookies siempre permitidas (no se borran al cerrar Firefox).
+# Una por linea; las lineas con # se ignoran. Se cargan con firefox/aplicar-perfiles.sh
+https://accounts.google.com
+https://github.com
+https://google.com
+https://login.microsoftonline.com
+https://mail.google.com
+https://outlook.cloud.microsoft
+https://teams.cloud.microsoft
+https://web.whatsapp.com
+https://www.mercadolibre.com.ar
+https://x.com
+https://youtube.com

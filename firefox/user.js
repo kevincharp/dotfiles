@@ -22,6 +22,19 @@ user_pref("browser.discovery.enabled", false);
 user_pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
 user_pref("browser.newtabpage.activity-stream.telemetry", false);
 
+// --- Barra de direcciones: sin sugerencias de buscador ni atajos ---
+// Las sugerencias mandan lo que se tipea al buscador antes de buscar.
+user_pref("browser.search.suggest.enabled", false);
+user_pref("browser.urlbar.suggest.searches", false);
+user_pref("browser.urlbar.suggest.engines", false);
+user_pref("browser.urlbar.showSearchSuggestionsFirst", false);
+user_pref("browser.urlbar.suggest.trending", false);
+user_pref("browser.urlbar.suggest.topsites", false);   // atajos al enfocar la barra (p. ej. la pagina de inicio de Fedora)
+
+// --- Otros ajustes que estaban solo en Personal (espejo) ---
+user_pref("privacy.trackingprotection.allow_list.convenience.enabled", false);   // sin lista de "conveniencia" en ETP estricto
+user_pref("general.autoScroll", true);
+
 // --- Contenido patrocinado ---
 user_pref("browser.newtabpage.activity-stream.showSponsored", false);
 user_pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);

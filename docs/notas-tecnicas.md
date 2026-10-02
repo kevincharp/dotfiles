@@ -292,3 +292,84 @@ aparece **dos veces** en el selector Web.
   no se versiona una copia estática.
 - Si Google unifica los `.desktop` en el futuro, el override puede estorbar:
   `rm ~/.local/share/applications/com.google.Chrome.desktop`.
+
+## Firefox: por qué dos perfiles y un `.desktop` con perfil fijo
+
+Contexto: se dejó Chrome por privacidad, pero Teams y Outlook se usan como PWA.
+Firefox las tiene como **Taskbar Tabs** (pref `browser.taskbarTabs.enabled`,
+por perfil, desactivada por defecto; en Linux desde Firefox 150). Son atajos a
+un sitio con icono propio, **no PWA completas** (sin manifest ni badge).
+Según Bugzilla (2021458, 2021459, 2030476 — leídos el 2026-10-01 vía un
+informe, no reverificados) no hay plan de activarlas por defecto en Linux y
+GNOME asocia mal algunos `.desktop`.
+
+- **Síntoma:** con Teams/Outlook abiertos, el Firefox normal aparece en el
+  dock **agrupado con el icono de una PWA** (o de otra, según cuál se abrió
+  primero). Abrir el navegador *antes* que las apps lo evita, pero es frágil.
+- **Causa (observada, no leída de GNOME):** todas las ventanas de un perfil
+  cuelgan de **un solo proceso**, lanzado con `-taskbar-tab <uuid>` por la
+  primera app; el navegador hereda ese icono. Probado: renombrar el `.desktop`
+  de la PWA (prefijo `org.mozilla.`) **no arregla nada** y deja el icono
+  genérico. Lo que sí separa es poner el navegador y las PWA en **perfiles
+  distintos** (procesos distintos). Si un perfil tiene PWA, no puede ser el del
+  navegador.
+- **El perfil "predeterminado" se mueve:** `profiles.ini` (`[Profile0] Path`,
+  `[InstallXXX] Default`) e `installs.ini` pasan a apuntar al **último perfil
+  usado**. Abrir Teams dejaba `Default` en `Aplicaciones`, y Firefox lanzado
+  desde Ulauncher abría ese perfil. Marcar "predeterminado" o quitar el selector
+  de arranque no alcanza. Solución: `aplicar-perfiles.sh` genera
+  `~/.local/share/applications/org.mozilla.firefox.desktop` (copia del del
+  sistema) con `-profile <ruta>` fijo; Ulauncher y el dock lanzan ese id. No cubre
+  el `firefox` tipeado en terminal.
+- **Perfiles por nombre:** el sistema nuevo de perfiles guarda `nombre → carpeta`
+  en `Profile Groups/<id>.sqlite` (tabla `Profiles`); `profiles.ini` ya no lista
+  todos. De ahí los resuelve el script, porque las carpetas tienen sufijo
+  aleatorio.
+
+### Borrado al cerrar y excepciones de cookies
+
+- Las excepciones "Permitir" viven en `permissions.sqlite` **de cada perfil**
+  (tabla `moz_perms`, `type='cookie'`): no se comparten, por eso la lista
+  versionada se carga en los dos.
+- Son por **origen exacto** (`https://teams.cloud.microsoft` no cubre
+  `login.live.com`): si una PWA pide iniciar sesión tras cerrar Firefox, falta un
+  dominio de Microsoft en la lista.
+- `privacy.clearOnShutdown_v2.siteSettings = false` es lo que evita que el
+  borrado se lleve las propias excepciones.
+- Las URLs de las PWA cambiaron (`teams.microsoft.com` → `teams.cloud.microsoft`,
+  `outlook.office.com` → `outlook.cloud.microsoft`); la lista usa las nuevas.
+
+### Verificar que una preferencia existe y se aplicó
+
+- `about:support` → "Preferencias modificadas" muestra solo un **subconjunto**;
+  que falte una no prueba que no se aplicó.
+- Un `user_pref` con nombre inexistente se acepta en silencio. Existencia:
+  buscar el nombre en `/usr/lib64/firefox/browser/omni.ja`, `greprefs.js` y
+  `libxul.so`. Falso negativo conocido: las de `browser.newtabpage.activity-stream.*`
+  viven en el add-on `newtab@mozilla.org` del perfil, no en el binario.
+  `extensions.pocket.enabled` ya no existe (Pocket se quitó).
+- El interruptor de Ajustes "Bloquear mejoras de IA" guarda 7 prefs
+  `browser.ai.control.*` en `"blocked"` (más `browser.translations.enable` y
+  otras): el bloque de IA del `user.js` es ese conjunto, para que los perfiles
+  no se desvíen. Bloquear elimina los modelos locales, traducciones incluidas.
+
+### Zoom por defecto
+
+El 90 % es una preferencia **de contenido**, no de `prefs.js`: fila global
+(`groupID IS NULL`) de `browser.content.full-zoom` en `content-prefs.sqlite`.
+Un zoom por sitio (p. ej. Teams en 100 %) la pisa.
+
+### Marcadores con nombre vacío
+
+Chrome permite marcadores sin nombre (solo icono); Firefox, con el título vacío
+muestra la **URL** en los menús. Se resolvió con un espacio como título
+(`UPDATE moz_bookmarks SET title=' ' WHERE type=1 AND title IS NULL` en
+`places.sqlite`, con Firefox cerrado). Editar el JSON de marcadores de Chrome a
+mano **no se sincroniza** con la cuenta de Google (la sync observa cambios desde
+la interfaz, no el archivo): se replicó a mano en el otro equipo.
+
+### Firefox Sync
+
+Se dejó activo (sincroniza, entre otras cosas, tarjetas aunque el autocompletado
+esté apagado). `user.js` gana al arrancar, así que lo sincronizado no desarma esta
+config.

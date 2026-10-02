@@ -363,6 +363,43 @@ mapeos, items del picker), no contra el README del plugin. Dos trampas:
   atajo es lo que dispara la carga y necesita algo del setup, va dentro de
   `vim.schedule`.
 
+## Firefox (`firefox/`)
+
+Navegador de privacidad, **solo Linux** (en Windows no se usa). Grupo `apps` del
+selector. Toda la config vive en `firefox/`; el "por qué" (bugs de GNOME, el
+perfil predeterminado que se mueve, borrado al cerrar):
+[`docs/notas-tecnicas.md`](docs/notas-tecnicas.md#firefox-por-qué-dos-perfiles-y-un-desktop-con-perfil-fijo).
+
+- **Dos perfiles, a propósito:** `Personal` (navegador diario) y `Aplicaciones`
+  (solo PWA: Teams, Outlook… vía Taskbar Tabs). **Nunca mezclar una PWA y el
+  navegador en el mismo perfil**: Firefox corre un proceso por perfil y GNOME
+  agrupa por proceso, así que el navegador se cuelga del icono de una PWA.
+- **`firefox/aplicar-perfiles.sh`** aplica todo, idempotente (`--dry-run`,
+  `--quitar`). Resuelve los perfiles **por nombre** desde
+  `Profile Groups/*.sqlite` (las carpetas tienen sufijo aleatorio): hay que
+  crearlos una vez a mano desde el selector de Firefox, con esos nombres
+  exactos. Sale **3 = incompleto** (perfil sin crear, Firefox abierto): es una
+  advertencia del bootstrap, no un fallo.
+- **Editar el repo, no el perfil:** el `user.js` del perfil lleva una marca y se
+  pisa al re-correr. `Aplicaciones` = `user.js` + `user-aplicaciones.js` (espejo
+  de interfaz, para que los dos perfiles se vean igual).
+- **`user.js` se reaplica en cada arranque:** lo que se cambie desde Ajustes
+  vuelve al valor del archivo. Para habilitar algo (p. ej. traducciones locales
+  del bloque de IA) hay que **quitarlo del repo** y re-correr.
+- **El perfil "predeterminado" no sirve para fijar el navegador:** Firefox mueve
+  `Default` (`profiles.ini`/`installs.ini`) al último perfil que abrió. Por eso
+  el script genera un `.desktop` propio con `-profile` fijo. No vale para el
+  `firefox` escrito en terminal.
+- **Nombres de preferencias:** cambian entre versiones. Antes de agregar una
+  línea al `user.js`, confirmar que existe (`about:config`) y después que se
+  aplicó (`about:support` → "Preferencias modificadas", que muestra solo un
+  subconjunto).
+- **Sqlite solo con Firefox cerrado** (excepciones de cookies, zoom): el script
+  lo detecta y lo saltea con aviso.
+- **Pendiente a propósito:** `network.trr.excluded-domains` vacío (dominios
+  internos de la VPN); extensiones (uBlock Origin, Proton Pass) a mano; Firefox
+  Sync intacto.
+
 ## Verificación
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.

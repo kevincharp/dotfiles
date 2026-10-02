@@ -291,6 +291,17 @@ for target in "${DOTFILES_TARGETS[@]}"; do
     fi
 done
 
+# Firefox: user.js de cada perfil y el .desktop que fija el perfil. No son
+# destinos fijos (las carpetas de perfil son aleatorias), los resuelve el script
+# del repo, y solo borra lo que lleva su marca. Los perfiles y sus datos no se tocan.
+if [[ -x "$DOTFILES_DIR/firefox/aplicar-perfiles.sh" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+        "$DOTFILES_DIR/firefox/aplicar-perfiles.sh" --quitar --dry-run || true
+    else
+        "$DOTFILES_DIR/firefox/aplicar-perfiles.sh" --quitar || true
+    fi
+fi
+
 # ==============================================================================
 # 5. RESTAURAR BACKUPS
 # ==============================================================================

@@ -31,6 +31,11 @@ user_pref("browser.urlbar.showSearchSuggestionsFirst", false);
 user_pref("browser.urlbar.suggest.trending", false);
 user_pref("browser.urlbar.suggest.topsites", false);   // atajos al enfocar la barra (p. ej. la pagina de inicio de Fedora)
 
+// --- Barra lateral (pestañas verticales): siempre visible y retraida, sin expandir al pasar el mouse ---
+// "Retraida" es un estado interno de Firefox (sidebar.backupState); aca solo se fija que no se oculte ni se expanda sola.
+user_pref("sidebar.visibility", "always-show");
+user_pref("sidebar.expandOnHover", false);
+
 // --- Otros ajustes que estaban solo en Personal (espejo) ---
 user_pref("privacy.trackingprotection.allow_list.convenience.enabled", false);   // sin lista de "conveniencia" en ETP estricto
 user_pref("general.autoScroll", true);

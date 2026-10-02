@@ -6,4 +6,9 @@ user_pref("browser.toolbars.bookmarks.visibility", "never");
 user_pref("browser.tabs.inTitlebar", 1);
 user_pref("browser.startup.homepage", "chrome://browser/content/blanktab.html");
 user_pref("browser.newtabpage.enabled", false);
-user_pref("sidebar.visibility", "always-show");   // en Personal queda el valor por defecto
+
+// --- Aplicaciones: NO borrar cookies ni storage al cerrar ---
+// Este perfil solo guarda sesiones de PWA (Teams, Outlook...). Con el borrado activo se perdian
+// hasta los sitios con excepcion "Permitir" (ESTSAUTHPERSISTENT incluido) y habia que loguearse
+// en cada apertura. El historial y la cache se siguen borrando.
+user_pref("privacy.clearOnShutdown_v2.cookiesAndStorage", false);

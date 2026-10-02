@@ -338,6 +338,20 @@ GNOME asocia mal algunos `.desktop`.
   borrado se lleve las propias excepciones.
 - Las URLs de las PWA cambiaron (`teams.microsoft.com` → `teams.cloud.microsoft`,
   `outlook.office.com` → `outlook.cloud.microsoft`); la lista usa las nuevas.
+- **Las excepciones NO protegieron en `Aplicaciones` (2026-10-02):** tras cerrar
+  Firefox el borrado dejó **0 cookies** (venían 34, con `ESTSAUTHPERSISTENT`) y sin
+  storage de `teams.cloud.microsoft`, pese a que `login.microsoftonline.com`,
+  `teams.cloud.microsoft` y `outlook.cloud.microsoft` seguían en `moz_perms` con
+  Permitir. Un día antes las sesiones sí sobrevivieron; **no se encontró qué
+  cambió** (la lista de conveniencia de ETP se probó y no era). Cookies que mandan
+  Teams/Skype desde hosts sin excepción (`skype.com`, `teams.microsoft.com`,
+  `microsoft.com`, algunas particionadas) también se borran. Decisión:
+  `Aplicaciones` **no borra cookies ni storage** al cerrar
+  (`privacy.clearOnShutdown_v2.cookiesAndStorage = false` en `user-aplicaciones.js`);
+  historial y caché siguen borrándose. Verificado: la sesión sobrevive al cierre.
+  En `Personal` las excepciones no se re-verificaron después de este incidente.
+- Diagnóstico que sirvió: copiar `cookies.sqlite*` a un tmp y listar
+  `host, name, expiry` (sin valores) antes y después de cerrar. `expiry` está en ms.
 
 ### Verificar que una preferencia existe y se aplicó
 

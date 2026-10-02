@@ -394,6 +394,11 @@ perfil predeterminado que se mueve, borrado al cerrar):
   línea al `user.js`, confirmar que existe (`about:config`) y después que se
   aplicó (`about:support` → "Preferencias modificadas", que muestra solo un
   subconjunto).
+- **`Aplicaciones` no borra cookies al cerrar** (`user-aplicaciones.js`): el
+  borrado se llevó incluso los sitios con excepción "Permitir" y cada apertura
+  pedía login. `Personal` sí las borra y depende de las excepciones de
+  `excepciones-cookies.txt`; si allí se pierden sesiones, mismo diagnóstico (ver
+  las notas técnicas).
 - **Sqlite solo con Firefox cerrado** (excepciones de cookies, zoom): el script
   lo detecta y lo saltea con aviso.
 - **Pendiente a propósito:** `network.trr.excluded-domains` vacío (dominios

@@ -95,6 +95,7 @@ Requieren el [vault](adaptalo.md#el-vault) (ahí viven los nombres/emails).
 | `Ctrl+R` | Búsqueda difusa por cualquier parte del comando |
 | `clear-history [patrón]` | Sin argumentos vacía todo el historial (confirma antes); con patrón borra solo las líneas que matcheen (ideal para sacar un token pegado por error) |
 | `edit-history` | Abre el archivo de historial en el editor |
+| `claude-clean [-n] [-y] [--days N]` | Limpia la basura regenerable de `~/.claude` (historial, file-history, caches, snapshots, sesiones huérfanas, backups viejos). Muestra qué borra y cuánto libera, y confirma. Con `--days N` borra también conversaciones de más de N días. No toca memoria, skills, settings ni credenciales. En PowerShell: `-DryRun -Yes -Days N` |
 
 ## Nube (iCloud vía rclone) *(Linux)*
 

@@ -529,6 +529,91 @@ function edit-history {
     edit $hist
 }
 
+<#
+.SYNOPSIS limpiar la basura regenerable de ~/.claude (historial, caches, sesiones huerfanas)
+.DESCRIPTION Espejo del claude-clean de bash/zsh (paridad). Muestra que borraria y cuanto
+libera, y pide confirmacion. NUNCA toca CLAUDE.md, settings*, keybindings, .credentials.json,
+skills/, plugins/ ni la memoria (projects/*/memory/). Las conversaciones (projects/*/*.jsonl)
+solo se tocan con -Days N. Respeta CLAUDE_CONFIG_DIR.
+.EXAMPLE claude-clean -DryRun       # solo mostrar
+.EXAMPLE claude-clean -Days 14 -Yes # ademas borra conversaciones de mas de 14 dias, sin preguntar
+#>
+function claude-clean {
+    param([switch]$DryRun, [switch]$Yes, [int]$Days = 0)
+
+    $dir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
+    if (-not (Test-Path -LiteralPath $dir)) {
+        Write-Host "claude-clean: no existe $dir" -ForegroundColor Red
+        return
+    }
+    $targets = [System.Collections.Generic.List[string]]::new()
+
+    # Regenerables: Claude los vuelve a crear cuando los necesita.
+    foreach ($p in 'history.jsonl', 'stats-cache.json', 'file-history', 'paste-cache',
+                   'shell-snapshots', 'session-env',
+                   'plugins\plugin-catalog-cache.json', 'plugins\plugin-directory-cache-v2.json') {
+        $full = Join-Path $dir $p
+        if (Test-Path -LiteralPath $full) { $targets.Add($full) }
+    }
+    # Backups de ~/.claude.json: todos menos el mas reciente.
+    Get-ChildItem -LiteralPath (Join-Path $dir 'backups') -Force -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -Skip 1 |
+        ForEach-Object { $targets.Add($_.FullName) }
+    # Registros de sesion (<pid>.json + <pid>.*.key) cuyo proceso ya no existe.
+    $sesDir = Join-Path $dir 'sessions'
+    Get-ChildItem -LiteralPath $sesDir -Filter '*.json' -File -ErrorAction SilentlyContinue | ForEach-Object {
+        $procId = $_.BaseName -as [int]
+        if ($procId -and -not (Get-Process -Id $procId -ErrorAction SilentlyContinue)) {
+            $targets.Add($_.FullName)
+            Get-ChildItem -LiteralPath $sesDir -Filter "$($_.BaseName).*.key" -File -ErrorAction SilentlyContinue |
+                ForEach-Object { $targets.Add($_.FullName) }
+        }
+    }
+    # Conversaciones viejas (y su carpeta de adjuntos): solo si se pidio -Days.
+    if ($Days -gt 0) {
+        $limite = (Get-Date).AddDays(-$Days)
+        Get-ChildItem -LiteralPath (Join-Path $dir 'projects') -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            Get-ChildItem -LiteralPath $_.FullName -Filter '*.jsonl' -File |
+                Where-Object { $_.LastWriteTime -lt $limite } | ForEach-Object {
+                    $targets.Add($_.FullName)
+                    $adj = Join-Path $_.DirectoryName $_.BaseName
+                    if (Test-Path -LiteralPath $adj -PathType Container) { $targets.Add($adj) }
+                }
+        }
+    }
+
+    if ($targets.Count -eq 0) {
+        Write-Host "Nada que limpiar en $dir."
+        return
+    }
+    Write-Host "Se borraria de ${dir}:"
+    $totalKb = 0
+    foreach ($t in $targets) {
+        $item = Get-Item -LiteralPath $t -Force
+        $bytes = if ($item.PSIsContainer) {
+            (Get-ChildItem -LiteralPath $t -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+        } else { $item.Length }
+        $kb = [math]::Ceiling([double]$bytes / 1KB)
+        $totalKb += $kb
+        '  {0,8} KB  {1}' -f $kb, $t.Substring($dir.Length).TrimStart('\', '/') | Write-Host
+    }
+    Write-Host ("Total: {0} elemento(s), {1:N1} MB." -f $targets.Count, ($totalKb / 1024))
+    if (Get-Process -Name claude -ErrorAction SilentlyContinue) {
+        Write-Host "Aviso: hay sesiones de Claude abiertas; lo que usen ahora puede regenerarse."
+    }
+
+    if ($DryRun) {
+        Write-Host "(dry-run: no se borro nada)"
+        return
+    }
+    if (-not $Yes) {
+        $ans = Read-Host 'Borrar? [y/N]'
+        if ($ans -notmatch '^[yY]') { Write-Host "Cancelado."; return }
+    }
+    foreach ($t in $targets) { Remove-Item -LiteralPath $t -Recurse -Force -ErrorAction SilentlyContinue }
+    Write-Host ("Listo: liberados ~{0:N1} MB." -f ($totalKb / 1024))
+}
+
 # ==============================================================================
 # ATAJOS LINUX
 # ==============================================================================

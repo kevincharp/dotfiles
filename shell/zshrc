@@ -531,6 +531,98 @@ edit-history() {
     edit "$HISTFILE"
 }
 
+# claude-clean: limpia la basura regenerable de ~/.claude (historial, file-history,
+# caches, snapshots, sesiones huerfanas, backups viejos). Muestra que borraria y
+# cuanto libera, y pide confirmacion. NUNCA toca CLAUDE.md, settings*, keybindings,
+# .credentials.json, skills/, plugins/ ni la memoria (projects/*/memory/).
+# Las conversaciones (projects/*/*.jsonl) solo se tocan con --days N.
+# Espejo del zshrc/profile.ps1 (en PowerShell: -DryRun -Yes -Days N).
+# --- [dotfiles] claude-clean: limpia historial, caches y sesiones viejas de ~/.claude | uso: claude-clean [-n] [-y] [--days N] ---
+claude-clean() {
+    local dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+    local dry=0 yes=0 days="" targets="" p f k pid kb ans total=0 n=0
+    while (( $# )); do
+        case "$1" in
+            -n|--dry-run) dry=1 ;;
+            -y|--yes) yes=1 ;;
+            -d|--days)
+                days="${2:-}"
+                if ! [[ "$days" =~ ^[0-9]+$ ]]; then
+                    echo "claude-clean: --days necesita un numero de dias." >&2
+                    return 1
+                fi
+                shift ;;
+            -h|--help)
+                echo "uso: claude-clean [-n|--dry-run] [-y|--yes] [-d|--days N]"
+                echo "  -n  solo mostrar, no borrar"
+                echo "  -y  no pedir confirmacion"
+                echo "  -d  ademas borrar conversaciones (projects/*/*.jsonl) de mas de N dias"
+                return 0 ;;
+            *) echo "claude-clean: opcion desconocida '$1' (ver --help)." >&2; return 1 ;;
+        esac
+        shift
+    done
+    [[ -d "$dir" ]] || { echo "claude-clean: no existe $dir" >&2; return 1; }
+
+    # Regenerables: Claude los vuelve a crear cuando los necesita.
+    for p in history.jsonl stats-cache.json file-history paste-cache shell-snapshots \
+             session-env plugins/plugin-catalog-cache.json plugins/plugin-directory-cache-v2.json; do
+        [[ -e "$dir/$p" ]] && targets+="$dir/$p"$'\n'
+    done
+    # Backups de ~/.claude.json: todos menos el mas reciente.
+    if [[ -d "$dir/backups" ]]; then
+        while IFS= read -r f; do
+            [[ -n "$f" ]] && targets+="$dir/backups/$f"$'\n'
+        done < <(ls -1t "$dir/backups" 2>/dev/null | tail -n +2)
+    fi
+    # Registros de sesion (<pid>.json + <pid>.*.key) cuyo proceso ya no existe.
+    while IFS= read -r f; do
+        pid="${f##*/}"; pid="${pid%.json}"
+        if ! kill -0 "$pid" 2>/dev/null; then
+            targets+="$f"$'\n'
+            while IFS= read -r k; do
+                targets+="$k"$'\n'
+            done < <(find "$dir/sessions" -maxdepth 1 -name "$pid.*.key" 2>/dev/null)
+        fi
+    done < <(find "$dir/sessions" -maxdepth 1 -name '*.json' 2>/dev/null)
+    # Conversaciones viejas (y su carpeta de adjuntos): solo si se pidio --days.
+    if [[ -n "$days" ]]; then
+        while IFS= read -r f; do
+            targets+="$f"$'\n'
+            [[ -d "${f%.jsonl}" ]] && targets+="${f%.jsonl}"$'\n'
+        done < <(find "$dir/projects" -mindepth 2 -maxdepth 2 -name '*.jsonl' -mtime +"$days" 2>/dev/null)
+    fi
+
+    if [[ -z "$targets" ]]; then
+        echo "Nada que limpiar en $dir."
+        return 0
+    fi
+    echo "Se borraria de $dir:"
+    while IFS= read -r p; do
+        [[ -z "$p" ]] && continue
+        kb=$(du -sk -- "$p" 2>/dev/null | cut -f1)
+        kb=${kb:-0}
+        total=$((total + kb)); n=$((n + 1))
+        printf '  %8s KB  %s\n' "$kb" "${p#"$dir"/}"
+    done <<< "$targets"
+    echo "Total: $n elemento(s), $(awk -v k="$total" 'BEGIN{printf "%.1f", k/1024}') MB."
+    pgrep -x claude >/dev/null 2>&1 && echo "Aviso: hay sesiones de Claude abiertas; lo que usen ahora puede regenerarse."
+
+    if (( dry )); then
+        echo "(dry-run: no se borro nada)"
+        return 0
+    fi
+    if (( ! yes )); then
+        printf 'Borrar? [y/N] '
+        read -r ans
+        [[ "$ans" == [yY] ]] || { echo "Cancelado."; return 0; }
+    fi
+    while IFS= read -r p; do
+        [[ -n "$p" ]] && rm -rf -- "$p"
+    done <<< "$targets"
+    echo "Listo: liberados ~$(awk -v k="$total" 'BEGIN{printf "%.1f", k/1024}') MB."
+}
+
 # ==============================================================================
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================

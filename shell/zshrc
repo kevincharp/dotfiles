@@ -1024,7 +1024,8 @@ ssh-newkey() {
     echo "  git -C \"$VAULT_DIR\" commit -m \"feat(ssh): agrego clave $name\" && git -C \"$VAULT_DIR\" push"
 }
 
-# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves.
+# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves
+# + ~/.env (si falta).
 # Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
 # --- [dotfiles] vault-sync: sincroniza (pull+push) el repo privado del vault | uso: vault-sync ---
 vault-sync() {
@@ -1076,7 +1077,49 @@ vault-sync() {
         dst="$HOME/.ssh/$(basename "$age_file")"
         [[ -f "$dst" ]] || { cp "$age_file" "$dst" && chmod 644 "$dst"; }
     done
+    # 5) Restaurar ~/.env desde el vault si falta (nunca pisa uno existente:
+    #    el local puede tener tokens mas nuevos; para subirlo: env-save)
+    if [[ -f "$VAULT_DIR/env/env.age" ]]; then
+        if [[ -f "$HOME/.env" ]]; then
+            echo "~/.env ya existe (no se pisa). Para subir cambios al vault: env-save"
+        else
+            echo "Restaurando ~/.env desde el vault:"
+            if ( umask 077; age -d -o "$HOME/.env" "$VAULT_DIR/env/env.age" ); then
+                chmod 600 "$HOME/.env"; echo "  ~/.env restaurado."
+            else
+                rm -f "$HOME/.env"
+                echo "  ERROR restaurando ~/.env (passphrase incorrecta?)" >&2
+            fi
+        fi
+    fi
     echo "vault-sync completo."
+}
+
+# env-save — cifra ~/.env con age y lo guarda en el vault (env/env.age). Correrlo
+# cada vez que agregues o rotes un token: vault-sync y el bootstrap lo restauran
+# en las otras maquinas (solo si alli falta, nunca pisan uno existente).
+# Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+# --- [dotfiles] env-save: cifra ~/.env con age y lo guarda en el vault | uso: env-save ---
+env-save() {
+    [[ -f "$HOME/.env" ]] || { echo "No existe ~/.env, nada que guardar." >&2; return 1; }
+    command -v age &>/dev/null || { echo "Falta 'age' (bootstrap: --tools=age)" >&2; return 1; }
+    [[ -d "$VAULT_DIR/.git" ]] || { echo "No hay repo git en $VAULT_DIR (falta el vault?)" >&2; return 1; }
+
+    mkdir -p "$VAULT_DIR/env"
+    local dst="$VAULT_DIR/env/env.age" tmp="$VAULT_DIR/env/env.age.tmp"
+    # Cifrar a un temporal: si age falla (passphrase sin confirmar, Ctrl+C) el
+    # env.age anterior del vault queda intacto.
+    echo "Cifrando ~/.env con age (usa la MISMA passphrase que las claves del vault):"
+    if ! age -p -o "$tmp" "$HOME/.env"; then
+        rm -f "$tmp"
+        echo "Fallo el cifrado con age; el vault quedo como estaba." >&2
+        return 1
+    fi
+    mv -f "$tmp" "$dst"
+    git -C "$VAULT_DIR" add env/env.age 2>/dev/null
+    echo "~/.env guardado cifrado en el vault (env/env.age)."
+    echo "Falta commitear/pushear el vault:"
+    echo "  git -C \"$VAULT_DIR\" commit -m \"chore(env): actualizo env\" && git -C \"$VAULT_DIR\" push"
 }
 
 # ==============================================================================

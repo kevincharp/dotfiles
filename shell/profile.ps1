@@ -1468,7 +1468,8 @@ function ssh-newkey {
     Write-Host "  git -C `"$script:VAULT_DIR`" commit -m `"feat(ssh): agrego clave $Name`" ; git -C `"$script:VAULT_DIR`" push"
 }
 
-# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves.
+# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves
+# + ~/.env (si falta).
 # Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
 <#
 .SYNOPSIS sincroniza (pull+push) el repo privado del vault
@@ -1516,7 +1517,67 @@ function vault-sync {
         $dst = Join-Path $sshDir $_.Name
         if (-not (Test-Path $dst)) { Copy-Item $_.FullName $dst -Force }
     }
+    # 5) Restaurar ~/.env desde el vault si falta (nunca pisa uno existente:
+    #    el local puede tener tokens mas nuevos; para subirlo: env-save)
+    $envAge = Join-Path $script:VAULT_DIR 'env\env.age'
+    $envDst = Join-Path $HOME '.env'
+    if (Test-Path $envAge) {
+        if (Test-Path $envDst) {
+            Write-Host "~/.env ya existe (no se pisa). Para subir cambios al vault: env-save"
+        } else {
+            Write-Host "Restaurando ~/.env desde el vault:"
+            age -d -o $envDst $envAge
+            if ($LASTEXITCODE -eq 0) { Protect-DotEnv $envDst; Write-Host "  ~/.env restaurado." }
+            else { Remove-Item -Force -EA SilentlyContinue $envDst; Write-Host "  ERROR restaurando ~/.env (passphrase incorrecta?)" -ForegroundColor Red }
+        }
+    }
     Write-Host "vault-sync completo."
+}
+
+# env-save — cifra ~/.env con age y lo guarda en el vault (env/env.age). Correrlo
+# cada vez que agregues o rotes un token: vault-sync y el bootstrap lo restauran
+# en las otras maquinas (solo si alli falta, nunca pisan uno existente).
+# Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+<#
+.SYNOPSIS cifra ~/.env con age y lo guarda en el vault
+.EXAMPLE env-save
+#>
+function env-save {
+    $envSrc = Join-Path $HOME '.env'
+    if (-not (Test-Path $envSrc)) { Write-Host "No existe ~/.env, nada que guardar." -ForegroundColor Red; return }
+    if (-not (Get-Command age -EA SilentlyContinue)) { Write-Host "Falta 'age' (winget install FiloSottile.age)" -ForegroundColor Red; return }
+    if (-not (Test-Path (Join-Path $script:VAULT_DIR '.git'))) { Write-Host "No hay repo git en $script:VAULT_DIR (falta el vault?)" -ForegroundColor Red; return }
+
+    $envDir = Join-Path $script:VAULT_DIR 'env'
+    if (-not (Test-Path $envDir)) { New-Item -ItemType Directory -Path $envDir | Out-Null }
+    $dst = Join-Path $envDir 'env.age'
+    $tmp = "$dst.tmp"
+    # Cifrar a un temporal: si age falla (passphrase sin confirmar, Ctrl+C) el
+    # env.age anterior del vault queda intacto.
+    Write-Host "Cifrando ~/.env con age (usa la MISMA passphrase que las claves del vault):"
+    age -p -o $tmp $envSrc
+    if ($LASTEXITCODE -ne 0) {
+        Remove-Item -Force -EA SilentlyContinue $tmp
+        Write-Host "Fallo el cifrado con age; el vault quedo como estaba." -ForegroundColor Red; return
+    }
+    Move-Item -Force $tmp $dst
+    git -C $script:VAULT_DIR add env/env.age 2>$null
+    Write-Host "~/.env guardado cifrado en el vault (env/env.age)."
+    Write-Host "Falta commitear/pushear el vault:"
+    Write-Host "  git -C `"$script:VAULT_DIR`" commit -m `"chore(env): actualizo env`" ; git -C `"$script:VAULT_DIR`" push"
+}
+
+<#
+.SYNOPSIS (interna) deja ~/.env legible solo por tu usuario (equivale a chmod 600)
+.EXAMPLE Protect-DotEnv <archivo>
+#>
+function Protect-DotEnv {
+    param([string]$Path)
+    $acl = Get-Acl $Path
+    $acl.SetAccessRuleProtection($true, $false)
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($env:USERNAME, 'FullControl', 'None', 'None', 'Allow')
+    $acl.SetAccessRule($rule)
+    Set-Acl $Path $acl
 }
 
 # ==============================================================================

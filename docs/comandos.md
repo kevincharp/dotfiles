@@ -59,7 +59,8 @@ Requieren el [vault](adaptalo.md#el-vault) (ahí viven los nombres/emails).
 | Comando | Qué hace |
 |---|---|
 | `ssh-newkey <nombre>` | Genera un par ed25519, lo cifra con age y lo deja listo en el vault (con alta opcional en `ssh/config`) |
-| `vault-sync` | Pull del vault + aplica `ssh/config` + desencripta las claves que falten |
+| `vault-sync` | Pull del vault + aplica `ssh/config` + desencripta las claves que falten + restaura `~/.env` si falta |
+| `env-save` | Cifra `~/.env` con age y lo guarda en el vault (`env/env.age`); correrlo al agregar o rotar un token |
 
 ## Sistema / procesos
 

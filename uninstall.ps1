@@ -270,12 +270,14 @@ if (-not $RemovePackages) {
     Write-Log 'winget no disponible, saltando desinstalacion de paquetes' 'WARN'
 } else {
     foreach ($pkg in $WINGET_PACKAGES) {
-        $installed = winget list --id $pkg.Id --exact 2>$null | Select-String $pkg.Id
+        # Mismos flags que bootstrap.ps1: sin ellos msstore puede frenar pidiendo
+        # aceptar sus terminos con la salida redirigida (cuelgue silencioso).
+        $installed = winget list --id $pkg.Id --exact --accept-source-agreements --disable-interactivity 2>$null | Select-String $pkg.Id
         if (-not $installed) {
             Write-Log "$($pkg.Name) no instalado, saltando" 'SKIP'
             continue
         }
-        winget uninstall --id $pkg.Id -e --accept-source-agreements 2>&1 | Out-Null
+        winget uninstall --id $pkg.Id -e --accept-source-agreements --disable-interactivity 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Log "Desinstalado: $($pkg.Name)" 'OK'
         } else {

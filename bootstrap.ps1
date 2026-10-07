@@ -437,7 +437,50 @@ function Invoke-Step {
 }
 
 function Test-WingetAvailable {
-    return [bool](Get-Command winget -ErrorAction SilentlyContinue)
+    # Encontrar winget en el PATH no alcanza: hay que EJECUTARLO. Caso real en
+    # una PC corporativa: el PATH de sistema (Machine, que va antes que el de
+    # User) traia el WindowsApps de OTRO usuario (la cuenta de admin de IT).
+    # Get-Command lo encontraba, pero los .exe de WindowsApps son App Execution
+    # Aliases que solo resuelve su dueno: cada llamada fallaba con "El sistema
+    # no puede encontrar la ruta especificada" y no se instalaba ningun paquete.
+    # Se prueba cada candidato con 'winget --version' y se usa el primero que
+    # anda; si el del PATH no era ese, se avisa con la causa probable.
+    if ($script:WINGET_EXE) { return $true }   # ya verificado (se llama 2 veces)
+    $own =Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
+    $candidates = @(Get-Command winget -All -CommandType Application -ErrorAction SilentlyContinue |
+        ForEach-Object { $_.Source })
+    $candidates = @($candidates + $own | Where-Object { $_ } | Select-Object -Unique)
+
+    foreach ($exe in $candidates) {
+        if (-not (Test-Path -LiteralPath $exe)) { continue }
+        # El fallo al arrancar el proceso es un error NO terminante: no lo agarra
+        # el catch y $LASTEXITCODE queda con el valor de la llamada anterior.
+        # Por eso se valida la salida (winget imprime 'v1.x.y'), no el exit code.
+        try {
+            $out = "$(& $exe --version 2>&1)"
+        } catch { continue }
+        if ($out -notmatch '^\s*v\d') { continue }
+
+        $script:WINGET_EXE = $exe
+        if ($exe -ne $candidates[0]) {
+            $msg = "El winget del PATH ($($candidates[0])) no se puede ejecutar; uso $exe. " +
+                   "Probable causa: el PATH de sistema apunta al WindowsApps de otro usuario - quitar esa entrada del Path de 'Variables del sistema'"
+            Write-Log $msg 'WARN'
+            $WARNINGS.Add($msg)
+        }
+        return $true
+    }
+    return $false
+}
+
+# Proxy: todas las llamadas 'winget ...' del script pasan por el ejecutable que
+# Test-WingetAvailable verifico. En PowerShell una funcion le gana a un .exe
+# del mismo nombre, asi que no hace falta tocar cada llamada; $LASTEXITCODE y
+# las redirecciones (2>&1, 2>$null) se comportan igual que con el .exe directo.
+$script:WINGET_EXE = $null
+function winget {
+    $exe = if ($script:WINGET_EXE) { $script:WINGET_EXE } else { 'winget.exe' }
+    & $exe @args
 }
 
 function Test-CommandAvailable {

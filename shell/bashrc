@@ -66,6 +66,21 @@ if command -v oh-my-posh &>/dev/null; then
         _omp_theme="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes/claude-code.omp.json"
         _omp_fallback=""
     fi
+    # Windows (Git Bash): el tema trae upgrade.auto/notice=true, util solo en
+    # Linux. Alla oh-my-posh es un paquete MSIX y no puede autoactualizarse: cada
+    # arranque tiraba "upgrade is not supported when installed as a MSIX package".
+    # Igual que profile.ps1: copia LOCAL del tema con upgrade apagado (el symlink
+    # compartido no se toca), regenerada si el original cambia.
+    if [[ "$IS_WINDOWS" == true && -f "$_omp_theme" ]]; then
+        _omp_local="$HOME/AppData/Local/bash-init-cache/claude-code.omp.json"
+        if [[ ! -f "$_omp_local" || "$_omp_theme" -nt "$_omp_local" ]]; then
+            mkdir -p "${_omp_local%/*}" 2>/dev/null
+            sed -E 's/("(auto|notice)"[[:space:]]*:[[:space:]]*)true/\1false/' \
+                "$_omp_theme" > "$_omp_local" 2>/dev/null || : > "$_omp_local"
+        fi
+        [[ -s "$_omp_local" ]] && _omp_theme="$_omp_local"
+        unset _omp_local
+    fi
     if [[ -f "$_omp_theme" ]]; then
         eval "$(oh-my-posh init bash --config "$_omp_theme")"
     elif [[ -n "$_omp_fallback" && -f "$_omp_fallback" ]]; then

@@ -1752,12 +1752,18 @@ if ($SkipDotfiles) {
                 } elseif ($DryRun) {
                     Write-Log "[DryRun] Desencriptar $keyName → ~/.ssh/$keyName" 'SKIP'
                 } else {
+                    # Hasta 3 intentos: un typo antes perdia esa clave y obligaba
+                    # a re-correr todo el bootstrap (paridad: age_decrypt_retry).
                     Invoke-Step "Desencriptar $keyName → ~/.ssh/$keyName" {
-                        age -d -o $dstKey $ageFile.FullName
-                        if ($LASTEXITCODE -ne 0) {
+                        for ($try = 1; $try -le 3; $try++) {
+                            age -d -o $dstKey $ageFile.FullName
+                            if ($LASTEXITCODE -eq 0) { return }
                             Remove-Item -LiteralPath $dstKey -Force -ErrorAction SilentlyContinue
-                            throw "Passphrase incorrecta o error de age"
+                            if ($try -lt 3) {
+                                Write-Host "  $($script:C_WARN)Passphrase incorrecta — intento $($try + 1) de 3$($script:C_RESET)"
+                            }
                         }
+                        throw "Passphrase incorrecta (3 intentos) o error de age"
                     }
                 }
             }

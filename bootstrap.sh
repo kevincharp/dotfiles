@@ -159,6 +159,22 @@ run_step() {
     fi
 }
 
+# age_decrypt_retry <src.age> <dst> — desencripta pidiendo la passphrase hasta
+# 3 veces. Un typo antes abortaba esa clave y obligaba a re-correr el bootstrap
+# entero. age lee la passphrase de /dev/tty (no por pipe), asi que el reintento
+# es simplemente volver a invocarlo; entre intentos se borra el parcial.
+age_decrypt_retry() {
+    local src="$1" dst="$2" try
+    for try in 1 2 3; do
+        if age -d -o "$dst" "$src" </dev/tty; then return 0; fi
+        rm -f "$dst"
+        if (( try < 3 )); then
+            printf '  %sPassphrase incorrecta — intento %d de 3%s\n' "$C_WARN" "$((try + 1))" "$C_RESET" > /dev/tty
+        fi
+    done
+    return 1
+}
+
 has_cmd() {
     command -v "$1" &>/dev/null
 }
@@ -1700,12 +1716,12 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
                 if [[ -f "$dst_key" ]]; then
                     echo "[$(date +%H:%M:%S)][SKIP] ~/.ssh/$key_name ya existe" >> "$LOG_FILE" 2>/dev/null || true
                     SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
-                elif age -d -o "$dst_key" "$age_file" </dev/tty; then
+                elif age_decrypt_retry "$age_file" "$dst_key"; then
                     chmod 600 "$dst_key"
                     log "Desencriptado $key_name → ~/.ssh/$key_name" "OK"
                     SSH_KEYS_OK=$((SSH_KEYS_OK + 1)); _keys_new=$((_keys_new + 1))
                 else
-                    log "Error desencriptando $key_name (passphrase incorrecta?)" "ERROR"
+                    log "Error desencriptando $key_name (3 intentos fallidos)" "ERROR"
                     ERRORS+=("Desencriptar SSH key $key_name")
                     rm -f "$dst_key"
                 fi

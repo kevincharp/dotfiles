@@ -392,3 +392,19 @@ la interfaz, no el archivo): se replicó a mano en el otro equipo.
 Se dejó activo (sincroniza, entre otras cosas, tarjetas aunque el autocompletado
 esté apagado). `user.js` gana al arrancar, así que lo sincronizado no desarma esta
 config.
+
+## Windows Terminal: pwsh sin ruta fija
+
+El perfil "PowerShell" de `terminal/settings.json` tenía
+`C:\Program Files\PowerShell\7\pwsh.exe`, la ruta de la instalación **MSI**
+(winget). En una PC donde pwsh vino de la **Microsoft Store** el ejecutable vive
+en `%LOCALAPPDATA%\Microsoft\WindowsApps\…` y Windows Terminal fallaba con
+`0x80070002` (archivo no encontrado). Ahora es `pwsh.exe -nologo`: las dos
+instalaciones dejan `pwsh.exe` en el PATH.
+
+- **No "reiniciar" el valor desde la GUI** de Windows Terminal: el archivo es un
+  symlink al repo, así que la GUI escribiría la ruta de *esa* máquina en el repo.
+- **Límite conocido:** el perfil tiene `"elevate": true`. Si la elevación (UAC)
+  pide credenciales de **otra cuenta**, la terminal corre como ese usuario y su
+  PATH no tiene el `WindowsApps` propio: con pwsh de la Store, no lo encuentra.
+  Con tu cuenta siendo admin (UAC solo pide "Sí") no pasa.

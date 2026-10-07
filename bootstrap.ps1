@@ -555,6 +555,97 @@ function Get-NetskopeCaBundle {
     return $null
 }
 
+function Get-WingetPhase {
+    # Traduce la salida parcial de winget a una fase legible. Cubre la UI en
+    # espanol y en ingles; los patrones evitan tildes porque la salida
+    # redirigida puede llegar con otra codificacion.
+    param([string]$Text)
+    $phase = ''
+    $pos   = -1
+    $marks = @(
+        @{ Re = 'Descargando|Downloading';                         Label = 'descargando' }
+        @{ Re = 'hash .*verific|hash .*verified';                  Label = 'verificando' }
+        @{ Re = 'Extrayendo|Extracting';                           Label = 'extrayendo'  }
+        @{ Re = 'Iniciando instalaci|Starting package install';    Label = 'instalando'  }
+    )
+    # La fase actual es la del ULTIMO marcador que aparece en la salida.
+    foreach ($m in $marks) {
+        $hit = [regex]::Matches($Text, $m.Re)
+        if ($hit.Count -gt 0 -and $hit[$hit.Count - 1].Index -gt $pos) {
+            $pos = $hit[$hit.Count - 1].Index; $phase = $m.Label
+        }
+    }
+    # Durante la descarga winget dibuja "12.0 MB / 90.0 MB": si esta, se suma.
+    if ($phase -eq 'descargando') {
+        $mb = [regex]::Matches($Text, '(\d+(?:[.,]\d+)?\s*[KMG]B)\s*/\s*(\d+(?:[.,]\d+)?\s*[KMG]B)')
+        if ($mb.Count -gt 0) { $phase += " $($mb[$mb.Count - 1].Value)" }
+    }
+    return $phase
+}
+
+function Invoke-WingetInstall {
+    # Corre 'winget install' en segundo plano y, mientras tanto, anima la linea
+    # de accion de la barra: "Zig (compilador C) ⠹ 3m12s · extrayendo".
+    # Motivo: paquetes pesados (zig, OnlyOffice) tardan minutos detras de un
+    # antivirus/proxy corporativo y, con la barra quieta, parecia colgado.
+    # No inventa un %: el spinner y el reloj prueban que sigue vivo y la fase
+    # sale de lo que va imprimiendo winget.
+    # Devuelve @{ ExitCode; Output }. Si el proceso ni arranca, ExitCode = -1
+    # (antes ese caso no sumaba a $ERRORS: el resumen decia "1 error" con 25
+    # paquetes sin instalar).
+    param([string]$Id, [string]$Name)
+
+    $exe  = if ($script:WINGET_EXE) { $script:WINGET_EXE } else { 'winget.exe' }
+    $wArgs = @('install', '--id', $Id, '-e', '--source', 'winget',
+               '--accept-package-agreements', '--accept-source-agreements',
+               '--disable-interactivity')
+    $tag  = [guid]::NewGuid().ToString('N').Substring(0, 8)
+    $outF = Join-Path ([IO.Path]::GetTempPath()) "bootstrap-winget-$tag.out"
+    $errF = Join-Path ([IO.Path]::GetTempPath()) "bootstrap-winget-$tag.err"
+
+    try {
+        $p = Start-Process -FilePath $exe -ArgumentList $wArgs -NoNewWindow -PassThru `
+                -RedirectStandardOutput $outF -RedirectStandardError $errF -ErrorAction Stop
+    } catch {
+        return @{ ExitCode = -1; Output = "No se pudo ejecutar winget ($exe): $($_.Exception.Message)" }
+    }
+    # Sin esto, ExitCode puede quedar $null en .NET al no esperar con -Wait.
+    $null = $p.Handle
+
+    $frames = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'.ToCharArray()
+    if ([Console]::OutputEncoding.CodePage -ne 65001) { $frames = '|/-\'.ToCharArray() }
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    $i  = 0
+    $baseAction = $script:GB_ACTION
+    while (-not $p.HasExited) {
+        if ($script:GB_ENABLED) {
+            $phase = ''
+            try { $phase = Get-WingetPhase ([IO.File]::ReadAllText($outF)) } catch {}
+            $el = $sw.Elapsed
+            $t  = if ($el.TotalMinutes -ge 1) { '{0}m{1:00}s' -f [int][Math]::Floor($el.TotalMinutes), $el.Seconds } else { '{0}s' -f $el.Seconds }
+            $script:GB_ACTION = "$Name $($frames[$i % $frames.Length]) $t" + $(if ($phase) { " · $phase" })
+            Write-BarFrame
+            $i++
+        }
+        Start-Sleep -Milliseconds 200
+    }
+    $p.WaitForExit()
+    $script:GB_ACTION = $baseAction
+    if ($script:GB_ENABLED) { Write-BarFrame }
+
+    $out = ''
+    foreach ($f in $outF, $errF) {
+        try { $out += [IO.File]::ReadAllText($f) + ' ' } catch {}
+        Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue
+    }
+    # La salida trae spinners y barras de winget (\r, bloques, '-\|/'): se
+    # colapsa a una linea para el log y el resumen.
+    $out = ($out -replace '[\r\n]+', ' ' -replace '[█▒░]+', '' -replace '(?<=\s)[-\\|/](?=\s)', '' -replace '\s{2,}', ' ').Trim()
+    $code = $p.ExitCode
+    if ($null -eq $code) { $code = -1 }
+    return @{ ExitCode = $code; Output = $out }
+}
+
 function Install-WingetPackage {
     param(
         [string]$Id,
@@ -580,8 +671,9 @@ function Install-WingetPackage {
         return
     }
 
-    $result = winget install --id $Id -e --source winget --accept-package-agreements --accept-source-agreements 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $run = Invoke-WingetInstall -Id $Id -Name $Name
+    $result = $run.Output
+    if ($run.ExitCode -ne 0) {
         $msg = "Error instalando $Name`: $result"
         if ($Optional) {
             Write-Log "$msg (opcional, continuando)" 'WARN'

@@ -436,6 +436,21 @@ function Invoke-Step {
     }
 }
 
+function Protect-EnvFile {
+    # ~/.env con ACL de solo-tu-usuario (equivalente al chmod 600 de Linux).
+    # Se llama en CADA lugar donde el bootstrap crea o restaura el archivo: antes
+    # solo corria en el paso 5 y el ~/.env que creaba despues el paso de AWS
+    # quedaba con los permisos heredados del perfil.
+    param([string]$Path)
+    $acl = Get-Acl $Path
+    $acl.SetAccessRuleProtection($true, $false)
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $env:USERNAME, 'FullControl', 'None', 'None', 'Allow'
+    )
+    $acl.SetAccessRule($rule)
+    Set-Acl $Path $acl
+}
+
 function Test-WingetAvailable {
     # Encontrar winget en el PATH no alcanza: hay que EJECUTARLO. Caso real en
     # una PC corporativa: el PATH de sistema (Machine, que va antes que el de
@@ -1372,15 +1387,7 @@ Invoke-Step "Asegurar permisos de ~/.ssh" {
 # Permisos seguros para .env (solo tu usuario puede leerlo)
 $envFile = Join-Path $HOME ".env"
 if (Test-Path $envFile) {
-    Invoke-Step "Asegurar permisos de ~/.env" {
-        $acl = Get-Acl $envFile
-        $acl.SetAccessRuleProtection($true, $false)
-        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-            $env:USERNAME, 'FullControl', 'None', 'None', 'Allow'
-        )
-        $acl.SetAccessRule($rule)
-        Set-Acl $envFile $acl
-    }
+    Invoke-Step "Asegurar permisos de ~/.env" { Protect-EnvFile $envFile }
 } else {
     Write-Log "~/.env no existe — crealo manualmente con tus tokens" 'WARN'
     $WARNINGS.Add("~/.env no encontrado — crealo y volvé a ejecutar el bootstrap para asegurar permisos")
@@ -1872,7 +1879,10 @@ if (-not $WithAws) {
 
         # Persistir solo las claves que aún no estén en ~/.env (evita duplicados).
         if ($ssoStartUrl -and $ssoAccountId) {
-            if (-not (Test-Path $envFileAws)) { New-Item -ItemType File -Path $envFileAws -Force | Out-Null }
+            if (-not (Test-Path $envFileAws)) {
+                New-Item -ItemType File -Path $envFileAws -Force | Out-Null
+                Invoke-Step "Asegurar permisos de ~/.env" { Protect-EnvFile $envFileAws }
+            }
             # OJO: el cast [string] no es decorativo. Get-Content -Raw sobre un
             # archivo VACIO (el que se acaba de crear arriba) devuelve $null, y
             # PowerShell trata el $null de un cmdlet como coleccion: ahi

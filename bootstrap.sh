@@ -2123,7 +2123,9 @@ else
 
         # Persistir solo las claves que aún no estén en ~/.env (evita duplicados).
         if [[ -n "$AWS_SSO_START_URL" && -n "$AWS_SSO_ACCOUNT_ID" ]]; then
-            _env="$HOME/.env"; touch "$_env"; _aws_add=""
+            # umask 077 + chmod: el paso 3 (permisos) ya paso; si el archivo
+            # nace aca, quedaba 644 legible por cualquier usuario.
+            _env="$HOME/.env"; ( umask 077; touch "$_env" ); chmod 600 "$_env"; _aws_add=""
             grep -q '^AWS_SSO_START_URL='  "$_env" || _aws_add+="AWS_SSO_START_URL=$AWS_SSO_START_URL"$'\n'
             grep -q '^AWS_SSO_ACCOUNT_ID=' "$_env" || _aws_add+="AWS_SSO_ACCOUNT_ID=$AWS_SSO_ACCOUNT_ID"$'\n'
             grep -q '^AWS_SSO_ROLE_NAME='  "$_env" || _aws_add+="AWS_SSO_ROLE_NAME=$AWS_SSO_ROLE_NAME"$'\n'

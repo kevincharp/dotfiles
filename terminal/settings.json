@@ -148,6 +148,13 @@
     "copyFormatting": "none",
     "copyOnSelect": false,
     "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+    "disabledProfileSources":
+    [
+        "Windows.Terminal.Wsl",
+        "Microsoft.WSL",
+        "Git",
+        "CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc"
+    ],
     "keybindings": 
     [
         {
@@ -278,26 +285,19 @@
             },
             {
                 "commandline": "C:/Program Files/Git/bin/bash.exe",
-                "guid": "{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
+                "guid": "{84da53a9-e81b-4940-9cba-c84b012a3e05}",
                 "hidden": false,
                 "icon": "C:/Program Files/Git/mingw64/share/git/git-for-windows.ico",
                 "name": "Git Bash",
-                "source": "Git",
                 "tabTitle": "Git Bash"
             },
             {
-                "guid": "{17bf3de4-5353-5709-bcf9-835bd952a95e}",
+                "commandline": "wsl.exe ~",
+                "guid": "{4bf99c7d-f231-4191-b670-3ceb0c4018d3}",
                 "hidden": false,
+                "icon": "ms-appx:///ProfileIcons/{9acb9455-ca41-5af7-950f-6bca1bc9722f}.png",
                 "name": "Linux",
-                "source": "Windows.Terminal.Wsl",
                 "tabTitle": "Linux"
-            },
-            {
-                "guid": "{4ff56d04-d9cf-57ea-bae2-ad396374e7e3}",
-                "hidden": false,
-                "name": "Ubuntu",
-                "source": "CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc",
-                "tabTitle": "Ubuntu"
             },
             {
                 "commandline": "%SystemRoot%\\System32\\cmd.exe",

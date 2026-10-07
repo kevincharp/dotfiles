@@ -408,3 +408,13 @@ instalaciones dejan `pwsh.exe` en el PATH.
   pide credenciales de **otra cuenta**, la terminal corre como ese usuario y su
   PATH no tiene el `WindowsApps` propio: con pwsh de la Store, no lo encuentra.
   Con tu cuenta siendo admin (UAC solo pide "Sí") no pasa.
+
+**Perfiles sin generador automático.** Git Bash y Linux eran perfiles
+*dinámicos* (`"source": "Git"`, `Windows.Terminal.Wsl`, la app de Ubuntu de la
+Store): el GUID sale de cómo se instaló cada cosa en *una* máquina, así que en
+otra aparecían con ⚠ (huérfanos), y Windows Terminal además escribía los perfiles
+que sí detectaba **dentro del repo** (vía symlink), generando conflictos en el
+`git pull`. Ahora son estáticos: Git Bash con su ruta estándar y Linux con
+`wsl.exe ~` (la distro por defecto de cada máquina, se llame como se llame), y
+`disabledProfileSources` apaga esos generadores. Costo: una distro nueva no
+aparece sola — se agrega a mano.

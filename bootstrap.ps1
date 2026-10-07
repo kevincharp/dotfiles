@@ -762,6 +762,7 @@ function Select-ToolsInteractive {
     Write-Host ''
     Write-Host "  $($script:C_SECT)▶ Elegí qué instalar$($script:C_RESET)"
     Write-Host '  ↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar' -ForegroundColor DarkGray
+    Write-Host '  a marcar todas · n desmarcar todas · q cancelar' -ForegroundColor DarkGray
     Write-Host ''
 
     $cur = 0

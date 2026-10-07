@@ -939,6 +939,7 @@ _select_interactive() {
         for ((j = 0; j < n; j++)); do [[ "${MARK[j]}" == 1 ]] && total=$((total + 1)); done
         out+="  ${C_SECTION}▶ Elegí qué instalar${C_RESET}${K}"$'\n'
         out+="  \033[90m↑/↓ mover · → expandir · ← colapsar · espacio marcar · Enter confirmar\033[0m${K}"$'\n'
+        out+="  \033[90ma marcar todas · n desmarcar todas · q cancelar\033[0m${K}"$'\n'
         out+="${K}"$'\n'
         for ((r = 0; r < nrows; r++)); do
             kind="${ROWS[r]%%:*}"; val="${ROWS[r]#*:}"
@@ -955,7 +956,7 @@ _select_interactive() {
         done
         out+="${K}"$'\n'
         out+="  ${C_BAR}${total}${C_RESET}\033[90m de ${n} seleccionadas\033[0m${K}"$'\n'
-        FRAME_N=$(( nrows + 5 ))
+        FRAME_N=$(( nrows + 6 ))
         FRAME="$out"
     }
 

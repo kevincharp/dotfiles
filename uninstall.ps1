@@ -272,7 +272,11 @@ if (-not $RemovePackages) {
     foreach ($pkg in $WINGET_PACKAGES) {
         # Mismos flags que bootstrap.ps1: sin ellos msstore puede frenar pidiendo
         # aceptar sus terminos con la salida redirigida (cuelgue silencioso).
-        $installed = winget list --id $pkg.Id --exact --accept-source-agreements --disable-interactivity 2>$null | Select-String $pkg.Id
+        # Exit 0 de 'winget list' = instalado (mismo criterio que bootstrap.ps1:
+        # el Id como texto puede venir recortado con '…' en la tabla).
+        $global:LASTEXITCODE = 1
+        $listOut = winget list --id $pkg.Id --exact --accept-source-agreements --disable-interactivity 2>$null
+        $installed = ($LASTEXITCODE -eq 0) -or [bool]($listOut | Select-String -SimpleMatch $pkg.Id)
         if (-not $installed) {
             Write-Log "$($pkg.Name) no instalado, saltando" 'SKIP'
             continue

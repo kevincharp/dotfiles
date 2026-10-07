@@ -663,6 +663,13 @@ function Invoke-WingetInstall {
     return @{ ExitCode = $code; Output = $out }
 }
 
+function Test-WingetPackageInstalled {
+    param([string]$Id)
+    $global:LASTEXITCODE = 1
+    $out = winget list --id $Id --exact --accept-source-agreements --disable-interactivity 2>$null
+    return ($LASTEXITCODE -eq 0) -or [bool]($out | Select-String -SimpleMatch $Id)
+}
+
 function Install-WingetPackage {
     param(
         [string]$Id,
@@ -675,8 +682,16 @@ function Install-WingetPackage {
     # terminos. Con la salida redirigida ese prompt no se ve y el bootstrap
     # quedaba colgado sin explicacion. (No se fuerza --source winget para no
     # dejar de detectar lo instalado desde la Store, p.ej. pwsh.)
-    $installed = winget list --id $Id --exact --accept-source-agreements --disable-interactivity 2>$null | Select-String $Id
-    if ($installed) {
+    #
+    # "Ya instalado" = exit 0 de 'winget list' (si no encuentra nada devuelve
+    # NO_APPLICATIONS_FOUND, distinto de 0). Antes solo se buscaba el Id como
+    # texto en la tabla, que winget recorta con '…' cuando la columna no entra:
+    # un paquete instalado podia no detectarse y el bootstrap reintentaba
+    # instalarlo (sospecha, no confirmada, en el caso de Logi Options+: ya estaba
+    # instalado y su instalador devolvio 1287/1008). La busqueda por texto queda
+    # como respaldo. $LASTEXITCODE se resetea antes
+    # porque si winget no llega a arrancar conserva el valor de otra llamada.
+    if (Test-WingetPackageInstalled $Id) {
         Write-Log "$Name ya instalado, saltando" 'SKIP'
         return
     }

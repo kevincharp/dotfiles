@@ -195,7 +195,18 @@ No manipulás archivos `.age` a mano — hay dos comandos:
   (te pide una passphrase; usá la misma para todas), copia la pública al vault,
   te ofrece dar de alta el `Host` en `ssh/config` y deja el `git add` hecho.
 - **`vault-sync`** — en cualquier otra máquina: pull del vault, aplica
-  `ssh/config` y desencripta solo las claves que falten.
+  `ssh/config`, desencripta solo las claves que falten y restaura `~/.env`
+  si no existe.
+
+### `~/.env`: tus tokens viajan cifrados en el vault
+
+- **`env-save`** — cifra tu `~/.env` con age (misma passphrase que las claves)
+  en `env/env.age` del vault y deja el `git add` hecho. Correlo **cada vez que
+  agregues o rotes un token**: si no, la próxima máquina recibe la versión vieja.
+- En una máquina nueva, el bootstrap (y `vault-sync`) lo restauran **solo si
+  falta**: nunca pisan un `~/.env` local, que puede tener tokens más nuevos.
+- Si no hay `~/.env` ni `env/env.age`, el bootstrap avisa **al arrancar** (no
+  recién en el paso de AWS) para que lo copies antes de seguir.
 
 ---
 

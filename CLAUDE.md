@@ -76,6 +76,9 @@ Cualquier función o alias que se toque en un shell **debe replicarse en los otr
   personal/work/cei_walle) y `GIT_IDENTITY_FILES` (mapa sufijo→perfil de los
   `~/.gitconfig-<sufijo>`; fallback al mapeo histórico). El vault propio no las
   define — no agregarlas ahí sin motivo.
+- **`~/.env` en el vault:** opcional, cifrado con age en `env/env.age` (lo
+  escribe `env-save`, paridad bash/zsh/pwsh). Bootstrap y `vault-sync` lo
+  restauran **solo si falta** — nunca pisan un `~/.env` local.
 - **Globs de `hasconfig`** (wildmatch): `*` no cruza `/` y `**` solo es especial
   delimitado por `/`. Para URLs scp (`user/repo`) usar `:*/*` y `:**/**` —
   nunca `:**` pelado (no matchea).

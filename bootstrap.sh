@@ -48,6 +48,8 @@ REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 # Vault privado con lo sensible (ssh, identidades git, bookmarks).
 # install.sh lo clona en ~/.dotfiles-vault; si no esta, se saltean esos pasos.
 VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
+# ~/.env cifrado con age dentro del vault (lo genera env-save, paridad bash/zsh/pwsh)
+VAULT_ENV_AGE="$VAULT_DIR/env/env.age"
 LOG_DIR="$HOME/.local/logs"
 LOG_FILE="$LOG_DIR/bootstrap-$(date +%Y%m%d-%H%M%S).log"
 ERRORS=()
@@ -1260,6 +1262,20 @@ fi
 
 banner "bootstrap.sh — Setup de entorno" "$(date '+%Y-%m-%d %H:%M:%S')$([[ "$DRY_RUN" == true ]] && echo '  ·  modo DryRun')"
 
+# ~/.env: si no esta ni en esta maquina ni cifrado en el vault, avisar ANTES de
+# arrancar (caso real: se olvido migrarlo y recien lo noto el paso de AWS, al
+# final). Con tty real se frena con un Enter para dar tiempo a copiarlo.
+if [[ ! -f "$HOME/.env" && ! -f "$VAULT_ENV_AGE" ]]; then
+    printf '  %s⚠ ~/.env con tus tokens: no esta en esta maquina ni en el vault.%s\n' "$C_WARN" "$C_RESET"
+    printf '  %s  Si venis de otra maquina, copialo ahora a ~/.env (o alla corre env-save\n' "$C_DIM"
+    printf '    para que viaje cifrado en el vault). Sin el, AWS/Bedrock te pide los datos a mano.%s\n' "$C_RESET"
+    if [[ "$DRY_RUN" == false && -z "$TOOLS_ARG" && "$ALL_TOOLS" == false ]] \
+       && [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
+        printf '  Enter para continuar (Ctrl+C para salir): ' > /dev/tty
+        read -r _ < /dev/tty || true
+    fi
+fi
+
 # ==============================================================================
 # 1. VERIFICAR REQUISITOS
 # ==============================================================================
@@ -1454,9 +1470,11 @@ _QUIET_STEPS=0
 log "${_dirs_new} carpetas creadas · ${_dirs_had} ya existían · permisos aplicados" "OK"
 
 # Advertencia de .env (fuera del modo silencioso: es un aviso, no un paso exitoso)
-if [[ ! -f "$HOME/.env" ]]; then
-    log "~/.env no existe — crealo manualmente con tus tokens" "WARN"
-    WARNINGS+=("~/.env no encontrado — crealo y volve a ejecutar el bootstrap para asegurar permisos")
+if [[ ! -f "$HOME/.env" && -f "$VAULT_ENV_AGE" ]]; then
+    log "~/.env no existe — se restaura desde el vault (env/env.age) con las claves SSH" "INFO"
+elif [[ ! -f "$HOME/.env" ]]; then
+    log "~/.env no existe — crealo con tus tokens y guardalo en el vault con env-save" "WARN"
+    WARNINGS+=("~/.env no encontrado — crealo y corre env-save para que viaje cifrado en el vault")
 fi
 
 # ==============================================================================
@@ -1745,6 +1763,29 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
     fi
 else
     log "No hay claves .age en ssh/keys/, saltando" "SKIP"
+fi
+
+# ~/.env (cifrado con age en el vault: env/env.age, lo sube env-save). Solo se
+# restaura si FALTA: nunca pisa un ~/.env local, que puede tener tokens mas
+# nuevos que el vault.
+if [[ ! -f "$VAULT_ENV_AGE" ]]; then
+    echo "[$(date +%H:%M:%S)][SKIP] No hay env/env.age en el vault" >> "$LOG_FILE" 2>/dev/null || true
+elif [[ -f "$HOME/.env" ]]; then
+    echo "[$(date +%H:%M:%S)][SKIP] ~/.env ya existe, no se pisa con el del vault" >> "$LOG_FILE" 2>/dev/null || true
+elif ! has_cmd age; then
+    log "age no instalado — no se puede restaurar ~/.env del vault" "WARN"
+elif [[ "$DRY_RUN" == true ]]; then
+    log "[DryRun] Desencriptar env/env.age → ~/.env" "SKIP"
+else
+    gb_pause
+    printf '  %sRestaurando ~/.env desde el vault — age pide la passphrase...%s\n' "$C_DIM" "$C_RESET"
+    if ( umask 077; age_decrypt_retry "$VAULT_ENV_AGE" "$HOME/.env" ); then
+        chmod 600 "$HOME/.env"
+        log "~/.env restaurado desde el vault" "OK"
+    else
+        log "Error restaurando ~/.env desde el vault (3 intentos fallidos)" "ERROR"
+        ERRORS+=("Restaurar ~/.env desde el vault")
+    fi
 fi
 
 # Segunda tanda de symlinks/configs simples: también al log (modo silencioso).

@@ -39,6 +39,8 @@ $ErrorActionPreference = 'Continue'
 $REPO_ROOT   = $PSScriptRoot   # raiz del repo publico clonado
 # Vault privado (ssh, identidades git, bookmarks). Override via env VAULT_DIR.
 $VAULT_DIR   = if ($env:VAULT_DIR) { $env:VAULT_DIR } else { Join-Path $HOME ".dotfiles-vault" }
+# ~/.env cifrado con age dentro del vault (lo genera 'env-save', paridad bash/zsh/pwsh)
+$VAULT_ENV_AGE = Join-Path $VAULT_DIR "env\env.age"
 $LOG_FILE    = Join-Path $HOME ".local\logs\bootstrap-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 $ERRORS      = [System.Collections.Generic.List[string]]::new()
 $WARNINGS    = [System.Collections.Generic.List[string]]::new()
@@ -1048,6 +1050,14 @@ Write-Host "    $($script:C_DIM)1. VSCode System Installer (x64) — https://cod
 Write-Host "    $($script:C_DIM)   (agrega 'code' al PATH global)$($script:C_RESET)"
 Write-Host "    $($script:C_DIM)2. Python oficial amd64 — https://www.python.org/downloads/windows/$($script:C_RESET)"
 Write-Host "    $($script:C_DIM)   (marca 'Add Python to PATH' — necesario para Neovim)$($script:C_RESET)"
+# ~/.env: si no esta ni en esta maquina ni cifrado en el vault, avisar ANTES de
+# arrancar (caso real: se olvido migrarlo y recien lo noto el paso de AWS, al
+# final). Se avisa aca porque es el unico punto que ya frena con un Enter.
+if (-not (Test-Path (Join-Path $HOME '.env')) -and -not (Test-Path $VAULT_ENV_AGE)) {
+    Write-Host "    $($script:C_WARN)3. ~/.env con tus tokens: no esta en esta maquina ni en el vault.$($script:C_RESET)"
+    Write-Host "    $($script:C_DIM)   Si venis de otra PC, copialo ahora a $HOME\.env (o alla corre 'env-save'$($script:C_RESET)"
+    Write-Host "    $($script:C_DIM)   para que viaje cifrado en el vault). Sin el, AWS/Bedrock te pide los datos a mano.$($script:C_RESET)"
+}
 
 if (-not $DryRun) { Write-Host "  ¿Ya los instalaste? Enter para continuar (Ctrl+C para salir): " -NoNewline; [void](Read-Console) }
 
@@ -1388,9 +1398,11 @@ Invoke-Step "Asegurar permisos de ~/.ssh" {
 $envFile = Join-Path $HOME ".env"
 if (Test-Path $envFile) {
     Invoke-Step "Asegurar permisos de ~/.env" { Protect-EnvFile $envFile }
+} elseif (Test-Path $VAULT_ENV_AGE) {
+    Write-Log "~/.env no existe — se restaura desde el vault (env/env.age) con las claves SSH" 'INFO'
 } else {
-    Write-Log "~/.env no existe — crealo manualmente con tus tokens" 'WARN'
-    $WARNINGS.Add("~/.env no encontrado — crealo y volvé a ejecutar el bootstrap para asegurar permisos")
+    Write-Log "~/.env no existe — crealo con tus tokens y guardalo en el vault con 'env-save'" 'WARN'
+    $WARNINGS.Add("~/.env no encontrado — crealo y corré 'env-save' para que viaje cifrado en el vault")
 }
 
 # ==============================================================================
@@ -1793,6 +1805,35 @@ if ($SkipDotfiles) {
         }
     } else {
         Write-Log "No hay claves .age en ssh/keys/, saltando" 'SKIP'
+    }
+
+    # --- ~/.env (cifrado con age en el vault: env/env.age, lo sube 'env-save') ---
+    # Solo se restaura si FALTA: nunca pisa un ~/.env local, que puede tener
+    # tokens mas nuevos que el vault.
+    Sub-Bar 85 "~/.env desde el vault"
+    $envDst = Join-Path $HOME '.env'
+    if (-not (Test-Path $VAULT_ENV_AGE)) {
+        Write-Log "No hay env/env.age en el vault, saltando" 'SKIP'
+    } elseif (Test-Path $envDst) {
+        Write-Log "~/.env ya existe, no se pisa con el del vault" 'SKIP'
+    } elseif (-not (Test-CommandAvailable 'age')) {
+        Write-Log "age no instalado — no se puede restaurar ~/.env del vault" 'WARN'
+    } elseif ($DryRun) {
+        Write-Log "[DryRun] Desencriptar env/env.age → ~/.env" 'SKIP'
+    } else {
+        Suspend-Bar
+        Write-Host "  Restaurando ~/.env desde el vault — age pide la passphrase..."
+        Invoke-Step "Restaurar ~/.env desde el vault" {
+            for ($try = 1; $try -le 3; $try++) {
+                age -d -o $envDst $VAULT_ENV_AGE
+                if ($LASTEXITCODE -eq 0) { Protect-EnvFile $envDst; return }
+                Remove-Item -LiteralPath $envDst -Force -ErrorAction SilentlyContinue
+                if ($try -lt 3) {
+                    Write-Host "  $($script:C_WARN)Passphrase incorrecta — intento $($try + 1) de 3$($script:C_RESET)"
+                }
+            }
+            throw "Passphrase incorrecta (3 intentos) o error de age"
+        }
     }
 
     # --- Limpieza de archivos residuales ---

@@ -562,7 +562,12 @@ function Install-WingetPackage {
         [bool]$Optional = $false
     )
 
-    $installed = winget list --id $Id --exact 2>$null | Select-String $Id
+    # --accept-source-agreements + --disable-interactivity: sin --source, 'list'
+    # consulta tambien msstore, que la PRIMERA vez frena pidiendo aceptar sus
+    # terminos. Con la salida redirigida ese prompt no se ve y el bootstrap
+    # quedaba colgado sin explicacion. (No se fuerza --source winget para no
+    # dejar de detectar lo instalado desde la Store, p.ej. pwsh.)
+    $installed = winget list --id $Id --exact --accept-source-agreements --disable-interactivity 2>$null | Select-String $Id
     if ($installed) {
         Write-Log "$Name ya instalado, saltando" 'SKIP'
         return

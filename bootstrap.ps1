@@ -689,6 +689,17 @@ function Install-WingetPackage {
     }
 
     $run = Invoke-WingetInstall -Id $Id -Name $Name
+    # Reintento SELECTIVO (uno solo): en PCs corporativas el antivirus escanea
+    # el .exe recien extraido y bloquea el movimiento de los paquetes portables
+    # ("copy_file: Acceso denegado"). Caso real: yazi fallo asi en el bootstrap
+    # y a mano, segundos despues, se instalo sin problema. Otros errores (proxy,
+    # paquete inexistente, instalador que falla) no se reintentan: duplicar su
+    # tiempo no los arregla.
+    if ($run.ExitCode -ne 0 -and $run.Output -match 'copy_file|Acceso denegado|Access is denied') {
+        Write-Log "$Name`: acceso denegado al mover archivos (probable antivirus) - reintentando una vez..." 'INFO'
+        Start-Sleep -Seconds 5
+        $run = Invoke-WingetInstall -Id $Id -Name $Name
+    }
     $result = $run.Output
     if ($run.ExitCode -ne 0) {
         $msg = "Error instalando $Name`: $result"

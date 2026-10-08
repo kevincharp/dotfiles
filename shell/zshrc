@@ -1190,10 +1190,19 @@ claude-smg() {
         _smg_models="${CLAUDE_SMG_MODELS:-${CLAUDE_SMG_MODEL:-us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5}}"
         _smg_models="${_smg_models// /}"
         export ANTHROPIC_MODEL="${_smg_models%%,*}"
-        # Modelo rapido (tareas de fondo): el primer haiku de la lista. Antes era
-        # Haiku 4.5, que la cuenta no habilita: esas tareas fallaban en silencio.
-        _smg_small="$(printf '%s\n' "${_smg_models//,/$'\n'}" | grep -m1 -i haiku)"
-        export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-${_smg_small:-us.anthropic.claude-haiku-5-5}}"
+        # Cada familia del picker (Sonnet/Haiku/Opus) apunta al de la lista: el
+        # picker tiene entradas FIJAS por familia y availableModels solo las
+        # filtra. Sin este mapeo la entrada Haiku resolvia al Haiku por defecto
+        # de Claude Code en Bedrock (4.5, no habilitado) y el filtro la ocultaba,
+        # y "Default" seguia diciendo Sonnet 4.5.
+        _smg_pick() { printf '%s\n' "${_smg_models//,/$'\n'}" | grep -m1 -i "$1"; }
+        _smg_sonnet="$(_smg_pick sonnet)"; _smg_haiku="$(_smg_pick haiku)"; _smg_opus="$(_smg_pick opus)"
+        [[ -n "$_smg_sonnet" ]] && export ANTHROPIC_DEFAULT_SONNET_MODEL="$_smg_sonnet"
+        [[ -n "$_smg_opus" ]]   && export ANTHROPIC_DEFAULT_OPUS_MODEL="$_smg_opus"
+        # Haiku hace ademas las tareas de fondo (antes Haiku 4.5: fallaban en silencio).
+        _smg_haiku="${CLAUDE_SMG_SMALL_MODEL:-${_smg_haiku:-us.anthropic.claude-haiku-5-5}}"
+        export ANTHROPIC_DEFAULT_HAIKU_MODEL="$_smg_haiku"
+        export ANTHROPIC_SMALL_FAST_MODEL="$_smg_haiku"   # nombre viejo, por compat
         # JSON del picker: "a,b" -> ["a","b"]
         _smg_json="[\"${_smg_models//,/\",\"}\"]"
 

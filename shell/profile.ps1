@@ -1818,7 +1818,8 @@ function claude-smg {
     # Remove-Item a ciegas y un AWS_PROFILE propio del entorno quedaba borrado
     # despues de usar claude-smg (paridad con el subshell de bash/zsh).
     $prev = @{}
-    foreach ($n in 'CLAUDE_CODE_USE_BEDROCK','AWS_PROFILE','AWS_REGION','ANTHROPIC_MODEL','ANTHROPIC_SMALL_FAST_MODEL') {
+    foreach ($n in 'CLAUDE_CODE_USE_BEDROCK','AWS_PROFILE','AWS_REGION','ANTHROPIC_MODEL','ANTHROPIC_SMALL_FAST_MODEL',
+                   'ANTHROPIC_DEFAULT_SONNET_MODEL','ANTHROPIC_DEFAULT_HAIKU_MODEL','ANTHROPIC_DEFAULT_OPUS_MODEL') {
         $prev[$n] = [Environment]::GetEnvironmentVariable($n, 'Process')
     }
 
@@ -1843,12 +1844,21 @@ function claude-smg {
                else { 'us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5' }
     $smgModels = @($smgList -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $env:ANTHROPIC_MODEL = $smgModels[0]
-    # Modelo rapido (tareas de fondo): el primer haiku de la lista. Antes era
-    # Haiku 4.5, que la cuenta no habilita: esas tareas fallaban en silencio.
-    $smgSmall = $smgModels | Where-Object { $_ -match 'haiku' } | Select-Object -First 1
-    $env:ANTHROPIC_SMALL_FAST_MODEL = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL }
-                                      elseif ($smgSmall) { $smgSmall }
-                                      else { 'us.anthropic.claude-haiku-5-5' }
+    # Cada familia del picker (Sonnet/Haiku/Opus) apunta al de la lista: el
+    # picker tiene entradas FIJAS por familia y availableModels solo las
+    # filtra. Sin este mapeo la entrada Haiku resolvia al Haiku por defecto
+    # de Claude Code en Bedrock (4.5, no habilitado) y el filtro la ocultaba,
+    # y "Default" seguia diciendo Sonnet 4.5.
+    $smgPick = { param($f) $smgModels | Where-Object { $_ -match $f } | Select-Object -First 1 }
+    $smgSonnet = & $smgPick 'sonnet'; $smgOpus = & $smgPick 'opus'
+    if ($smgSonnet) { $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $smgSonnet }
+    if ($smgOpus)   { $env:ANTHROPIC_DEFAULT_OPUS_MODEL   = $smgOpus }
+    # Haiku hace ademas las tareas de fondo (antes Haiku 4.5: fallaban en silencio).
+    $smgHaiku = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL }
+                elseif (& $smgPick 'haiku') { & $smgPick 'haiku' }
+                else { 'us.anthropic.claude-haiku-5-5' }
+    $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $smgHaiku
+    $env:ANTHROPIC_SMALL_FAST_MODEL    = $smgHaiku   # nombre viejo, por compat
     $smgSettings = @{ availableModels = $smgModels } | ConvertTo-Json -Compress
 
     $cleanup = {

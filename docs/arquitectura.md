@@ -132,8 +132,6 @@ mapa:
 - **Un launcher por SO**: Ulauncher (Linux, con tema Liquid Glass + Blur My
   Shell) y Flow Launcher (Windows). En Wayland el hotkey interno de Ulauncher
   no funciona: lo dispara un atajo de GNOME.
-- **VSCode y Python manuales en Windows**: los instaladores de winget no dejan
-  `code`/`python` bien en el PATH — ver [instalación](instalacion.md#windows).
 
 ## Estructura del repo
 

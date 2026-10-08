@@ -23,8 +23,6 @@ volvé al [README](../README.md#instalación-rápida).
 | **Windows 10/11** | **winget no hace falta tenerlo**: si falta (Windows LTSC/Server, imágenes corporativas sin Store, Windows Sandbox), el instalador te ofrece instalarlo bajando el paquete oficial de «App Installer». |
 | **PowerShell 7** | **No hace falta tenerlo**: la consola por defecto de Windows es 5.1, y ahí el instalador lo detecta, **te ofrece instalarlo** (`[S/n]`) y se **relanza solo** en pwsh 7 para seguir donde iba. Si decís que no, te deja los dos comandos y sale sin tocar nada. |
 | **Modo de desarrollador** | Configuración → Sistema → Para desarrolladores. Necesario para crear **symlinks sin admin** (el repo los usa para todo). El bootstrap lo detecta y avisa una vez si falta, en lugar de fallar symlink por symlink. |
-| **VSCode** ([System Installer x64](https://code.visualstudio.com/docs/?dv=win64user)) | Manual a propósito: el System Installer agrega `code` al PATH global; el de winget usa el User Installer y puede no quedar en el PATH. |
-| **Python** ([instalador oficial amd64](https://www.python.org/downloads/windows/)) | Manual a propósito: el oficial tiene la checkbox «Add Python to PATH» (marcala); el de winget instala `py.exe` en su lugar y rompe la config de Neovim. |
 
 ---
 

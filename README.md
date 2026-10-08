@@ -40,10 +40,8 @@ prompt, mismos atajos, mismas funciones en bash, zsh y PowerShell.
 
 - **Linux**: una distro con `dnf`, `apt` o `pacman` (Fedora es la de
   referencia) y poco más — `git` se instala solo si falta.
-- **Windows**: **Modo de desarrollador** activado (para symlinks sin admin) y
-  dos instalaciones manuales previas (VSCode y Python,
-  [acá el porqué](docs/instalacion.md#windows)). Ni PowerShell 7 ni winget hacen
-  falta tenerlos: si corrés el one-liner desde la consola por defecto (5.1) y
+- **Windows**: **Modo de desarrollador** activado (para symlinks sin admin).
+  Ni PowerShell 7 ni winget hacen falta tenerlos: si corrés el one-liner desde la consola por defecto (5.1) y
   falta alguno, el instalador te ofrece instalarlos y se relanza solo.
 
 Detalle completo por sistema: [docs/instalacion.md](docs/instalacion.md#requisitos-previos).

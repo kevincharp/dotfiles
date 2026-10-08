@@ -1828,18 +1828,28 @@ function claude-smg {
     $env:CLAUDE_CODE_USE_BEDROCK = "1"
     $env:AWS_PROFILE             = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
     $env:AWS_REGION              = if ($env:CLAUDE_SMG_AWS_REGION)  { $env:CLAUDE_SMG_AWS_REGION }  else { 'us-east-1' }
-    # Modelo Bedrock: en la cuenta de SMG solo esta habilitado Sonnet 5.5, el
-    # resto de lo que Claude Code ofrece en /model es ruido que fallaria al
-    # invocarse. Si defines CLAUDE_SMG_MODEL en el entorno, se fija como default
-    # (ANTHROPIC_MODEL) y ademas se restringe el picker a ese unico modelo
-    # via --settings (mas abajo). Sin CLAUDE_SMG_MODEL no se fija ni restringe nada.
-    if ($env:CLAUDE_SMG_MODEL) {
-        $env:ANTHROPIC_MODEL = $env:CLAUDE_SMG_MODEL
-    } else {
-        # limpia un pin heredado de una corrida previa
-        Remove-Item Env:ANTHROPIC_MODEL -ErrorAction SilentlyContinue
-    }
-    $env:ANTHROPIC_SMALL_FAST_MODEL = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL } else { 'us.anthropic.claude-haiku-4-5-20251001-v1:0' }
+    # Modelos Bedrock: la cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5.
+    # Bedrock lista muchos mas (Opus, Fable, GPT...), pero la empresa los
+    # bloquea: en /model son ruido que falla al invocarse. El picker se
+    # restringe a esta lista via --settings availableModels (mas abajo) y el
+    # primero queda como default (ANTHROPIC_MODEL).
+    # Defaults EN EL REPO (son IDs publicos de Bedrock, no secretos) para que
+    # funcione aunque falte ~/.env: antes vivian solo ahi y, en una PC nueva
+    # sin el .env migrado, el picker volvia a mostrar todo. Se pisan con
+    # CLAUDE_SMG_MODELS (lista separada por comas); CLAUDE_SMG_MODEL (singular,
+    # nombre viejo) sigue valiendo como lista de uno. Paridad con bash/zsh.
+    $smgList = if ($env:CLAUDE_SMG_MODELS) { $env:CLAUDE_SMG_MODELS }
+               elseif ($env:CLAUDE_SMG_MODEL) { $env:CLAUDE_SMG_MODEL }
+               else { 'us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5' }
+    $smgModels = @($smgList -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $env:ANTHROPIC_MODEL = $smgModels[0]
+    # Modelo rapido (tareas de fondo): el primer haiku de la lista. Antes era
+    # Haiku 4.5, que la cuenta no habilita: esas tareas fallaban en silencio.
+    $smgSmall = $smgModels | Where-Object { $_ -match 'haiku' } | Select-Object -First 1
+    $env:ANTHROPIC_SMALL_FAST_MODEL = if ($env:CLAUDE_SMG_SMALL_MODEL) { $env:CLAUDE_SMG_SMALL_MODEL }
+                                      elseif ($smgSmall) { $smgSmall }
+                                      else { 'us.anthropic.claude-haiku-5-5' }
+    $smgSettings = @{ availableModels = $smgModels } | ConvertTo-Json -Compress
 
     $cleanup = {
         foreach ($n in $prev.Keys) {
@@ -1867,11 +1877,7 @@ function claude-smg {
         }
     }
 
-    if ($env:CLAUDE_SMG_MODEL) {
-        claude --settings "{`"availableModels`":[`"$($env:CLAUDE_SMG_MODEL)`"]}" @args
-    } else {
-        claude @args
-    }
+    claude --settings $smgSettings @args
     & $cleanup
 }
 

@@ -1218,17 +1218,25 @@ claude-smg() {
         export CLAUDE_CODE_USE_BEDROCK="1"
         export AWS_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
         export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
-        # Modelo Bedrock: en la cuenta de SMG solo esta habilitado Sonnet 5.5, el
-        # resto de lo que Claude Code ofrece en /model es ruido que fallaria al
-        # invocarse. Si defines CLAUDE_SMG_MODEL en ~/.env, se fija como default
-        # (ANTHROPIC_MODEL) y ademas se restringe el picker a ese unico modelo
-        # via --settings (mas abajo). Sin CLAUDE_SMG_MODEL no se fija ni restringe nada.
-        if [[ -n "${CLAUDE_SMG_MODEL:-}" ]]; then
-            export ANTHROPIC_MODEL="$CLAUDE_SMG_MODEL"
-        else
-            unset ANTHROPIC_MODEL  # limpia un pin heredado del entorno
-        fi
-        export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
+        # Modelos Bedrock: la cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5.
+        # Bedrock lista muchos mas (Opus, Fable, GPT...), pero la empresa los
+        # bloquea: en /model son ruido que falla al invocarse. El picker se
+        # restringe a esta lista via --settings availableModels (mas abajo) y el
+        # primero queda como default (ANTHROPIC_MODEL).
+        # Defaults EN EL REPO (son IDs publicos de Bedrock, no secretos) para que
+        # funcione aunque falte ~/.env: antes vivian solo ahi y, en una PC nueva
+        # sin el .env migrado, el picker volvia a mostrar todo. Se pisan con
+        # CLAUDE_SMG_MODELS (lista separada por comas); CLAUDE_SMG_MODEL (singular,
+        # nombre viejo) sigue valiendo como lista de uno.
+        _smg_models="${CLAUDE_SMG_MODELS:-${CLAUDE_SMG_MODEL:-us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5}}"
+        _smg_models="${_smg_models// /}"
+        export ANTHROPIC_MODEL="${_smg_models%%,*}"
+        # Modelo rapido (tareas de fondo): el primer haiku de la lista. Antes era
+        # Haiku 4.5, que la cuenta no habilita: esas tareas fallaban en silencio.
+        _smg_small="$(printf '%s\n' "${_smg_models//,/$'\n'}" | grep -m1 -i haiku)"
+        export ANTHROPIC_SMALL_FAST_MODEL="${CLAUDE_SMG_SMALL_MODEL:-${_smg_small:-us.anthropic.claude-haiku-5-5}}"
+        # JSON del picker: "a,b" -> ["a","b"]
+        _smg_json="[\"${_smg_models//,/\",\"}\"]"
 
         if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then
             echo "Sesion SSO caducada o ausente, ejecutando: aws sso login --profile $AWS_PROFILE"
@@ -1245,11 +1253,7 @@ claude-smg() {
             fi
         fi
 
-        if [[ -n "${CLAUDE_SMG_MODEL:-}" ]]; then
-            exec claude --settings "{\"availableModels\":[\"$CLAUDE_SMG_MODEL\"]}" "$@"
-        else
-            exec claude "$@"
-        fi
+        exec claude --settings "{\"availableModels\":$_smg_json}" "$@"
     )
 }
 

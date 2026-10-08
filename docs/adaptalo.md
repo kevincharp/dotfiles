@@ -249,3 +249,18 @@ Todo el bloque de AWS SSO existe para `claude-smg` (Claude Code facturado vía
 AWS Bedrock, típico en empresas). Si no es tu caso, respondé **no** cuando el
 instalador pregunte y el tema desaparece. Si sí lo es:
 [instalación → AWS SSO](instalacion.md#aws-sso--bedrock-opcional).
+
+**Modelos visibles en `/model`.** Bedrock lista muchos más modelos de los que
+tu organización habilita; los bloqueados aparecen igual en el picker y fallan
+al usarlos. `claude-smg` restringe el picker con `availableModels` a una lista
+que trae por defecto **Sonnet 5.5 y Haiku 5.5** (`us.anthropic.claude-sonnet-5-5`,
+`us.anthropic.claude-haiku-5-5`); el primero es el modelo por defecto y el
+primer Haiku hace las tareas de fondo. Para la tuya, en `~/.env`:
+
+```bash
+CLAUDE_SMG_MODELS=us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5
+```
+
+`aws bedrock list-inference-profiles` **no** sirve para saber cuáles están
+habilitados: lista el catálogo entero de la región, no lo que tu rol puede
+invocar.

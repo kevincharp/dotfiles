@@ -1166,8 +1166,13 @@ if ($SkipWinget) {
                 if ($DryRun) {
                     Write-Log "[DryRun] wsl --install -d Ubuntu-22.04" 'SKIP'
                 } else {
-                    $wslCheck = wsl -l -v 2>$null | Select-String 'Ubuntu'
-                    if ($wslCheck) {
+                    # 'wsl -l' escribe en UTF-16LE: leida como texto, cada letra
+                    # viene separada por un NUL ("U`0b`0u`0...") y Select-String
+                    # 'Ubuntu' nunca matcheaba. Resultado: con Ubuntu ya instalado
+                    # se reintentaba 'wsl --install' en cada corrida y tiraba
+                    # ERROR_ALREADY_EXISTS (marcado igual como OK). Se quitan los NUL.
+                    $wslList = ((wsl -l -q 2>$null) -join "`n") -replace "`0", ''
+                    if ($wslList -match 'Ubuntu') {
                         Write-Log "WSL Ubuntu ya instalado, saltando" 'SKIP'
                     } else {
                         Suspend-Bar

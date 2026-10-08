@@ -69,7 +69,7 @@ Requieren el [vault](adaptalo.md#el-vault) (ahí viven los nombres/emails).
 | `port <puerto>` | Muestra qué proceso escucha en ese puerto |
 | `killport <puerto>` | Mata el proceso que escucha en ese puerto |
 | `killdev` | Mata lo que escuche en puertos comunes de dev (3000, 4200, 5173, 8080…) |
-| `update-all` | Actualiza lo que el gestor de paquetes no cubre (Linux: dnf+flatpak+npm+openlogi · Windows: winget+npm) |
+| `update-all` | Actualiza lo que el gestor de paquetes no cubre (Linux: dnf+flatpak+npm+openlogi+Claude Code · Windows: winget+npm) |
 | `battery-limit [status\|on\|off]` *(Linux)* | Tope de carga ~80 % en Lenovo (conservation mode) |
 
 ## Navegación / archivos

@@ -1666,8 +1666,8 @@ battery-limit() {
 
 # --- [sistema] update-all: actualiza todo lo que dnf no cubre | uso: update-all ---
 # Espejo del de bashrc (paridad). dnf solo actualiza sus propios paquetes; esta
-# funcion recorre los demas gestores presentes (Flatpak, npm) ademas de dnf. Lo
-# instalado por curl (oh-my-posh, zoxide, opencode, claude) se autoactualiza aparte.
+# funcion recorre los demas gestores presentes (Flatpak, npm, Claude Code) ademas
+# de dnf. Lo instalado por curl (oh-my-posh, zoxide, opencode) se autoactualiza aparte.
 update-all() {
     if command -v dnf &>/dev/null; then
         echo "==> dnf (paquetes del sistema)"
@@ -1680,6 +1680,15 @@ update-all() {
     if command -v npm &>/dev/null; then
         echo "==> npm (paquetes globales, p.ej. codex)"
         npm update -g
+    fi
+    # Claude Code (instalador oficial por curl): trae su propio auto-update,
+    # pero si esta deshabilitado o la sesion vieja nunca se cerro, queda
+    # atrasado sin avisar (caso real: una version vieja no reconocia Haiku 5.5
+    # en el /model de claude-smg). 'claude update' es el comando oficial y no
+    # hace nada si ya esta al dia. En Windows lo cubre 'winget upgrade --all'.
+    if command -v claude &>/dev/null && [[ "${IS_WINDOWS:-false}" != true ]]; then
+        echo "==> claude (Claude Code)"
+        claude update
     fi
     # OpenLogi se instala con 'rpm -i' desde un release de GitHub, no desde un
     # repo de dnf, asi que 'dnf upgrade' no lo ve. Comparamos la version instalada
@@ -1729,7 +1738,7 @@ update-all() {
         fi
     fi
     echo "Listo. Nota: lazyssh y lazysql (binarios GitHub) y los instalados por curl"
-    echo "(oh-my-posh, zoxide, opencode, claude) se actualizan aparte."
+    echo "(oh-my-posh, zoxide, opencode) se actualizan aparte."
 }
 
 # ==============================================================================

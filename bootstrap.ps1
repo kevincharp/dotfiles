@@ -41,6 +41,9 @@ $REPO_ROOT   = $PSScriptRoot   # raiz del repo publico clonado
 $VAULT_DIR   = if ($env:VAULT_DIR) { $env:VAULT_DIR } else { Join-Path $HOME ".dotfiles-vault" }
 # ~/.env cifrado con age dentro del vault (lo genera 'env-save', paridad bash/zsh/pwsh)
 $VAULT_ENV_AGE = Join-Path $VAULT_DIR "env\env.age"
+# Lo pone en $true el paso de AWS si el SSO login salio bien (ajusta los
+# "Proximos pasos"). Inicializado aca por Set-StrictMode.
+$script:AWS_SSO_OK = $false
 $LOG_FILE    = Join-Path $HOME ".local\logs\bootstrap-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 $ERRORS      = [System.Collections.Generic.List[string]]::new()
 $WARNINGS    = [System.Collections.Generic.List[string]]::new()
@@ -2038,6 +2041,7 @@ output = json
             aws sso login --profile $ssoProfile
             if ($LASTEXITCODE -eq 0) {
                 Write-Log "AWS SSO login completado exitosamente" 'OK'
+                $script:AWS_SSO_OK = $true
             } else {
                 Write-Log "AWS SSO login falló o fue cancelado" 'WARN'
                 $WARNINGS.Add("AWS SSO login incompleto — correr 'aws sso login --profile $ssoProfile'")
@@ -2174,7 +2178,13 @@ Write-Host "$($script:C_SECT)$($script:ICONS.Section) Proximos pasos manuales$($
 $stepNum = 1
 Write-Host "    $($script:C_DIM)$stepNum. Abri una terminal nueva para recargar el profile$($script:C_RESET)"
 $stepNum++
-if ($WithAws) {
+if ($script:AWS_SSO_OK) {
+    # SSO ya configurado y logueado en esta corrida: solo queda verificarlo.
+    # (Antes se pedia 'aws configure sso' igual, aunque ya estuviera hecho.)
+    $awsProf = if ((Test-Path variable:ssoProfile) -and $ssoProfile) { $ssoProfile } else { 'tu_usuario' }
+    Write-Host "    $($script:C_DIM)$stepNum. Verifica AWS: aws sts get-caller-identity --profile $awsProf$($script:C_RESET)"
+    $stepNum++
+} elseif ($WithAws) {
     Write-Host "    $($script:C_DIM)$stepNum. Ejecuta: aws configure sso (completar los datos de tu organizacion)$($script:C_RESET)"
     $stepNum++
     Write-Host "    $($script:C_DIM)$stepNum. Ejecuta: aws sts get-caller-identity --profile tu_usuario$($script:C_RESET)"

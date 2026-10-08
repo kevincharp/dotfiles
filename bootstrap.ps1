@@ -118,6 +118,11 @@ $WINGET_PACKAGES = @(
     @{ Id='JesseDuffield.lazygit';          Name='LazyGit';                 Optional=$false; Key='lazygit';          Group='shell'  }
     @{ Id='sxyazi.yazi';                    Name='yazi (file manager TUI)'; Optional=$true ; Key='yazi';             Group='shell'  }
     @{ Id='OpenJS.NodeJS.LTS';              Name='Node.js LTS';             Optional=$false; Key='node';             Group='dev'    }
+    # Override = argumentos del instalador de python.org (reemplaza los de winget):
+    # por usuario (sin admin ni UAC), con python.exe en el PATH y sin el launcher py.exe.
+    @{ Id='Python.Python.3.13';             Name='Python 3.13';             Optional=$false; Key='python';           Group='dev'
+       Override='/quiet InstallAllUsers=0 PrependPath=1 Include_launcher=0' }
+    @{ Id='Microsoft.VisualStudioCode';     Name='Visual Studio Code';      Optional=$true ; Key='vscode';           Group='dev'    }
     @{ Id='SST.opencode';                   Name='opencode';                Optional=$true ; Key='opencode';         Group='dev'    }
     @{ Id='Amazon.AWSCLI';                  Name='AWS CLI';                 Optional=$true ; Key='aws';              Group='cloud'  }
     @{ Id='GitHub.cli';                     Name='GitHub CLI (gh)';         Optional=$true ; Key='gh';               Group='cloud'  }
@@ -149,25 +154,18 @@ $EXTRA_TOOLS = @(
 $TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 
 # ==============================================================================
-# INSTALACIONES MANUALES REQUERIDAS
+# VS CODE Y PYTHON (antes eran instalaciones manuales)
 # ------------------------------------------------------------------------------
-# Estos dos programas NO se instalan por winget adrede. Hay razones concretas:
-#
-#  1. VSCode — System Installer (x64)
-#     Descargá: https://code.visualstudio.com/docs/?dv=win64user
-#     ¿Por qué manual? El System Installer instala VSCode en Program Files y
-#     agrega el comando `code` al PATH del sistema para todos los usuarios y
-#     contextos (scripts, WSL, terminales). El instalador de winget usa el
-#     User Installer que instala en AppData y puede no quedar en el PATH global.
-#
-#  2. Python — Instalador oficial amd64
-#     Descargá: https://www.python.org/downloads/windows/ (Windows installer 64-bit)
-#     ¿Por qué manual? El instalador oficial tiene una checkbox explícita
-#     "Add Python to PATH" y configura correctamente python.exe en el PATH.
-#     El de winget históricamente instala el launcher py.exe en lugar de
-#     python.exe directo, lo que rompe la configuración de Neovim
-#     (python3_host_prog necesita el path exacto del ejecutable).
-#     IMPORTANTE: durante la instalación marcá "Add Python to PATH".
+# Se dejaban a mano por miedo a que el instalador de winget no pusiera `code` /
+# `python` en el PATH (y a que dejara solo el launcher py.exe, que se creia que
+# rompia el python3_host_prog de Neovim). Ninguna de las dos cosas se sostuvo:
+# nvim/ no referencia python3_host_prog, y el instalador de python.org acepta
+# sus opciones por --override (PrependPath=1), asi que winget lo instala igual
+# que el wizard. Python entra por usuario (sin admin); el PATH de usuario va
+# antes que WindowsApps, donde viven los atajos de la Store que "tapan" python.
+# VS Code va con el User Installer de winget (sin override). PENDIENTE verificar
+# en una maquina sin VS Code que `code` quede en el PATH de usuario; si no, sumar
+# un Override con /MERGETASKS=addtopath. Tras instalar, abrir una terminal nueva.
 #
 # NOTA: Git for Windows SI se instala por winget (Id 'Git.Git', grupo core).
 # Antes era manual para elegir en el wizard el editor, los line endings y el SSH,
@@ -613,12 +611,15 @@ function Invoke-WingetInstall {
     # Devuelve @{ ExitCode; Output }. Si el proceso ni arranca, ExitCode = -1
     # (antes ese caso no sumaba a $ERRORS: el resumen decia "1 error" con 25
     # paquetes sin instalar).
-    param([string]$Id, [string]$Name)
+    param([string]$Id, [string]$Name, [string]$Override = '')
 
     $exe  = if ($script:WINGET_EXE) { $script:WINGET_EXE } else { 'winget.exe' }
     $wArgs = @('install', '--id', $Id, '-e', '--source', 'winget',
                '--accept-package-agreements', '--accept-source-agreements',
                '--disable-interactivity')
+    # --override reemplaza los argumentos del instalador. Start-Process no
+    # entrecomilla los elementos con espacios, asi que se hace a mano.
+    if ($Override) { $wArgs += @('--override', "`"$Override`"") }
     $tag  = [guid]::NewGuid().ToString('N').Substring(0, 8)
     $outF = Join-Path ([IO.Path]::GetTempPath()) "bootstrap-winget-$tag.out"
     $errF = Join-Path ([IO.Path]::GetTempPath()) "bootstrap-winget-$tag.err"
@@ -677,7 +678,8 @@ function Install-WingetPackage {
     param(
         [string]$Id,
         [string]$Name,
-        [bool]$Optional = $false
+        [bool]$Optional = $false,
+        [string]$Override = ''
     )
 
     # --accept-source-agreements + --disable-interactivity: sin --source, 'list'
@@ -706,7 +708,7 @@ function Install-WingetPackage {
         return
     }
 
-    $run = Invoke-WingetInstall -Id $Id -Name $Name
+    $run = Invoke-WingetInstall -Id $Id -Name $Name -Override $Override
     # Reintento SELECTIVO (uno solo): en PCs corporativas el antivirus escanea
     # el .exe recien extraido y bloquea el movimiento de los paquetes portables
     # ("copy_file: Acceso denegado"). Caso real: yazi fallo asi en el bootstrap
@@ -716,7 +718,7 @@ function Install-WingetPackage {
     if ($run.ExitCode -ne 0 -and $run.Output -match 'copy_file|Acceso denegado|Access is denied') {
         Write-Log "$Name`: acceso denegado al mover archivos (probable antivirus) - reintentando una vez..." 'INFO'
         Start-Sleep -Seconds 5
-        $run = Invoke-WingetInstall -Id $Id -Name $Name
+        $run = Invoke-WingetInstall -Id $Id -Name $Name -Override $Override
     }
     $result = $run.Output
     if ($run.ExitCode -ne 0) {
@@ -1071,24 +1073,17 @@ Write-Host "$($script:C_SECT)$($script:ICONS.Section) bootstrap.ps1 — Setup de
 Write-Host "  $($script:C_DIM)$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')$(if ($DryRun) { '  ·  modo DryRun' })$($script:C_RESET)"
 Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')] === bootstrap.ps1 — Setup de entorno ===" -ErrorAction SilentlyContinue
 
-# Recordatorio de instalaciones manuales (VSCode/Python). Va antes de la barra
-# porque pide una confirmacion (Enter) — es interaccion, no ruido de progreso.
-Write-Host ''
-Write-Host "  $($script:C_WARN)$($script:ICONS.Warn)$($script:C_RESET) Instalaciones manuales requeridas antes de continuar"
-Write-Host "    $($script:C_DIM)1. VSCode System Installer (x64) — https://code.visualstudio.com/docs/?dv=win64user$($script:C_RESET)"
-Write-Host "    $($script:C_DIM)   (agrega 'code' al PATH global)$($script:C_RESET)"
-Write-Host "    $($script:C_DIM)2. Python oficial amd64 — https://www.python.org/downloads/windows/$($script:C_RESET)"
-Write-Host "    $($script:C_DIM)   (marca 'Add Python to PATH' — necesario para Neovim)$($script:C_RESET)"
 # ~/.env: si no esta ni en esta maquina ni cifrado en el vault, avisar ANTES de
 # arrancar (caso real: se olvido migrarlo y recien lo noto el paso de AWS, al
-# final). Se avisa aca porque es el unico punto que ya frena con un Enter.
+# final). Va antes de la barra porque pide una confirmacion (Enter) — es
+# interaccion, no ruido de progreso. Es el unico punto que frena con un Enter.
 if (-not (Test-Path (Join-Path $HOME '.env')) -and -not (Test-Path $VAULT_ENV_AGE)) {
-    Write-Host "    $($script:C_WARN)3. ~/.env con tus tokens: no esta en esta maquina ni en el vault.$($script:C_RESET)"
-    Write-Host "    $($script:C_DIM)   Si venis de otra PC, copialo ahora a $HOME\.env (o alla corre 'env-save'$($script:C_RESET)"
-    Write-Host "    $($script:C_DIM)   para que viaje cifrado en el vault). Sin el, AWS/Bedrock te pide los datos a mano.$($script:C_RESET)"
+    Write-Host ''
+    Write-Host "  $($script:C_WARN)$($script:ICONS.Warn)$($script:C_RESET) ~/.env con tus tokens: no esta en esta maquina ni en el vault."
+    Write-Host "    $($script:C_DIM)Si venis de otra PC, copialo ahora a $HOME\.env (o alla corre 'env-save'$($script:C_RESET)"
+    Write-Host "    $($script:C_DIM)para que viaje cifrado en el vault). Sin el, AWS/Bedrock te pide los datos a mano.$($script:C_RESET)"
+    if (-not $DryRun) { Write-Host "  Enter para continuar (Ctrl+C para salir): " -NoNewline; [void](Read-Console) }
 }
-
-if (-not $DryRun) { Write-Host "  ¿Ya los instalaste? Enter para continuar (Ctrl+C para salir): " -NoNewline; [void](Read-Console) }
 
 # Activar la barra global solo con consola interactiva (humano). En CI/headless
 # o sin consola, GB_ENABLED queda en $false y se cae a headers de texto.
@@ -1187,7 +1182,7 @@ if ($SkipWinget) {
                 }
                 continue
             }
-            Install-WingetPackage -Id $pkg.Id -Name $pkg.Name -Optional $pkg.Optional
+            Install-WingetPackage -Id $pkg.Id -Name $pkg.Name -Optional $pkg.Optional -Override $pkg['Override']
 
             # yazi arrastra sus dependencias de preview (bundle): sin estas, yazi
             # funciona pero no previsualiza PDF/video/imagenes ni entra a comprimidos.

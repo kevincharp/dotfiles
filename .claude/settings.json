@@ -24,7 +24,6 @@
     "landing-a-secciones@kevincharp-dotfiles": true,
     "diagram-design@diagram-design": true,
     "taste-skill@taste-skill": true,
-    "impeccable@impeccable": true,
     "mattpocock-skills@claude-plugins-official": true,
     "thermos@kevincharp-dotfiles": true,
     "landing-team@kevincharp-dotfiles": true,
@@ -68,12 +67,6 @@
       "source": {
         "source": "git",
         "url": "https://github.com/Leonxlnx/taste-skill.git"
-      }
-    },
-    "impeccable": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/pbakaus/impeccable.git"
       }
     },
     "cloudflare": {

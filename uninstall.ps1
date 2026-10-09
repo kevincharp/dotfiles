@@ -80,7 +80,6 @@ $WINGET_PACKAGES = @(
     @{ Id='sxyazi.yazi';             Name='yazi' }
     @{ Id='GitHub.cli';              Name='GitHub CLI (gh)' }
     @{ Id='Amazon.AWSCLI';           Name='AWS CLI' }
-    @{ Id='Anthropic.ClaudeCode';    Name='Claude Code' }
     @{ Id='OpenAI.Codex';            Name='Codex CLI' }
 )
 

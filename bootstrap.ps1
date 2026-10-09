@@ -140,7 +140,7 @@ $WINGET_PACKAGES = @(
 # Herramientas con instalacion propia (no via 'winget list'): se gatean por
 # seleccion igual que los paquetes winget, pero su instalacion es custom.
 #   codex    -> winget OpenAI.Codex + nota de Codex Desktop (seccion 3)
-#   claude   -> instalacion manual (winget ID pendiente)            (seccion 3)
+#   claude   -> instalador nativo oficial (claude.ai/install.ps1)   (seccion 3)
 #   firacode -> descarga FiraCode Nerd Font y la registra (sin admin)
 $EXTRA_TOOLS = @(
     @{ Key='codex';    Name='Codex CLI';            Group='dev'   }
@@ -1238,9 +1238,17 @@ if ($SkipWinget) {
     } elseif (Test-CommandAvailable 'claude') {
         Write-Log "Claude Code ya instalado" 'SKIP'
     } else {
-        # Paquete winget oficial. Nota: winget no auto-actualiza Claude Code;
-        # se actualiza con 'winget upgrade Anthropic.ClaudeCode'.
-        Install-WingetPackage -Id 'Anthropic.ClaudeCode' -Name 'Claude Code' -Optional $false
+        # Instalador nativo oficial (igual que Linux): se autoactualiza y deja
+        # claude.exe en ~\.local\bin. NO el paquete winget, que no se
+        # autoactualiza y publica con dias de retraso (2.1.292 en winget cuando
+        # la oficial ya era 2.1.295). Va en un pwsh hijo porque un 'exit' del
+        # script bajo 'iex' mataria el bootstrap entero.
+        Invoke-Step "Instalar Claude Code (instalador nativo)" {
+            pwsh -NoProfile -Command 'irm https://claude.ai/install.ps1 | iex'
+            if ($LASTEXITCODE -ne 0) { throw "el instalador salio con codigo $LASTEXITCODE" }
+            $claudeBin = Join-Path $HOME '.local\bin'
+            if ($env:PATH -notlike "*$claudeBin*") { $env:PATH = "$claudeBin;$env:PATH" }
+        }
     }
 
     # --- FiraCode Nerd Font ---

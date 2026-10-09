@@ -1681,12 +1681,12 @@ update-all() {
         echo "==> npm (paquetes globales, p.ej. codex)"
         npm update -g
     fi
-    # Claude Code (instalador oficial por curl): trae su propio auto-update,
-    # pero si esta deshabilitado o la sesion vieja nunca se cerro, queda
-    # atrasado sin avisar (caso real: una version vieja no reconocia Haiku 5.5
-    # en el /model de claude-smg). 'claude update' es el comando oficial y no
-    # hace nada si ya esta al dia. En Windows lo cubre 'winget upgrade --all'.
-    if command -v claude &>/dev/null && [[ "${IS_WINDOWS:-false}" != true ]]; then
+    # Claude Code (instalador oficial nativo, igual en Linux y Windows): trae su
+    # propio auto-update, pero si esta deshabilitado o la sesion vieja nunca se
+    # cerro, queda atrasado sin avisar (caso real: una version vieja no reconocia
+    # Haiku 5.5 en el /model de claude-smg). 'claude update' es el comando oficial
+    # y no hace nada si ya esta al dia.
+    if command -v claude &>/dev/null; then
         echo "==> claude (Claude Code)"
         claude update
     fi

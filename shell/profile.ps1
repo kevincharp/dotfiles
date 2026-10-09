@@ -372,10 +372,9 @@ if (Get-Command yazi -ErrorAction SilentlyContinue) {
 <#
 .SYNOPSIS actualizar todo lo que winget no cubre, en un solo comando
 .DESCRIPTION Espejo del update-all de bash/zsh (paridad). winget cubre la mayoria
-de las apps (incluido Claude Code: el bootstrap lo instala por winget, que NO
-lo autoactualiza y publica cada version con unos dias de retraso); esta funcion
-suma npm (codex). lazyssh y lazysql (binarios GitHub) se actualizan re-corriendo
-el bootstrap.
+de las apps; esta funcion suma npm (codex) y Claude Code (instalador nativo, NO
+winget: el paquete winget publica cada version con unos dias de retraso).
+lazyssh y lazysql (binarios GitHub) se actualizan re-corriendo el bootstrap.
 .EXAMPLE update-all
 #>
 function update-all {
@@ -387,8 +386,13 @@ function update-all {
         Write-Host "==> npm (paquetes globales, p.ej. codex)" -ForegroundColor Cyan
         npm update -g
     }
+    # Trae su propio auto-update, pero 'claude update' cubre el caso en que este
+    # deshabilitado o la sesion vieja nunca se cerro. No hace nada si ya esta al dia.
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        Write-Host "==> claude (Claude Code)" -ForegroundColor Cyan
+        claude update
+    }
     Write-Host "Listo. Nota: lazyssh y lazysql (binarios GitHub) se actualizan re-corriendo el bootstrap."
-    Write-Host "Claude Code lo actualiza winget (arriba), con unos dias de retraso respecto del release oficial."
 }
 
 <#

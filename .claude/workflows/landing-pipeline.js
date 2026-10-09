@@ -25,7 +25,7 @@ export const meta = {
   phases: [
     { title: 'Plan', detail: 'clasifica el tipo de landing y arma el brief estructurado' },
     { title: 'Build', detail: 'genera la landing con landing-cro o premium-website-generator' },
-    { title: 'Review', detail: 'QA (Playwright + impeccable) y Seguridad/calidad (cyber-neo + code-review) en paralelo' },
+    { title: 'Review', detail: 'QA (Playwright) y Seguridad/calidad (cyber-neo + code-review) en paralelo' },
     { title: 'Fix', detail: 'corrige los hallazgos bloqueantes del Review, si hay' },
   ],
 }

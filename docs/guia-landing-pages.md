@@ -17,11 +17,11 @@ código:
 | **Planner** | `landing-team:planner` | Read, Grep, Glob, Bash | clasifica el brief ya armado | Dentro del Workflow, después de la entrevista inline |
 | **Builder** | `landing-team:builder` | Read, Write, Edit, Bash, Grep, Glob | `landing-cro`/`premium-website-generator` + `landing-a-secciones` si hace falta Shopify | Genera el HTML/CSS/JS completo en un solo paso, y aplica los fixes que pida Review |
 | **Backend** | *(no existe todavía — ver abajo)* | — | — | Solo si el brief pide formulario propio, checkout propio o integraciones |
-| **QA** | `landing-team:qa` | Read, Grep, Glob, Bash | `webapp-testing` (Playwright) + `/impeccable audit` | En paralelo con Seguridad, después del build |
+| **QA** | `landing-team:qa` | Read, Grep, Glob, Bash | `webapp-testing` (Playwright) | En paralelo con Seguridad, después del build |
 | **Seguridad/Calidad** | `landing-team:security` | Read, Grep, Glob, Bash | `cyber-neo` + `code-review` (o `thermos` una vez instalado) | En paralelo con QA |
 
-`impeccable` (el hook automático) y las skills de `taste-skill`/`ui-ux-pro-max`
-ya corren pasivamente durante el Build, no son un paso explícito del equipo.
+Las skills de `taste-skill`/`ui-ux-pro-max` ya corren pasivamente durante el
+Build, no son un paso explícito del equipo.
 
 **Deploy queda afuera del Workflow a propósito** — no hay agente ni fase
 para eso. Es un paso separado y explícito: una vez que ves el resultado de

@@ -11,6 +11,6 @@ Alcance: solo lectura y análisis — nunca escribís ni editás código, solo r
 
 ## Qué hacer
 
-Sobre el proyecto que te indiquen: usá Playwright para screenshot desktop y mobile, revisá links rotos, errores de consola, y comportamiento responsive. Corré también `/impeccable audit` para el chequeo de diseño anti-genérico.
+Sobre el proyecto que te indiquen: usá Playwright para screenshot desktop y mobile, revisá links rotos, errores de consola, y comportamiento responsive. Revisá también en los screenshots que el diseño no se vea genérico (plantilla sin identidad propia).
 
 Devolvé solo los hallazgos **bloqueantes** (rompe la página, se ve mal en mobile, link roto) separados de cualquier otra observación menor.

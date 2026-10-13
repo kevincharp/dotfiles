@@ -47,8 +47,6 @@ $script:AWS_SSO_OK = $false
 $LOG_FILE    = Join-Path $HOME ".local\logs\bootstrap-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 $ERRORS      = [System.Collections.Generic.List[string]]::new()
 $WARNINGS    = [System.Collections.Generic.List[string]]::new()
-$BACKUP_TS   = Get-Date -Format 'yyyyMMdd-HHmmss'
-$BACKUP_DIR  = Join-Path $HOME ".local\backups\bootstrap\$BACKUP_TS"
 
 # Estructura de carpetas a crear
 $DIRS = @(
@@ -272,17 +270,17 @@ $script:C_WARN  = "$ESC[33m"
 $script:C_ERR   = "$ESC[31m"
 
 # ── BARRA DE PROGRESO GLOBAL (espejo de gb_* en bootstrap.sh) ────────────────
-# UNA sola barra que cruza los 9 pasos (0→100%), con dos lineas fijas abajo:
+# UNA sola barra que cruza los 8 pasos (0→100%), con dos lineas fijas abajo:
 #   ▰▰▰▱▱  42%
-#   [3/9] Codex/Claude/FiraCode · claude
+#   [3/8] Codex/Claude/FiraCode · claude
 # El % es global y ponderado (GB_WEIGHTS). En interacciones (selector, sudo N/A,
 # passphrase, login AWS) se PAUSA (Suspend-Bar) y retoma en el proximo Step/Sub.
-# Sin consola interactiva NO dibuja: cae a headers de texto '[N/9] ...'.
+# Sin consola interactiva NO dibuja: cae a headers de texto '[N/8] ...'.
 #
 # Pesos por paso (suman 100). Instalar winget es lo mas largo -> pesa mas.
-# Indice 1..9. GB_BASE = % acumulado ANTES de cada paso.
-$script:GB_WEIGHTS = @(0, 4, 34, 14, 8, 6, 4, 18, 4, 8)
-$script:GB_BASE    = @(0, 0, 4, 38, 52, 60, 66, 70, 88, 92)
+# Indice 1..8. GB_BASE = % acumulado ANTES de cada paso.
+$script:GB_WEIGHTS = @(0, 4, 34, 14, 8, 6, 22, 4, 8)
+$script:GB_BASE    = @(0, 0, 4, 38, 52, 60, 66, 88, 92)
 $script:GB_STEP   = 0
 $script:GB_LABEL  = ''
 $script:GB_ACTION = ''
@@ -309,7 +307,7 @@ function Write-BarFrame {
     $filled = [int]($pct * $width / 100)
     if ($filled -gt $width) { $filled = $width }
     $bar = ('▰' * $filled) + ('▱' * ($width - $filled))
-    $line2 = "[$($script:GB_STEP)/9] $($script:GB_LABEL)"
+    $line2 = "[$($script:GB_STEP)/8] $($script:GB_LABEL)"
     if ($script:GB_ACTION) { $line2 += " · $($script:GB_ACTION)" }
     $maxw = (Get-BarConsoleWidth) - 6
     if ($maxw -lt 20) { $maxw = 20 }
@@ -324,9 +322,9 @@ function Write-BarFrame {
 function Step-Bar {
     param([int]$N, [string]$Label)
     $script:GB_STEP = $N; $script:GB_LABEL = $Label; $script:GB_SUB = 0; $script:GB_ACTION = ''
-    Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')] === [$N/9] $Label ===" -ErrorAction SilentlyContinue
+    Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')] === [$N/8] $Label ===" -ErrorAction SilentlyContinue
     if ($script:GB_ENABLED) { Write-BarFrame }
-    else { Write-Host ''; Write-Host "$($script:ICONS.Section) [$N/9] $Label" -ForegroundColor DarkYellow }
+    else { Write-Host ''; Write-Host "$($script:ICONS.Section) [$N/8] $Label" -ForegroundColor DarkYellow }
 }
 
 function Sub-Bar {
@@ -361,7 +359,7 @@ function Suspend-Bar {
 function Complete-Bar {
     # Completa la barra al 100%, la limpia y deja el cursor listo para el resumen.
     if ($script:GB_ENABLED) {
-        $script:GB_STEP = 9; $script:GB_SUB = 100; $script:GB_ACTION = ''
+        $script:GB_STEP = 8; $script:GB_SUB = 100; $script:GB_ACTION = ''
         Write-BarFrame
         Write-Host "`r$ESC[K`n`r$ESC[K$ESC[1A`r" -NoNewline
     }
@@ -1016,7 +1014,7 @@ function Test-ToolInstalled {
 # Test-ToolWanted <Key> — DECISION UNICA de "¿el usuario quiere esta
 # herramienta?": True si la eligio en el selector o si ya la tiene instalada.
 # Espejo exacto de want_tool en bootstrap.sh (ver el comentario largo alla).
-# Es el gate de las CONFIGS del paso 7: antes el array $DOTFILES se aplicaba
+# Es el gate de las CONFIGS del paso 6: antes el array $DOTFILES se aplicaba
 # completo, asi que un tercero que elegia solo pwsh + Windows Terminal + aws se
 # llevaba igual ~/.bashrc, la config de yazi, %LOCALAPPDATA%\nvim apuntando a
 # este repo y el CLAUDE.md con las reglas de trabajo del autor.
@@ -1076,7 +1074,6 @@ function Show-Welcome {
 
 # Asegurar que existe el directorio de logs antes de escribir
 New-Item -ItemType Directory -Path (Split-Path $LOG_FILE) -Force -ErrorAction SilentlyContinue | Out-Null
-New-Item -ItemType Directory -Path $BACKUP_DIR -Force -ErrorAction SilentlyContinue | Out-Null
 
 # Bienvenida solo en modo interactivo real (no en -DryRun/-Tools/-AllTools/sin consola)
 if (-not $Tools -and -not $AllTools -and -not $DryRun -and (Test-Interactive)) {
@@ -1458,65 +1455,10 @@ if (Test-Path $envFile) {
 }
 
 # ==============================================================================
-# 6. MIGRAR BACKUPS VIEJOS (.bak-*) → BACKUP_DIR
+# 6. COPIAR DOTFILES
 # ==============================================================================
 
-Step-Bar 6 "Migrando backups viejos"
-Sub-Bar 50 "buscando backups previos"
-
-if ($SkipDotfiles) {
-    Write-Log "SkipDotfiles activado, saltando migracion de backups" 'SKIP'
-} elseif ($DryRun) {
-    Write-Log "[DryRun] Migrar backups viejos" 'SKIP'
-} else {
-    $BAK_DESTINATIONS = $DOTFILES | ForEach-Object { $_.Dst }
-    $migratedCount = 0
-
-    foreach ($dst in $BAK_DESTINATIONS) {
-        $dstDir  = Split-Path $dst
-        $dstName = Split-Path $dst -Leaf
-
-        if (-not (Test-Path $dstDir)) { continue }
-
-        $oldBaks = Get-ChildItem -Path $dstDir -Filter "$dstName.bak-*" -File -ErrorAction SilentlyContinue
-
-        foreach ($oldBak in $oldBaks) {
-            # Calcular ruta relativa a HOME
-            $homePath = $HOME.TrimEnd('\', '/')
-            if ($dst.StartsWith($homePath, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $relPath = $dst.Substring($homePath.Length).TrimStart('\', '/')
-            } else {
-                $relPath = "_external\$dstName"
-            }
-
-            # Extraer timestamp del nombre del backup
-            $ts = if ($oldBak.Name -match '(\d{8}-\d{6})') { $Matches[1] } else { 'unknown' }
-            $targetDir = Join-Path $BACKUP_DIR "_migrated\$ts"
-            $targetFile = Join-Path $targetDir $relPath
-            $targetParent = Split-Path $targetFile
-
-            Invoke-Step "Migrar $($oldBak.FullName) → $targetFile" {
-                if (-not (Test-Path $targetParent)) {
-                    New-Item -ItemType Directory -Path $targetParent -Force | Out-Null
-                }
-                Move-Item -LiteralPath $oldBak.FullName -Destination $targetFile -Force
-            }
-            $migratedCount++
-        }
-    }
-
-    if ($migratedCount -gt 0) {
-        Write-Log "Migrados $migratedCount backups viejos a $BACKUP_DIR\_migrated\" 'OK'
-    } else {
-        Write-Log "No se encontraron backups viejos para migrar" 'SKIP'
-    }
-}
-
-# ==============================================================================
-# 7. COPIAR DOTFILES
-# ==============================================================================
-
-Step-Bar 7 "Copiando dotfiles"
+Step-Bar 6 "Copiando dotfiles"
 
 if ($SkipDotfiles) {
     Write-Log "SkipDotfiles activado, saltando dotfiles" 'SKIP'
@@ -1555,29 +1497,6 @@ if ($SkipDotfiles) {
         $dstExists = Test-Path $dst
         $dstItem   = if ($dstExists) { Get-Item -LiteralPath $dst -Force } else { $null }
         $dstIsLink = $dstItem -and ($dstItem.LinkType -eq 'SymbolicLink')
-        if ($dstExists -and -not $dstIsLink) {
-            # Backup centralizado en BACKUP_DIR
-            $homePath = $HOME.TrimEnd('\', '/')
-            if ($dst.StartsWith($homePath, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $relPath = $dst.Substring($homePath.Length).TrimStart('\', '/')
-            } else {
-                $relPath = "_external\$([System.IO.Path]::GetFileName($dst))"
-            }
-            $bakDst = Join-Path $BACKUP_DIR $relPath
-
-            if ($DryRun) {
-                Write-Log "[DryRun] Backup $dst → $bakDst" 'SKIP'
-            } else {
-                Invoke-Step "Backup $dst → $bakDst" {
-                    $bakDir = Split-Path $bakDst
-                    if (-not (Test-Path $bakDir)) {
-                        New-Item -ItemType Directory -Path $bakDir -Force | Out-Null
-                    }
-                    Copy-Item -LiteralPath $dst -Destination $bakDst -Force
-                }
-            }
-        }
-
         $mode = if ($df.ContainsKey('Mode')) { $df.Mode } else { 'copy' }
 
         if ($DryRun) {
@@ -1632,7 +1551,7 @@ if ($SkipDotfiles) {
     # --- Neovim: config completa versionada (nvim/) ---
     # Symlink de DIRECTORIO a %LOCALAPPDATA%\nvim (path de nvim en Windows;
     # paridad con el link_dir de bootstrap.sh). Si habia config real previa,
-    # se mueve entera al backup centralizado.
+    # se borra antes de linkear (sin backup: el repo es el historial).
     # Gateado: sin esto, quien no eligio Neovim se llevaba %LOCALAPPDATA%\nvim
     # apuntando a esta config, y al instalar nvim mas adelante arrancaba con ESTA
     # en vez de la propia (paridad con el want_tool neovim de bootstrap.sh).
@@ -1653,7 +1572,7 @@ if ($SkipDotfiles) {
         } elseif ($DryRun) {
             Write-Log "[DryRun] Symlink nvim → $nvimDst" 'SKIP'
         } elseif (-not (Test-DeveloperMode)) {
-            # ORDEN DESTRUCTIVO: abajo se mueve la config previa al backup ANTES de
+            # ORDEN DESTRUCTIVO: abajo se borra la config previa ANTES de
             # crear el symlink. Si el symlink falla, el usuario queda sin config y
             # sin link → nvim arranca con defaults (sin lualine, sin tema, sin
             # números de línea) y el sintoma es indistinguible de "nvim roto".
@@ -1667,8 +1586,8 @@ if ($SkipDotfiles) {
             $ERRORS.Add($msg)
         } else {
             if ($nvimItem -and -not $nvimIsLink) {
-                Invoke-Step "Backup $nvimDst → $BACKUP_DIR\nvim" {
-                    Move-Item -LiteralPath $nvimDst -Destination (Join-Path $BACKUP_DIR 'nvim') -Force
+                Invoke-Step "Quitar $nvimDst (se reemplaza por symlink)" {
+                    Remove-Item -LiteralPath $nvimDst -Recurse -Force
                 }
             } elseif ($nvimIsLink) {
                 Remove-Item -LiteralPath $nvimDst -Force
@@ -1903,7 +1822,7 @@ if ($SkipDotfiles) {
 # 8. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================
 
-Step-Bar 8 "Configuración AWS SSO"
+Step-Bar 7 "Configuración AWS SSO"
 
 # Si no vino -WithAws pero es una sesion interactiva, preguntar: así el instalador
 # GUÍA (en vez de exigir conocer el flag). En headless se saltea igual que antes.
@@ -1927,7 +1846,7 @@ if (-not $WithAws) {
     # de la barra.
     Suspend-Bar
     # Configurar combined-ca.pem para Netskope (solo si existe el cert). El bundle
-    # lo arma Get-NetskopeCaBundle, que tambien usa el paso 9 para el SSL de git.
+    # lo arma Get-NetskopeCaBundle, que tambien usa el paso 8 para el SSL de git.
     $caBundle = Get-NetskopeCaBundle
     if ($caBundle) {
         Invoke-Step "Configurar AWS_CA_BUNDLE → $caBundle" {
@@ -2072,7 +1991,7 @@ output = json
 # 9. CONFIGURAR PROFILE DE POWERSHELL + VALIDACIONES
 # ==============================================================================
 
-Step-Bar 9 "Perfil de PowerShell y validaciones"
+Step-Bar 8 "Perfil de PowerShell y validaciones"
 Sub-Bar 20 "configurando `$PROFILE"
 
 $loaderProfile = $PROFILE
@@ -2103,7 +2022,7 @@ if (Test-Path $loaderProfile) {
     }
 }
 
-# --- SSL de git detras del proxy corporativo (parte del paso 9) ---
+# --- SSL de git detras del proxy corporativo (parte del paso 8) ---
 # El gitconfig DE SISTEMA de Git for Windows fija http.sslbackend=openssl con su
 # propio ca-bundle.crt, que NO tiene la CA de Netskope: todo clone por HTTPS muere
 # con "self-signed certificate in certificate chain". Y por SSH tampoco anda, porque
@@ -2112,7 +2031,7 @@ if (Test-Path $loaderProfile) {
 # instalar NINGUN plugin/skill de terceros.
 #
 # Se arregla con GIT_SSL_CAINFO (= http.sslCAInfo) apuntando al mismo combined-ca.pem
-# del paso 8. Por que asi y no de las formas "obvias":
+# del paso 7. Por que asi y no de las formas "obvias":
 #   - 'git config --global' escribiria DENTRO DEL VAULT (~/.gitconfig es symlink a
 #     $VAULT_DIR/git/config) y ademas viajaria a Fedora, que no necesita nada de esto.
 #   - 'http.sslBackend=schannel' tambien funciona, pero es una opcion sin sentido
@@ -2135,7 +2054,7 @@ if ($gitCaBundle) {
     Write-Log "Sin Netskope — el SSL de git no necesita CA bundle propio" 'INFO'
 }
 
-# --- Validaciones post-bootstrap (parte del paso 9) ---
+# --- Validaciones post-bootstrap (parte del paso 8) ---
 Sub-Bar 70 "validaciones post-bootstrap"
 
 $testScript = Join-Path $REPO_ROOT "test-bootstrap.ps1"
@@ -2189,7 +2108,6 @@ if ($ERRORS.Count -gt 0) {
 
 Write-Host ''
 Write-Host "    Log:     $LOG_FILE" -ForegroundColor DarkGray
-Write-Host "    Backups: $BACKUP_DIR" -ForegroundColor DarkGray
 
 Write-Host ''
 Write-Host "$($script:C_SECT)$($script:ICONS.Section) Proximos pasos manuales$($script:C_RESET)"

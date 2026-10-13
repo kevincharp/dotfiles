@@ -105,6 +105,24 @@ no cambia de workspace — parece que el atajo no hace nada. Por qué:
 Lanzador estilo Spotlight, **uno por SO** (ninguno cruza): Linux → Ulauncher
 (catálogo `apps`), Windows → Flow Launcher (winget, grupo `extras`).
 
+**Flow Launcher** (`flowlauncher/`): config por **symlink**, gateado por la key
+`flowlauncher` (detectado por la carpeta `%LOCALAPPDATA%\FlowLauncher`).
+
+- `flowlauncher/Settings.json` → `%APPDATA%\FlowLauncher\Settings\Settings.json`
+  (hotkey, tema, idioma, plugins activos) y un `Settings.json` por plugin nativo
+  en `flowlauncher/Plugins/<plugin>/` (p. ej. los buscadores de Web Searches).
+  Lo que se cambie desde la GUI de Flow Launcher cae en el repo a través del
+  symlink — igual que Windows Terminal.
+- **Se versiona solo la config**, no el historial (`History.json`,
+  `UserSelectedRecord.json`) ni los `.bak`: son ruido de uso.
+- Ruido esperable en el diff: posición de ventana (`WindowLeft/Top`,
+  `SettingWindow*`) y `Version` de los plugins cambian solos con el uso y las
+  actualizaciones. Es config de la máquina que queda versionada; aceptado.
+- Plugin nuevo (instalado desde Plugins Manager): copiar su `Settings.json` a
+  `flowlauncher/Plugins/<carpeta>/` y re-correr bootstrap para linkearlo.
+- Verificado solo con `bootstrap.ps1 -DryRun`; el symlink real se prueba al
+  correr bootstrap en una PC (necesita Modo de desarrollador).
+
 Ulauncher tiene tres piezas, versionadas distinto:
 
 - **Config** (`ulauncher/settings.json`, `shortcuts.json`) → **symlink** a

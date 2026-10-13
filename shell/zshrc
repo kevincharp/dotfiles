@@ -113,6 +113,13 @@ alias vi='nvim'
 alias vim='nvim'
 alias nano='nvim'
 
+# $BROWSER: abre las URLs de la terminal (aws sso login, gh auth login...) en
+# Firefox/Personal sin heredar su salida (ruido de Safe Browsing). El symlink
+# lo crea firefox/aplicar-perfiles.sh; solo Linux, en Windows no hace falta.
+if command -v firefox-personal &>/dev/null; then
+    export BROWSER=firefox-personal
+fi
+
 # ==============================================================================
 # RUTAS BASE
 # ==============================================================================

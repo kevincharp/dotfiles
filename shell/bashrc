@@ -159,6 +159,13 @@ alias vi='nvim'
 alias vim='nvim'
 alias nano='nvim'
 
+# $BROWSER: abre las URLs de la terminal (aws sso login, gh auth login...) en
+# Firefox/Personal sin heredar su salida (ruido de Safe Browsing). El symlink
+# lo crea firefox/aplicar-perfiles.sh; solo Linux, en Windows no hace falta.
+if command -v firefox-personal &>/dev/null; then
+    export BROWSER=firefox-personal
+fi
+
 # yazi (file manager TUI): en Windows no encuentra el binario 'file' solo, hay
 # que apuntarlo con YAZI_FILE_ONE o falla la deteccion de MIME ("Cannot find
 # file's MIME type"). Derivamos la ruta del 'file' de Git Bash ya en el PATH.

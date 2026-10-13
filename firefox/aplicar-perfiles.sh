@@ -10,6 +10,8 @@
 #   4. Override del .desktop de Firefox con -profile fijo al perfil Personal
 #      (sin esto, Firefox abre el ULTIMO perfil usado y GNOME agrupa el
 #      navegador con las PWA; ver docs/notas-tecnicas.md).
+#   5. Symlink ~/.local/bin/firefox-personal -> abrir-personal.sh (el shell lo
+#      usa como $BROWSER: abre en Personal y sin ensuciar la terminal).
 #
 # Los perfiles se buscan por NOMBRE en "Profile Groups/*.sqlite" (las carpetas
 # tienen sufijos aleatorios). Si no existen hay que crearlos UNA vez desde el
@@ -27,6 +29,7 @@ NOMBRE_APPS="${FIREFOX_PERFIL_APPS:-Aplicaciones}"
 ZOOM="${FIREFOX_ZOOM:-0.9}"
 DESKTOP_SISTEMA="${FIREFOX_DESKTOP_SISTEMA:-/usr/share/applications/org.mozilla.firefox.desktop}"
 DESKTOP_DEST="$HOME/.local/share/applications/org.mozilla.firefox.desktop"
+LAUNCHER_DEST="$HOME/.local/bin/firefox-personal"
 MARCA_JS="// dotfiles: generado por firefox/aplicar-perfiles.sh - editar el repo, no este archivo"
 MARCA_DESKTOP="X-Dotfiles-Generado=firefox"
 ZOOM_CLAVE="browser.content.full-zoom"
@@ -39,7 +42,7 @@ for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
         --quitar)  MODO=quitar ;;
-        -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
+        -h|--help) sed -n '2,26p' "${BASH_SOURCE[0]}"; exit 0 ;;
         *) echo "[firefox] argumento desconocido: $arg" >&2; exit 2 ;;
     esac
 done
@@ -186,6 +189,16 @@ generar_desktop() {
     info ".desktop con perfil fijo escrito ($DESKTOP_DEST)"
 }
 
+enlazar_launcher() {
+    if [[ "$DRY_RUN" == true ]]; then
+        simula "enlazaria $LAUNCHER_DEST -> $AQUI/abrir-personal.sh"
+        return 0
+    fi
+    mkdir -p "$(dirname "$LAUNCHER_DEST")"
+    ln -sfn "$AQUI/abrir-personal.sh" "$LAUNCHER_DEST"
+    info "launcher enlazado ($LAUNCHER_DEST)"
+}
+
 quitar() {
     local dir
     for dir in "$@"; do
@@ -196,6 +209,9 @@ quitar() {
     done
     if [[ -f "$DESKTOP_DEST" ]] && grep -qF "$MARCA_DESKTOP" "$DESKTOP_DEST"; then
         if [[ "$DRY_RUN" == true ]]; then simula "quitaria $DESKTOP_DEST"; else rm -f "$DESKTOP_DEST"; info ".desktop propio removido"; fi
+    fi
+    if [[ -L "$LAUNCHER_DEST" && "$(readlink "$LAUNCHER_DEST")" == "$AQUI/abrir-personal.sh" ]]; then
+        if [[ "$DRY_RUN" == true ]]; then simula "quitaria $LAUNCHER_DEST"; else rm -f "$LAUNCHER_DEST"; info "launcher removido"; fi
     fi
 }
 
@@ -217,6 +233,7 @@ if [[ -n "$DIR_PERSONAL" && -d "$DIR_PERSONAL" ]]; then
     cargar_cookies  "$DIR_PERSONAL" "$NOMBRE_PERSONAL"
     fijar_zoom      "$DIR_PERSONAL" "$NOMBRE_PERSONAL"
     generar_desktop "$DIR_PERSONAL"
+    enlazar_launcher
 else
     saltar "no encuentro el perfil '$NOMBRE_PERSONAL': crealo desde el selector de perfiles de Firefox (nombre exacto) y re-corre"
 fi

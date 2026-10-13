@@ -402,6 +402,12 @@ perfil predeterminado que se mueve, borrado al cerrar):
   pedía login. `Personal` sí las borra y las excepciones de
   `excepciones-cookies.txt` ahí funcionan (verificado con GitHub y MercadoLibre);
   si algún día se pierden sesiones, diagnóstico en las notas técnicas.
+- **`$BROWSER` = `firefox-personal` (solo Linux):** `aplicar-perfiles.sh` enlaza
+  `~/.local/bin/firefox-personal` -> `firefox/abrir-personal.sh`, y bashrc/zshrc
+  lo exportan como `BROWSER`. Abre las URLs de la terminal (`aws sso login`,
+  `gh auth login`) en el perfil Personal y con la salida descartada: Firefox
+  lanzado desde la terminal vuelca ahi sus logs (el 400 de Safe Browsing es de
+  Firefox/Google, inofensivo). En Windows no pasa, no hace falta.
 - **Sqlite solo con Firefox cerrado** (excepciones de cookies, zoom): el script
   lo detecta y lo saltea con aviso.
 - **Pendiente a propósito:** `network.trr.excluded-domains` vacío (dominios

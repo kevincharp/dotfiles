@@ -69,6 +69,10 @@ foreach ($s in ($idSuffixes | Sort-Object -Unique)) {
 foreach ($flowPlugin in (Get-ChildItem -Directory (Join-Path $DOTFILES_DIR 'flowlauncher\Plugins') -ErrorAction SilentlyContinue).Name) {
     $DOTFILES_TARGETS += "$env:APPDATA\FlowLauncher\Settings\Plugins\$flowPlugin\Settings.json"
 }
+# Temas propios de Flow Launcher: un archivo .xaml por tema del repo.
+foreach ($flowTheme in (Get-ChildItem -File (Join-Path $DOTFILES_DIR 'flowlauncher\Themes') -Filter *.xaml -ErrorAction SilentlyContinue).Name) {
+    $DOTFILES_TARGETS += "$env:APPDATA\FlowLauncher\Themes\$flowTheme"
+}
 
 # Paquetes winget instalados por el bootstrap (Id winget). Solo con -RemovePackages.
 $WINGET_PACKAGES = @(

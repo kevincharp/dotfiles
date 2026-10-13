@@ -234,6 +234,12 @@ $DOTFILES = @(
 foreach ($flowPlugin in (Get-ChildItem -Directory (Join-Path $REPO_ROOT 'flowlauncher\Plugins') -ErrorAction SilentlyContinue).Name) {
     $DOTFILES += @{ Src="flowlauncher\Plugins\$flowPlugin\Settings.json"; Dst="$env:APPDATA\FlowLauncher\Settings\Plugins\$flowPlugin\Settings.json"; Mode='link'; Tool='flowlauncher' }
 }
+# Temas propios de Flow Launcher (flowlauncher\Themes\*.xaml), uno por archivo:
+# la carpeta de temas del usuario tambien guarda los que baje la GUI, asi que
+# no se linkea entera.
+foreach ($flowTheme in (Get-ChildItem -File (Join-Path $REPO_ROOT 'flowlauncher\Themes') -Filter *.xaml -ErrorAction SilentlyContinue).Name) {
+    $DOTFILES += @{ Src="flowlauncher\Themes\$flowTheme"; Dst="$env:APPDATA\FlowLauncher\Themes\$flowTheme"; Mode='link'; Tool='flowlauncher' }
+}
 # Un perfil de identidad por sufijo del vault (ver $idSuffixes): con nombres
 # propios (freelance, cliente-x...) antes no se symlinkeaba ninguno.
 foreach ($s in $idSuffixes) {

@@ -262,7 +262,7 @@
             {
                 "cellHeight": "1.2",
                 "face": "FiraCode Nerd Font Mono",
-                "size": 10,
+                "size": 9,
                 "weight": "semi-bold"
             },
             "intenseTextStyle": "all",

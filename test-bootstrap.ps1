@@ -518,7 +518,9 @@ $expectedDsts.Add('$HOME\.config\opencode\AGENTS.md')
 foreach ($dst in $expectedDsts) {
     # Dinamicos ($HOME\.gitconfig-$s por identidad) no van en $DOTFILES_TARGETS:
     # uninstall.ps1 los cubre aparte, via el loop de sufijos del vault.
-    if ($dst -match '\$s\b') { continue }
+    # Idem los Settings.json de plugins de Flow Launcher ($flowPlugin): uninstall
+    # los cubre aparte, recorriendo flowlauncher\Plugins del repo.
+    if ($dst -match '\$(s|flowPlugin)\b') { continue }
     if ($unContent.Contains("`"$dst`"")) {
         Test-OK "uninstall.ps1 limpia $dst"
     } else {

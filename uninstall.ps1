@@ -43,6 +43,7 @@ $DOTFILES_TARGETS = @(
     "$HOME\.codex\AGENTS.md"
     "$HOME\.config\opencode\AGENTS.md"
     "$env:APPDATA\yazi\config\yazi.toml"
+    "$env:APPDATA\FlowLauncher\Settings\Settings.json"
     # Mismo condicional que bootstrap.ps1: si XDG_CONFIG_HOME esta seteada, el
     # symlink real quedo ahi, no en LOCALAPPDATA. Sin este if, esa maquina se
     # queda con el symlink de nvim huerfano tras desinstalar.
@@ -63,6 +64,10 @@ if (Test-Path $giVault) {
 }
 foreach ($s in ($idSuffixes | Sort-Object -Unique)) {
     $DOTFILES_TARGETS += "$HOME\.gitconfig-$s"
+}
+# Settings.json de los plugins de Flow Launcher: uno por carpeta del repo.
+foreach ($flowPlugin in (Get-ChildItem -Directory (Join-Path $DOTFILES_DIR 'flowlauncher\Plugins') -ErrorAction SilentlyContinue).Name) {
+    $DOTFILES_TARGETS += "$env:APPDATA\FlowLauncher\Settings\Plugins\$flowPlugin\Settings.json"
 }
 
 # Paquetes winget instalados por el bootstrap (Id winget). Solo con -RemovePackages.

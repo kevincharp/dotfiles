@@ -225,7 +225,15 @@ $DOTFILES = @(
     # que sea portable en cada instalacion (paridad con bootstrap.sh).
     @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link'; Tool='claude' }
     @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link'; Tool='claude' }
+    # Flow Launcher (launcher de Windows): config general por symlink. Los
+    # Settings.json de cada plugin se agregan abajo desde $flowPlugins.
+    @{ Src='flowlauncher\Settings.json';    Dst="$env:APPDATA\FlowLauncher\Settings\Settings.json"; Mode='link'; Tool='flowlauncher' }
 )
+# Ajustes de los plugins nativos de Flow Launcher (atajos, buscadores de Web
+# Searches, etc.): uno por carpeta de plugin. Sin historial ni .bak (es ruido).
+foreach ($flowPlugin in (Get-ChildItem -Directory (Join-Path $REPO_ROOT 'flowlauncher\Plugins') -ErrorAction SilentlyContinue).Name) {
+    $DOTFILES += @{ Src="flowlauncher\Plugins\$flowPlugin\Settings.json"; Dst="$env:APPDATA\FlowLauncher\Settings\Plugins\$flowPlugin\Settings.json"; Mode='link'; Tool='flowlauncher' }
+}
 # Un perfil de identidad por sufijo del vault (ver $idSuffixes): con nombres
 # propios (freelance, cliente-x...) antes no se symlinkeaba ninguno.
 foreach ($s in $idSuffixes) {
@@ -992,6 +1000,7 @@ function Test-ToolInstalled {
         'pwsh'             { return (Test-CommandAvailable 'pwsh') }
         'git'              { return (Test-CommandAvailable 'git') }
         'windows-terminal' { return (Test-Path (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe')) }
+        'flowlauncher'     { return (Test-Path (Join-Path $env:LOCALAPPDATA 'FlowLauncher')) }
         'firacode'         { return [bool](Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\Windows\Fonts", "$env:WINDIR\Fonts" `
                                             -Filter 'FiraCode*' -ErrorAction SilentlyContinue | Select-Object -First 1) }
         default            { return (Test-CommandAvailable $Key) }

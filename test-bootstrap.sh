@@ -543,7 +543,7 @@ done
 # Trampa de set -e (cuarta variante, suma a las tres del CLAUDE.md): una funcion
 # cuyo ULTIMO comando es '(( flag )) && cmd' devuelve 1 cuando flag vale 0, y con
 # set -e eso aborta el script entero. Paso con gb_note y '(( _GB_ENABLED )) &&
-# _gb_render': sin TTY el bootstrap moria en [2/8] sin ningun mensaje.
+# _gb_render': sin TTY el bootstrap moria en [2/7] sin ningun mensaje.
 #
 # Se chequea ESTATICAMENTE (linea '(( ... )) && ...' seguida del cierre de la
 # funcion) y no ejecutando el bootstrap: una corrida real solo llega a gb_note si

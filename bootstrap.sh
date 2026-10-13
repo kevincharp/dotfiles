@@ -54,8 +54,6 @@ LOG_DIR="$HOME/.local/logs"
 LOG_FILE="$LOG_DIR/bootstrap-$(date +%Y%m%d-%H%M%S).log"
 ERRORS=()
 WARNINGS=()
-BACKUP_TS="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="$HOME/.local/backups/bootstrap/$BACKUP_TS"
 
 # ==============================================================================
 # ESTILO / ICONOS
@@ -182,18 +180,18 @@ has_cmd() {
 }
 
 # ── BARRA DE PROGRESO GLOBAL ─────────────────────────────────────────────────
-# UNA sola barra que cruza los 8 pasos (0→100%), con dos lineas fijas abajo:
+# UNA sola barra que cruza los 7 pasos (0→100%), con dos lineas fijas abajo:
 #   ▰▰▰▱▱  42%
-#   [3/8] Creando carpetas · ~/.local/bin
+#   [3/7] Creando carpetas · ~/.local/bin
 # El % es global y ponderado: cada paso vale un tramo (_GB_WEIGHTS) del total, y
 # dentro del paso avanza con un "sub" 0..100. La accion de abajo cambia en vivo.
 # En interacciones (selector, sudo, passphrase, selector de shell) se PAUSA con
 # gb_pause (borra la barra) y se retoma sola en la proxima gb_step/gb_sub.
-# Sin TTY (curl|bash, CI) NO dibuja: cae a headers de texto '[N/8] ...' vía log().
+# Sin TTY (curl|bash, CI) NO dibuja: cae a headers de texto '[N/7] ...' vía log().
 #
 # Pesos por paso (suman 100). Instalar paquetes es lo mas largo -> pesa mas.
-_GB_WEIGHTS=(0 6 40 8 6 24 4 6 6)   # indice 1..8 (el 0 no se usa)
-_GB_BASE=(0 0 6 46 54 60 84 88 94)  # % acumulado ANTES de cada paso (calculado a mano de _GB_WEIGHTS)
+_GB_WEIGHTS=(0 6 40 8 30 4 6 6)   # indice 1..7 (el 0 no se usa)
+_GB_BASE=(0 0 6 46 54 84 88 94)  # % acumulado ANTES de cada paso (calculado a mano de _GB_WEIGHTS)
 _GB_STEP=0 _GB_LABEL="" _GB_ACTION="" _GB_SUB=0 _GB_ACTIVE=0
 _GB_ENABLED=0; [[ -t 1 ]] && _GB_ENABLED=1     # solo con TTY
 # Ritmo minimo por accion ("dwell"): muchas acciones (validar carpetas, symlinks,
@@ -215,7 +213,7 @@ _gb_render() {
     for ((i=0;i<empty;i++));  do b+="▱"; done
     cols="$(tput cols 2>/dev/null || echo 80)"; maxw=$(( cols - 6 ))
     (( maxw < 20 )) && maxw=20
-    line2="[${_GB_STEP}/8] ${_GB_LABEL}"
+    line2="[${_GB_STEP}/7] ${_GB_LABEL}"
     [[ -n "$_GB_ACTION" ]] && line2+=" · ${_GB_ACTION}"
     (( ${#line2} > maxw )) && line2="${line2:0:maxw-1}…"
     # Barra, % y linea de estado, todo en el naranja del prompt (#D4874E).
@@ -228,9 +226,9 @@ _gb_render() {
 # gb_step <n> <label> — entra al paso n (resetea sub a 0 y redibuja).
 gb_step() {
     _GB_STEP="$1"; _GB_LABEL="$2"; _GB_SUB=0; _GB_ACTION=""
-    echo "[$(date +%H:%M:%S)] === [$1/8] $2 ===" >> "$LOG_FILE" 2>/dev/null || true
+    echo "[$(date +%H:%M:%S)] === [$1/7] $2 ===" >> "$LOG_FILE" 2>/dev/null || true
     if (( _GB_ENABLED )); then _gb_render
-    else printf '\n%s%s [%s/8] %s%s\n' "$C_SECTION" "$I_SECTION" "$1" "$2" "$C_RESET"; fi
+    else printf '\n%s%s [%s/7] %s%s\n' "$C_SECTION" "$I_SECTION" "$1" "$2" "$C_RESET"; fi
 }
 
 # gb_sub <sub0..100> [accion] — actualiza el avance dentro del paso y la accion.
@@ -255,7 +253,7 @@ gb_note() {
     # OJO: como 'if' y no '(( _GB_ENABLED )) && _gb_render'. Siendo el ULTIMO
     # comando de la funcion, sin TTY (_GB_ENABLED=0) el (( )) devuelve 1, ese 1
     # es el exit de gb_note y con 'set -e' aborta el bootstrap entero: moria en
-    # el paso [2/8] al instalar la 1ra herramienta, sin mensaje de error, cada
+    # el paso [2/7] al instalar la 1ra herramienta, sin mensaje de error, cada
     # vez que la salida estaba redirigida (log, CI, | tee).
     if (( _GB_ENABLED )); then _gb_render; fi
 }
@@ -270,7 +268,7 @@ gb_pause() {
 # gb_end — completa la barra al 100%, la limpia y deja el cursor listo para el resumen.
 gb_end() {
     if (( _GB_ENABLED )); then
-        _GB_STEP=8; _GB_SUB=100; _GB_ACTION=""; _gb_render
+        _GB_STEP=7; _GB_SUB=100; _GB_ACTION=""; _gb_render
         printf '\r\033[K\n\r\033[K\033[1A\r'
     fi
     _GB_ACTIVE=0
@@ -402,7 +400,7 @@ tool_installed() {
 # want_tool <id> — DECISION UNICA de "¿el usuario quiere esta herramienta?":
 # 0 si la eligio en el selector (SELECTED_TOOLS) o ya la tiene instalada.
 #
-# Es el gate de las CONFIGS del paso [5/8]: sin esto se symlinkeaban configs de
+# Es el gate de las CONFIGS del paso [4/7]: sin esto se symlinkeaban configs de
 # herramientas que el tercero nunca pidio (un ~/.config/nvim apuntando a esta
 # config aunque no tenga nvim, y peor, el CLAUDE.md con reglas personales del
 # autor). El README promete "nada se instala sin que lo marques": esto lo hace
@@ -1134,7 +1132,7 @@ _ask_default_shell() {
     # Solo en el flujo interactivo real (igual que la bienvenida y el selector de
     # tools): con --dry-run/--tools/--all-tools/sin-tty no se pregunta.
     [[ -z "$TOOLS_ARG" && "$ALL_TOOLS" == false && "$DRY_RUN" == false ]] || return 0
-    # zsh disponible: ya instalado, o elegido en el selector (se instalara en [2/8]).
+    # zsh disponible: ya instalado, o elegido en el selector (se instalara en [2/7]).
     local zsh_selected=0 t
     for t in "${SELECTED_TOOLS[@]}"; do [[ "$t" == "zsh" ]] && zsh_selected=1; done
     { has_cmd zsh || (( zsh_selected )); } || return 0
@@ -1204,7 +1202,7 @@ _ask_default_shell() {
 # ==============================================================================
 
 welcome_screen() {
-    # Detectar SO/pkg de forma ligera (el paso [1/8] hace la deteccion oficial)
+    # Detectar SO/pkg de forma ligera (el paso [1/7] hace la deteccion oficial)
     local distro="Linux" pkg="?"
     [[ -r /etc/os-release ]] && distro="$(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
     if   has_cmd dnf;    then pkg="dnf"
@@ -1252,7 +1250,6 @@ EOF
 # ==============================================================================
 
 mkdir -p "$LOG_DIR"
-mkdir -p "$BACKUP_DIR"
 
 # Bienvenida solo en modo interactivo real (no en --dry-run/--tools/--all-tools/sin-tty)
 if [[ -z "$TOOLS_ARG" && "$ALL_TOOLS" == false && "$DRY_RUN" == false ]] \
@@ -1326,7 +1323,7 @@ else
     # Resuelve que herramientas instalar (--tools / --all-tools / menu / red de seguridad)
     select_tools
     # Juntamos aca la otra decision del usuario: shell por defecto. Se PREGUNTA
-    # ahora (pegado al selector) pero se APLICA luego en [5/8] con _apply_default_shell.
+    # ahora (pegado al selector) pero se APLICA luego en [4/7] con _apply_default_shell.
     _ask_default_shell
 
     if [[ ${#SELECTED_TOOLS[@]} -eq 0 ]]; then
@@ -1347,7 +1344,7 @@ else
         ensure_base_deps
 
         # Retomamos la barra global ya con el sudo resuelto. Recorre lo seleccionado
-        # actualizando el sub-avance del paso [2/8]. Anti-choclo: lo "ya instalado"
+        # actualizando el sub-avance del paso [2/7]. Anti-choclo: lo "ya instalado"
         # va al log; lo NUEVO scrollea arriba como hito (gb_note). El ruido de dnf/git
         # de install_tool sale entre medio pero la barra se redibuja despues.
         gb_step 2 "Instalando paquetes"
@@ -1392,7 +1389,7 @@ DIRS=(
 )
 # Carpetas de configuracion de una herramienta puntual: solo si se la quiere.
 # Sin el gate quedaba un ~/.config/lazygit vacio en el home de quien nunca
-# eligio lazygit (mismo criterio que las configs del paso [5/8]).
+# eligio lazygit (mismo criterio que las configs del paso [4/7]).
 # Va como if y no como 'want_tool x && DIRS+=(...)': con set -e la forma corta
 # no aborta (el && no es el ultimo comando) pero deja $? en 1, y eso envenena
 # cualquier chequeo posterior de rc.
@@ -1478,73 +1475,10 @@ elif [[ ! -f "$HOME/.env" ]]; then
 fi
 
 # ==============================================================================
-# 4. MIGRAR BACKUPS VIEJOS (.bak-*) → BACKUP_DIR
+# 4. COPIAR DOTFILES
 # ==============================================================================
 
-gb_step 4 "Migrando backups viejos"
-gb_sub 50 "buscando backups previos"
-
-migrate_old_backups() {
-    local dst="$1"
-    local dst_dir
-    dst_dir="$(dirname "$dst")"
-    local dst_name
-    dst_name="$(basename "$dst")"
-
-    # Buscar archivos .bak-* que correspondan a este dotfile
-    for old_bak in "$dst_dir/$dst_name".bak-* "$dst".bak-*; do
-        [[ -f "$old_bak" ]] || continue
-        local rel_path="${dst#$HOME/}"
-        local bak_name
-        bak_name="$(basename "$old_bak")"
-        # Extraer timestamp del nombre (yyyyMMdd-HHmmss)
-        local ts
-        ts=$(echo "$bak_name" | grep -oP '\d{8}-\d{6}' | tail -1)
-        local target_dir="$BACKUP_DIR/_migrated${ts:+/$ts}"
-        local target_file="$target_dir/$rel_path"
-        local target_parent
-        target_parent="$(dirname "$target_file")"
-        [[ -d "$target_parent" ]] || mkdir -p "$target_parent"
-        run_step "Migrar $old_bak → $target_file" mv "$old_bak" "$target_file"
-    done
-}
-
-BAK_DESTINATIONS=(
-    "$HOME/.bashrc"
-    "$HOME/.bash_profile"
-    "$HOME/.zshrc"
-    "$HOME/.zprofile"
-    "$HOME/.gitconfig"
-    "$HOME/.config/git/ignore"
-    "$HOME/.ssh/config"
-    "$HOME/.editorconfig"
-    "$HOME/.claude/settings.json"
-    "$HOME/.claude/settings.local.json"
-)
-# Identidades git: los sufijos salen del vault (ver _id_sfx), no hardcodeados.
-for _s in "${_id_sfx[@]}"; do BAK_DESTINATIONS+=("$HOME/.gitconfig-$_s"); done
-unset _s
-
-if [[ "$DRY_RUN" == true ]]; then
-    log "[DryRun] Migrar backups viejos" "SKIP"
-else
-    for dst in "${BAK_DESTINATIONS[@]}"; do
-        migrate_old_backups "$dst"
-    done
-    # Contar si se migro algo
-    if [[ -d "$BACKUP_DIR/_migrated" ]]; then
-        migrated_count=$(find "$BACKUP_DIR/_migrated" -type f | wc -l)
-        log "Migrados $migrated_count backups viejos a $BACKUP_DIR/_migrated/" "OK"
-    else
-        log "No se encontraron backups viejos para migrar" "SKIP"
-    fi
-fi
-
-# ==============================================================================
-# 5. COPIAR DOTFILES
-# ==============================================================================
-
-gb_step 5 "Copiando dotfiles"
+gb_step 4 "Copiando dotfiles"
 
 copy_dotfile() {
     # $1 relativo → se resuelve contra $REPO_ROOT; $1 absoluto (ej. del vault) → se usa tal cual
@@ -1563,16 +1497,6 @@ copy_dotfile() {
         return
     fi
 
-    # Backup si ya existe (archivo real, no symlink) → centralizado en BACKUP_DIR
-    if [[ -f "$dst" && ! -L "$dst" ]]; then
-        local rel_path="${dst#$HOME/}"
-        local bak_dst="$BACKUP_DIR/$rel_path"
-        local bak_dir
-        bak_dir="$(dirname "$bak_dst")"
-        [[ -d "$bak_dir" ]] || mkdir -p "$bak_dir"
-        run_step "Backup $dst → $bak_dst" cp "$dst" "$bak_dst"
-    fi
-
     local dst_dir
     dst_dir="$(dirname "$dst")"
     [[ -d "$dst_dir" ]] || mkdir -p "$dst_dir"
@@ -1581,7 +1505,7 @@ copy_dotfile() {
         # OJO: el rm debe respetar --dry-run. Si se borra aca pero el ln se
         # saltea por DryRun, el symlink desaparece sin recrearse (rompe ~/.bashrc).
         if [[ "$DRY_RUN" == true ]]; then
-            # Respeta el modo silencioso (paso [5/8] colapsado): al log, no a pantalla.
+            # Respeta el modo silencioso (paso [4/7] colapsado): al log, no a pantalla.
             if [[ "$_QUIET_STEPS" == 1 ]]; then
                 echo "[$(date +%H:%M:%S)][SKIP] [DryRun] Symlink $1 → $dst" >> "$LOG_FILE" 2>/dev/null || true
                 _QUIET_OK=$((_QUIET_OK + 1))
@@ -1599,7 +1523,8 @@ copy_dotfile() {
 
 # link_dir <src-relativo> <dst> — symlink de DIRECTORIO completo (copy_dotfile
 # solo maneja archivos). Idempotente: si ya apunta al repo, no hace nada. Si el
-# destino es un directorio real, se mueve entero a BACKUP_DIR antes de linkear.
+# destino es un directorio real, se borra antes de linkear (sin backup: el
+# repo es el historial).
 link_dir() {
     local src="$1" dst="$2"
     [[ "$src" == /* ]] || src="$REPO_ROOT/$src"
@@ -1624,11 +1549,9 @@ link_dir() {
         [[ "$_QUIET_STEPS" == 1 ]] && _QUIET_OK=$((_QUIET_OK + 1))
         return
     fi
-    # Directorio real preexistente: moverlo entero al backup centralizado.
+    # Directorio real preexistente: se reemplaza por el symlink (sin backup).
     if [[ -d "$dst" && ! -L "$dst" ]]; then
-        local bak="$BACKUP_DIR/${dst#$HOME/}"
-        mkdir -p "$(dirname "$bak")"
-        run_step "Backup $dst → $bak" mv "$dst" "$bak"
+        run_step "Quitar $dst (se reemplaza por symlink)" rm -rf "$dst"
     fi
     [[ -L "$dst" ]] && rm -f "$dst"
     mkdir -p "$(dirname "$dst")"
@@ -2022,14 +1945,14 @@ if has_cmd ptyxis && [[ -f "$_ptyxis_sys_desktop" ]]; then
 fi
 unset _ptyxis_sys_desktop _ptyxis_override
 
-# Cierre del modo silencioso del paso [5/8]: resumen total de symlinks/configs.
+# Cierre del modo silencioso del paso [4/7]: resumen total de symlinks/configs.
 # Lo que sigue (shell por defecto / GNOME) tiene su propia salida.
 _QUIET_STEPS=0
 gb_sub 75 "configs aplicadas"
 log "${_QUIET_OK} archivos aplicados (symlinks/configs/dconf)   (detalle en el log)" "INFO"
 
 # El shell por defecto (bash/zsh) se PREGUNTA arriba, junto al selector de
-# herramientas (ver _ask_default_shell mas abajo, llamado en [2/8]), y se APLICA
+# herramientas (ver _ask_default_shell mas abajo, llamado en [2/7]), y se APLICA
 # aca en silencio: para entonces zsh ya esta instalado y su .zshrc copiado. Asi
 # el usuario toma todas las decisiones al arranque y el resto corre solo.
 _apply_default_shell() {
@@ -2063,7 +1986,7 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
     # Todo este bloque se colapsa: instalar extensiones + cargar los dumps dconf es
     # ruidoso (hasta ~10 lineas) y siempre exitoso. Va al log con barra de progreso;
     # solo se muestra una linea de resumen (y cualquier fallo, que run_step siempre
-    # imprime). Mismo patron que [2/8] y las validaciones de [7/8].
+    # imprime). Mismo patron que [2/7] y las validaciones de [6/7].
     _QUIET_STEPS=1; _QUIET_OK=0
     _gnome_ext_new=0
 
@@ -2095,7 +2018,7 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         _file="$REPO_ROOT/gnome/${_entry##*:}"
         _gnome_i=$((_gnome_i + 1))
         [[ -f "$_file" ]] || continue
-        # Tramo final del paso [5/8]: de 75% a 100% repartido entre los dconf de GNOME.
+        # Tramo final del paso [4/7]: de 75% a 100% repartido entre los dconf de GNOME.
         gb_sub $(( 75 + _gnome_i * 25 / _gnome_total )) "GNOME: ${_entry##*:}"
         run_step "Restaurar GNOME: ${_entry##*:}" \
             bash -c "dconf load '$_path' < '$_file'"
@@ -2114,7 +2037,7 @@ fi
 # 6. CONFIGURAR AWS SSO (OPCIONAL)
 # ==============================================================================
 
-gb_step 6 "Configuración AWS SSO"
+gb_step 5 "Configuración AWS SSO"
 
 # Si no vino --with-aws pero es una sesion interactiva, preguntar: así el
 # instalador GUÍA (en vez de exigir conocer el flag de antemano). En headless
@@ -2194,7 +2117,6 @@ else
         # sabe escribir bloques [sso-session], por eso se escribe el archivo.
         log "Configurando perfil AWS SSO '$AWS_SSO_PROFILE' (formato sso-session/PKCE)..." "INFO"
         mkdir -p "$HOME/.aws"
-        [[ -f "$HOME/.aws/config" ]] && cp "$HOME/.aws/config" "$BACKUP_DIR/aws-config.bak" 2>/dev/null
         # AWS nombra distinto el perfil default ([default]) y los nombrados
         # ([profile X]); la sso-session siempre es [sso-session X].
         if [[ "$AWS_SSO_PROFILE" == "default" ]]; then
@@ -2274,7 +2196,7 @@ fi
 # 7. VALIDACION POST-BOOTSTRAP
 # ==============================================================================
 
-gb_step 7 "Validaciones post-bootstrap"
+gb_step 6 "Validaciones post-bootstrap"
 gb_sub 30 "ejecutando test-bootstrap.sh"
 
 TEST_SCRIPT="$REPO_ROOT/test-bootstrap.sh"
@@ -2314,10 +2236,10 @@ fi
 # ==============================================================================
 
 # Cierra la barra global al 100% y la limpia: lo que sigue es el resumen final.
-gb_step 8 "Finalizando"
+gb_step 7 "Finalizando"
 gb_sub 100 "escribiendo resumen"
 gb_end
-echo "[$(date +%H:%M:%S)] === [8/8] Resumen final ===" >> "$LOG_FILE" 2>/dev/null || true
+echo "[$(date +%H:%M:%S)] === [7/7] Resumen final ===" >> "$LOG_FILE" 2>/dev/null || true
 
 # Titular segun resultado
 if [[ ${#ERRORS[@]} -eq 0 ]]; then
@@ -2343,7 +2265,6 @@ if [[ ${#ERRORS[@]} -gt 0 ]]; then
 fi
 
 printf '\n    %bLog:%b     %s\n' "$C_DIM" "$C_RESET" "$LOG_FILE"
-printf '    %bBackups:%b %s\n' "$C_DIM" "$C_RESET" "$BACKUP_DIR"
 
 banner "Proximos pasos"
 log "1. Abri una terminal nueva para recargar el profile" "INFO"

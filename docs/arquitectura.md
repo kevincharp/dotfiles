@@ -34,8 +34,8 @@ La primitiva del bootstrap es `copy_dotfile <src> <dst> [link|copy]` (y
 | **symlink** | El archivo es del repo y quiero que editar = versionar (en cualquiera de las dos puntas) | bashrc, zshrc, profile.ps1, gitconfig, nvim/ (dir), yazi.toml, settings de Windows Terminal, Ulauncher y Claude Code |
 | **copia** | Un programa **reescribe** el archivo en runtime (un symlink ensuciaría el repo/vault) o el contenido es per-máquina | `ssh/config`, `rclone.conf` (rclone refresca el token adentro), autostart de Ulauncher (GNOME lo reescribe) |
 
-Antes de pisar cualquier archivo tuyo preexistente, el bootstrap lo respalda en
-`~/.local/backups/bootstrap/<timestamp>/` — el desinstalador restaura desde ahí.
+El bootstrap **no hace backups**: un archivo preexistente en el destino de un
+symlink se reemplaza (el repo y el vault son el historial).
 
 ### Gate por herramienta
 
@@ -140,7 +140,7 @@ mapa:
 ├── install.sh / install.ps1      # Instalador interactivo (público + vault)
 ├── bootstrap.sh / bootstrap.ps1  # Setup: paquetes + symlinks + dconf
 ├── git-profiles.sh / .ps1        # Asistente de perfiles git + vault propio
-├── uninstall.sh / uninstall.ps1  # Desinstalador (restaura backups)
+├── uninstall.sh / uninstall.ps1  # Desinstalador
 ├── update.sh                     # Atajo: pull de repos + re-bootstrap
 ├── test-bootstrap.sh / .ps1      # Validación post-install + paridad de shells
 ├── shell/                        # bashrc · zshrc · profile.ps1 · tema oh-my-posh

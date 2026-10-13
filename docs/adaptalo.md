@@ -58,7 +58,7 @@ Lo que **no** vas a tener sin vault (el bootstrap lo avisa como WARN y sigue):
 Tu git y tu SSH quedan como estaban: configuralos a mano como siempre.
 
 > Para desinstalar y volver al estado previo: `bash ~/.dotfiles/uninstall.sh`
-> (restaura los backups automáticos). Ver [instalación](instalacion.md#desinstalación).
+> (remueve los symlinks y los repos). Ver [instalación](instalacion.md#desinstalación).
 
 ---
 

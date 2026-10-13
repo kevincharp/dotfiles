@@ -47,14 +47,14 @@ trabajo. La secuencia:
 5. **Instala lo seleccionado** con el gestor nativo (dnf/apt/pacman o winget),
    cayendo a binario/script oficial donde no hay paquete.
 6. **Crea carpetas y symlinks** de las configs (shell, git, nvim, terminal…),
-   con **backup automático** de cualquier archivo tuyo preexistente en
-   `~/.local/backups/bootstrap/<timestamp>/`.
+   reemplazando cualquier archivo preexistente en el destino (**sin backup**:
+   el repo es el historial).
 7. **Aplica el vault** si está: identidades git, `ssh/config` y desencripta las
    claves SSH con `age` (pide la passphrase por cada clave que falte).
 8. **AWS SSO (opcional)**: pregunta si querés configurar Bedrock para
    `claude-smg`; si decís que no, sigue de largo. Detalle más abajo.
 9. **Valida la instalación** (`test-bootstrap`) y muestra resumen final con
-   warnings, errores, ruta del log y de los backups.
+   warnings, errores, ruta del log.
 
 ### El selector
 
@@ -177,15 +177,13 @@ login abre el navegador y confirma solo, sin código de 6 dígitos).
 
 ## Desinstalación
 
-`uninstall.sh` / `uninstall.ps1` remueven los symlinks, **restauran los backups**
-de tus archivos previos y borran los repos. Muestra un preview y pide
+`uninstall.sh` / `uninstall.ps1` remueven los symlinks y borran los repos. Muestra un preview y pide
 confirmación antes de tocar nada.
 
 | Linux | Windows | Qué hace |
 |---|---|---|
 | `--dry-run` | `-DryRun` | Solo el preview, sin ejecutar |
 | `--remove-packages` | `-RemovePackages` | Desinstalar también los paquetes que instaló el bootstrap |
-| `--keep-backups` | `-KeepBackups` | Conservar `~/.local/backups/bootstrap/` |
 | `--force` | `-Force` | Sin confirmación (peligroso) |
 
 ---
@@ -206,4 +204,4 @@ confirmación antes de tocar nada.
 | *`age` pide la passphrase varias veces* | Es por diseño: age la lee siempre de la consola, una vez por clave faltante. Normalmente falta 0-1. |
 | *La validación final muestra WARNs de "vault no cargado"* | Esperable si instalaste sin vault: esos checks solo aplican con vault. La instalación está bien; para tener vault propio, corré el [asistente](adaptalo.md#el-vault). |
 | *Prompt sin íconos / cuadrados* | La terminal no está usando una Nerd Font: seleccioná «FiraCode Nerd Font» (la instala el grupo `fonts`). |
-| *Algo quedó a medias* | Todo queda logueado en `~/.local/logs/bootstrap-<timestamp>.log`; los archivos reemplazados están en `~/.local/backups/bootstrap/<timestamp>/`. Re-correr el bootstrap es seguro (es idempotente). |
+| *Algo quedó a medias* | Todo queda logueado en `~/.local/logs/bootstrap-<timestamp>.log`. Re-correr el bootstrap es seguro (es idempotente). |

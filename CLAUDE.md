@@ -14,6 +14,11 @@ donde aplica.
 **global** — commits granulares sin pedir permiso, nunca pushear, sin ramas
 salvo pedido.)
 
+**Sin backups:** bootstrap y uninstall no respaldan ni restauran nada. El repo
+(y el vault) es el historial: un archivo o carpeta real en el destino de un
+symlink se reemplaza sin copia previa. No reintroducir `BACKUP_DIR` ni
+`~/.local/backups/`.
+
 ## Reglas de `set -e` (bootstrap/install/uninstall)
 
 Los scripts corren con `set -euo pipefail`; tres trampas ya nos mordieron y

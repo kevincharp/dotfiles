@@ -32,9 +32,9 @@ prompt, mismos atajos, mismas funciones en bash, zsh y PowerShell.
   (commits convencionales, manejo de secretos, arranque de proyectos con
   identidad correcta) compartido entre Claude Code, Codex y opencode vía
   `CLAUDE.md`/`AGENTS.md` — [cómo personalizarlo](docs/adaptalo.md#reglas-para-agentes-de-ia).
-- **Seguro de usar**: backup automático de todo archivo tuyo que vaya a
-  reemplazar, log completo de cada corrida, desinstalador que restaura el
-  estado previo, y re-correrlo es siempre idempotente.
+- **Seguro de usar**: log completo de cada corrida, desinstalador que
+  remueve lo que instaló, y re-correrlo es siempre idempotente. Ojo: no hace
+  backups; si ya tenés un archivo en el destino de un symlink, se reemplaza.
 
 ## Requisitos previos
 
@@ -67,7 +67,7 @@ a pasar cuando lo corras:
 2. Te muestra el **selector de herramientas** (nada pre-marcado; `espacio`
    marca, `Enter` confirma, `q` cancela).
 3. En Linux pregunta el **shell por defecto** (bash/zsh) si elegiste zsh.
-4. Instala, crea los symlinks (con backup de lo tuyo) y aplica el vault si está.
+4. Instala, crea los symlinks y aplica el vault si está.
 5. Pregunta si querés configurar **AWS SSO** (opcional, solo para
    [Claude Code vía Bedrock](docs/instalacion.md#aws-sso--bedrock-opcional)) —
    decí que no y listo.
@@ -113,6 +113,6 @@ La guía paso a paso (incluida la estructura exacta del vault):
 bash ~/.dotfiles/uninstall.sh      # pwsh -File ~/.dotfiles/uninstall.ps1 en Windows
 ```
 
-Muestra un preview, pide confirmación, remueve los symlinks y **restaura los
-backups** de tus archivos previos. Opciones en
+Muestra un preview, pide confirmación, remueve los symlinks y borra los repos.
+Opciones en
 [docs/instalacion.md](docs/instalacion.md#desinstalación).

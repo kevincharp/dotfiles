@@ -260,9 +260,9 @@
             "experimental.retroTerminalEffect": false,
             "font": 
             {
-                "cellHeight": "1",
+                "cellHeight": "1.2",
                 "face": "FiraCode Nerd Font Mono",
-                "size": 7,
+                "size": 9,
                 "weight": "semi-bold"
             },
             "intenseTextStyle": "all",

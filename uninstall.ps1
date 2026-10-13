@@ -1,13 +1,12 @@
 # ==============================================================================
-#   uninstall.ps1 — Desinstalar dotfiles y restaurar estado previo (Windows)
+#   uninstall.ps1 — Desinstalar dotfiles (Windows)
 #   Autor: Kevin Charpentier
-#   Uso:   pwsh -File uninstall.ps1 [-RemovePackages] [-KeepBackups] [-DryRun] [-Force]
+#   Uso:   pwsh -File uninstall.ps1 [-RemovePackages] [-DryRun] [-Force]
 # ==============================================================================
 
 [CmdletBinding()]
 param(
     [switch]$RemovePackages,   # desinstalar paquetes instalados por bootstrap (winget)
-    [switch]$KeepBackups,      # no borrar ~/.local/backups/bootstrap/
     [switch]$DryRun,           # mostrar que haria sin ejecutar
     [switch]$Force             # no pedir confirmacion (peligroso)
 )
@@ -21,7 +20,6 @@ $ErrorActionPreference = 'Continue'
 
 $DOTFILES_DIR = if ($env:DOTFILES_DIR) { $env:DOTFILES_DIR } else { Join-Path $HOME '.dotfiles' }
 $VAULT_DIR    = if ($env:VAULT_DIR)    { $env:VAULT_DIR }    else { Join-Path $HOME '.dotfiles-vault' }
-$BACKUPS_DIR  = Join-Path $HOME '.local\backups\bootstrap'
 
 # Symlinks/archivos creados por el bootstrap (espejo de $DOTFILES en bootstrap.ps1)
 $DOTFILES_TARGETS = @(
@@ -157,25 +155,7 @@ if (-not (Test-Path $DOTFILES_DIR) -and -not (Test-Path $VAULT_DIR)) {
 }
 
 # ==============================================================================
-# 2. ENCONTRAR BACKUP MAS RECIENTE
-# ==============================================================================
-
-$LATEST_BACKUP = $null
-if (Test-Path $BACKUPS_DIR) {
-    $latest = Get-ChildItem -Path $BACKUPS_DIR -Directory -ErrorAction SilentlyContinue |
-              Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if ($latest) {
-        $LATEST_BACKUP = $latest.FullName
-        Write-Log "Backup mas reciente encontrado: $LATEST_BACKUP" 'OK'
-    } else {
-        Write-Log "No se encontraron backups en $BACKUPS_DIR" 'WARN'
-    }
-} else {
-    Write-Log "Directorio de backups no existe: $BACKUPS_DIR" 'WARN'
-}
-
-# ==============================================================================
-# 3. PREVIEW Y CONFIRMACION
+# 2. PREVIEW Y CONFIRMACION
 # ==============================================================================
 
 Write-Log 'Preview - Que se va a desinstalar' 'SECTION'
@@ -196,22 +176,6 @@ if ($RemovePackages) {
     }
 }
 
-if ($LATEST_BACKUP) {
-    Write-Log 'Archivos a restaurar desde backup:' 'INFO'
-    $backupFiles = @(Get-ChildItem -Path $LATEST_BACKUP -Recurse -File -ErrorAction SilentlyContinue)
-    $backupFiles | Select-Object -First 10 | ForEach-Object {
-        Write-Host "    ↺ $($_.FullName.Substring($LATEST_BACKUP.Length))" -ForegroundColor DarkGray
-    }
-    if ($backupFiles.Count -gt 10) {
-        Write-Log "... y $($backupFiles.Count - 10) mas" 'INFO'
-    }
-}
-
-if (-not $KeepBackups) {
-    Write-Log 'Backups a borrar:' 'INFO'
-    Write-Prev $BACKUPS_DIR
-}
-
 if ($DryRun) {
     Write-Log '[DRY RUN] No se ejecutara ninguna accion destructiva.' 'SKIP'
     exit 0
@@ -224,10 +188,10 @@ if (-not (Confirm-Action 'Continuar con la desinstalacion?')) {
 }
 
 # ==============================================================================
-# 4. REMOVER SYMLINKS Y ARCHIVOS
+# 3. REMOVER SYMLINKS Y ARCHIVOS
 # ==============================================================================
 
-Write-Log '--- [1/5] Removiendo symlinks y archivos dotfiles ---' 'SECTION'
+Write-Log '--- [1/3] Removiendo symlinks y archivos dotfiles ---' 'SECTION'
 
 foreach ($target in $DOTFILES_TARGETS) {
     if (Test-Path $target) {
@@ -243,34 +207,10 @@ foreach ($target in $DOTFILES_TARGETS) {
 }
 
 # ==============================================================================
-# 5. RESTAURAR BACKUPS
+# 4. DESINSTALAR PAQUETES (OPCIONAL)
 # ==============================================================================
 
-Write-Log '--- [2/5] Restaurando backups ---' 'SECTION'
-
-if ($LATEST_BACKUP -and (Test-Path $LATEST_BACKUP)) {
-    $restoredCount = 0
-    $backupFiles = Get-ChildItem -Path $LATEST_BACKUP -Recurse -File -ErrorAction SilentlyContinue
-    foreach ($backupFile in $backupFiles) {
-        $relativePath = $backupFile.FullName.Substring($LATEST_BACKUP.Length).TrimStart('\', '/')
-        # Saltar lo migrado (_migrated\...): no son dotfiles activos
-        if ($relativePath -like '_migrated*') { continue }
-        $dest    = Join-Path $HOME $relativePath
-        $destDir = Split-Path $dest
-        if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
-        Copy-Item -LiteralPath $backupFile.FullName -Destination $dest -Force
-        $restoredCount++
-    }
-    Write-Log "Restaurados $restoredCount archivos desde backup" 'OK'
-} else {
-    Write-Log 'No hay backups para restaurar, saltando' 'SKIP'
-}
-
-# ==============================================================================
-# 6. DESINSTALAR PAQUETES (OPCIONAL)
-# ==============================================================================
-
-Write-Log '--- [3/5] Desinstalando paquetes ---' 'SECTION'
+Write-Log '--- [2/3] Desinstalando paquetes ---' 'SECTION'
 
 if (-not $RemovePackages) {
     Write-Log 'Saltando desinstalacion de paquetes (usa -RemovePackages)' 'SKIP'
@@ -299,10 +239,10 @@ if (-not $RemovePackages) {
 }
 
 # ==============================================================================
-# 7. BORRAR REPOSITORIOS
+# 5. BORRAR REPOSITORIOS
 # ==============================================================================
 
-Write-Log '--- [4/5] Borrando repositorios ---' 'SECTION'
+Write-Log '--- [3/3] Borrando repositorios ---' 'SECTION'
 
 if (Test-Path $DOTFILES_DIR) {
     Remove-Item -LiteralPath $DOTFILES_DIR -Recurse -Force -ErrorAction SilentlyContinue
@@ -311,21 +251,6 @@ if (Test-Path $DOTFILES_DIR) {
 if (Test-Path $VAULT_DIR) {
     Remove-Item -LiteralPath $VAULT_DIR -Recurse -Force -ErrorAction SilentlyContinue
     Write-Log "Borrado: $VAULT_DIR" 'OK'
-}
-
-# ==============================================================================
-# 8. BORRAR BACKUPS (OPCIONAL)
-# ==============================================================================
-
-Write-Log '--- [5/5] Borrando backups ---' 'SECTION'
-
-if ($KeepBackups) {
-    Write-Log "Conservando backups en $BACKUPS_DIR (-KeepBackups)" 'SKIP'
-} elseif (Test-Path $BACKUPS_DIR) {
-    Remove-Item -LiteralPath $BACKUPS_DIR -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Log "Borrado: $BACKUPS_DIR" 'OK'
-} else {
-    Write-Log 'No hay backups para borrar' 'SKIP'
 }
 
 # ==============================================================================

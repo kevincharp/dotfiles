@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#   uninstall.sh — Desinstalar dotfiles y restaurar estado previo
+#   uninstall.sh — Desinstalar dotfiles
 #   Autor: Kevin Charpentier
-#   Uso:   bash uninstall.sh [--remove-packages] [--keep-backups] [--dry-run] [--force]
+#   Uso:   bash uninstall.sh [--remove-packages] [--dry-run] [--force]
 # ==============================================================================
 
 set -euo pipefail
@@ -12,22 +12,19 @@ set -euo pipefail
 # ==============================================================================
 
 REMOVE_PACKAGES=false
-KEEP_BACKUPS=false
 DRY_RUN=false
 FORCE=false
 
 for arg in "$@"; do
     case "$arg" in
         --remove-packages) REMOVE_PACKAGES=true ;;
-        --keep-backups)    KEEP_BACKUPS=true ;;
         --dry-run)         DRY_RUN=true ;;
         --force)           FORCE=true ;;
         *)
-            echo "Uso: bash uninstall.sh [--remove-packages] [--keep-backups] [--dry-run] [--force]"
+            echo "Uso: bash uninstall.sh [--remove-packages] [--dry-run] [--force]"
             echo ""
             echo "Opciones:"
             echo "  --remove-packages  Desinstalar paquetes instalados por bootstrap"
-            echo "  --keep-backups     No borrar ~/.local/backups/bootstrap/"
             echo "  --dry-run          Mostrar qué haría sin ejecutar"
             echo "  --force            No pedir confirmación (peligroso)"
             exit 1
@@ -41,7 +38,6 @@ done
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
-BACKUPS_DIR="$HOME/.local/backups/bootstrap"
 
 # Lista de symlinks/archivos creados por el bootstrap
 DOTFILES_TARGETS=(
@@ -207,24 +203,7 @@ if [[ ! -d "$DOTFILES_DIR" && ! -d "$VAULT_DIR" ]]; then
 fi
 
 # ==============================================================================
-# 2. ENCONTRAR BACKUP MAS RECIENTE
-# ==============================================================================
-
-LATEST_BACKUP=""
-if [[ -d "$BACKUPS_DIR" ]]; then
-    LATEST_BACKUP=$(ls -t "$BACKUPS_DIR" 2>/dev/null | head -1)
-    if [[ -n "$LATEST_BACKUP" ]]; then
-        LATEST_BACKUP="$BACKUPS_DIR/$LATEST_BACKUP"
-        log "Backup más reciente encontrado: $LATEST_BACKUP" "OK"
-    else
-        log "No se encontraron backups en $BACKUPS_DIR" "WARN"
-    fi
-else
-    log "Directorio de backups no existe: $BACKUPS_DIR" "WARN"
-fi
-
-# ==============================================================================
-# 3. MOSTRAR PREVIEW Y PEDIR CONFIRMACION
+# 2. MOSTRAR PREVIEW Y PEDIR CONFIRMACION
 # ==============================================================================
 
 # Item de preview: marca lo que se va a quitar (rojo tenue)
@@ -252,20 +231,6 @@ if [[ "$REMOVE_PACKAGES" == true ]]; then
     done
 fi
 
-if [[ -n "$LATEST_BACKUP" ]]; then
-    log "Archivos a restaurar desde backup:" "INFO"
-    find "$LATEST_BACKUP" -type f 2>/dev/null | sed "s|$LATEST_BACKUP|    ↺ |" | head -10
-    backup_count=$(find "$LATEST_BACKUP" -type f 2>/dev/null | wc -l)
-    if [[ $backup_count -gt 10 ]]; then
-        log "... y $((backup_count - 10)) mas" "INFO"
-    fi
-fi
-
-if [[ "$KEEP_BACKUPS" == false ]]; then
-    log "Backups a borrar:" "INFO"
-    prev "$BACKUPS_DIR"
-fi
-
 if [[ "$DRY_RUN" == true ]]; then
     log "[DRY RUN] No se ejecutará ninguna acción destructiva." "SKIP"
     exit 0
@@ -278,10 +243,10 @@ if ! ask_confirmation "¿Continuar con la desinstalación?"; then
 fi
 
 # ==============================================================================
-# 4. REMOVER SYMLINKS Y ARCHIVOS
+# 3. REMOVER SYMLINKS Y ARCHIVOS
 # ==============================================================================
 
-log "--- [1/5] Removiendo symlinks y archivos dotfiles ---" "SECTION"
+log "--- [1/3] Removiendo symlinks y archivos dotfiles ---" "SECTION"
 
 for target in "${DOTFILES_TARGETS[@]}"; do
     if [[ -L "$target" ]]; then
@@ -303,34 +268,10 @@ if [[ -x "$DOTFILES_DIR/firefox/aplicar-perfiles.sh" ]]; then
 fi
 
 # ==============================================================================
-# 5. RESTAURAR BACKUPS
+# 4. DESINSTALAR PAQUETES (OPCIONAL)
 # ==============================================================================
 
-log "--- [2/5] Restaurando backups ---" "SECTION"
-
-if [[ -n "$LATEST_BACKUP" && -d "$LATEST_BACKUP" ]]; then
-    restored_count=0
-    while IFS= read -r backup_file; do
-        relative_path="${backup_file#$LATEST_BACKUP/}"
-        dest="$HOME/$relative_path"
-        dest_dir="$(dirname "$dest")"
-
-        mkdir -p "$dest_dir"
-        # OJO: contador con $((...)) y no ((x++)) — con 'set -e', ((x++)) devuelve
-        # exit 1 cuando x vale 0 y abortaria el script en el PRIMER archivo.
-        cp "$backup_file" "$dest" && restored_count=$((restored_count + 1))
-    done < <(find "$LATEST_BACKUP" -type f)
-
-    log "Restaurados $restored_count archivos desde backup" "OK"
-else
-    log "No hay backups para restaurar, saltando" "SKIP"
-fi
-
-# ==============================================================================
-# 6. DESINSTALAR PAQUETES (OPCIONAL)
-# ==============================================================================
-
-log "--- [3/5] Desinstalando paquetes ---" "SECTION"
+log "--- [2/3] Desinstalando paquetes ---" "SECTION"
 
 if [[ "$REMOVE_PACKAGES" != true ]]; then
     log "Saltando desinstalación de paquetes (usa --remove-packages)" "SKIP"
@@ -421,10 +362,10 @@ else
 fi
 
 # ==============================================================================
-# 7. BORRAR REPOSITORIOS
+# 5. BORRAR REPOSITORIOS
 # ==============================================================================
 
-log "--- [4/5] Borrando repositorios ---" "SECTION"
+log "--- [3/3] Borrando repositorios ---" "SECTION"
 
 if [[ -d "$DOTFILES_DIR" ]]; then
     rm -rf "$DOTFILES_DIR" && log "Borrado: $DOTFILES_DIR" "OK"
@@ -432,22 +373,6 @@ fi
 
 if [[ -d "$VAULT_DIR" ]]; then
     rm -rf "$VAULT_DIR" && log "Borrado: $VAULT_DIR" "OK"
-fi
-
-# ==============================================================================
-# 8. BORRAR BACKUPS (OPCIONAL)
-# ==============================================================================
-
-log "--- [5/5] Borrando backups ---" "SECTION"
-
-if [[ "$KEEP_BACKUPS" == true ]]; then
-    log "Conservando backups en $BACKUPS_DIR (--keep-backups)" "SKIP"
-else
-    if [[ -d "$BACKUPS_DIR" ]]; then
-        rm -rf "$BACKUPS_DIR" && log "Borrado: $BACKUPS_DIR" "OK"
-    else
-        log "No hay backups para borrar" "SKIP"
-    fi
 fi
 
 # ==============================================================================

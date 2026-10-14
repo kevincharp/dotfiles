@@ -1711,6 +1711,32 @@ else
     fi
 fi
 
+# Boveda de Obsidian: es un repo PRIVADO del usuario (no de este repo), asi que la
+# URL no se versiona aca: sale de OBSIDIAN_REPO en ~/.env (con el alias SSH del
+# perfil, p. ej. git@github.com-<perfil>:<ns>/obsidian.git). Se clona en
+# ~/obsidian (OBSIDIAN_DIR la cambia) solo si Obsidian esta elegido/instalado, la
+# variable existe y la carpeta no existe todavia. Va despues de las claves SSH. La
+# identidad git sale sola de la URL (includeIf hasconfig del vault).
+if want_tool obsidian; then
+    _obs_repo="${OBSIDIAN_REPO:-}"
+    if [[ -z "$_obs_repo" && -f "$HOME/.env" ]]; then
+        _obs_repo="$(sed -n 's/^\(export \)\{0,1\}OBSIDIAN_REPO=//p' "$HOME/.env" | head -1 | tr -d "\"'" | tr -d '\r')"
+    fi
+    _obs_dir="${OBSIDIAN_DIR:-$HOME/obsidian}"
+    if [[ -z "$_obs_repo" ]]; then
+        echo "[$(date +%H:%M:%S)][SKIP] OBSIDIAN_REPO no definido en ~/.env, no se clona la boveda" >> "$LOG_FILE" 2>/dev/null || true
+    elif [[ -d "$_obs_dir/.git" ]]; then
+        echo "[$(date +%H:%M:%S)][SKIP] $_obs_dir ya existe, no se clona la boveda" >> "$LOG_FILE" 2>/dev/null || true
+    elif [[ "$DRY_RUN" == true ]]; then
+        log "[DryRun] Clonar la boveda de Obsidian $_obs_repo → $_obs_dir" "SKIP"
+    elif git clone "$_obs_repo" "$_obs_dir" >> "$LOG_FILE" 2>&1; then
+        log "Boveda de Obsidian clonada en $_obs_dir" "OK"
+    else
+        log "No se pudo clonar la boveda de Obsidian ($_obs_repo)" "WARN"
+        WARNINGS+=("Boveda de Obsidian sin clonar — revisa las claves SSH y corre: git clone $_obs_repo $_obs_dir")
+    fi
+fi
+
 # Segunda tanda de symlinks/configs simples: también al log (modo silencioso).
 # Se reactiva aca (se habia apagado para las claves SSH) y se cierra al final del
 # paso, sumando al mismo contador _QUIET_OK para el resumen.

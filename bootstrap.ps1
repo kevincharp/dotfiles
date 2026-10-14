@@ -1005,6 +1005,7 @@ function Test-ToolInstalled {
         'git'              { return (Test-CommandAvailable 'git') }
         'windows-terminal' { return (Test-Path (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe')) }
         'flowlauncher'     { return (Test-Path (Join-Path $env:LOCALAPPDATA 'FlowLauncher')) }
+        'obsidian'         { return (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\Obsidian')) }
         'firacode'         { return [bool](Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\Windows\Fonts", "$env:WINDIR\Fonts" `
                                             -Filter 'FiraCode*' -ErrorAction SilentlyContinue | Select-Object -First 1) }
         default            { return (Test-CommandAvailable $Key) }
@@ -1804,6 +1805,38 @@ if ($SkipDotfiles) {
                 }
             }
             throw "Passphrase incorrecta (3 intentos) o error de age"
+        }
+    }
+
+    # --- Boveda de Obsidian ---
+    # Es un repo PRIVADO del usuario (no de este repo): la URL no se versiona aca,
+    # sale de OBSIDIAN_REPO en ~/.env (con el alias SSH del perfil, p. ej.
+    # git@github.com-<perfil>:<ns>/obsidian.git). Se clona en ~\obsidian
+    # (OBSIDIAN_DIR la cambia) solo si Obsidian esta elegido/instalado, la
+    # variable existe y la carpeta no existe todavia. Va despues de las claves SSH.
+    # La identidad git sale sola de la URL (includeIf hasconfig del vault).
+    if (Test-ToolWanted 'obsidian') {
+        $obsRepo = $env:OBSIDIAN_REPO
+        if (-not $obsRepo -and (Test-Path $envDst)) {
+            $obsLine = Select-String -Path $envDst -Pattern '^(export\s+)?OBSIDIAN_REPO=' -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($obsLine) { $obsRepo = ($obsLine.Line -replace '^(export\s+)?OBSIDIAN_REPO=', '').Trim().Trim('"', "'") }
+        }
+        $obsDir = if ($env:OBSIDIAN_DIR) { $env:OBSIDIAN_DIR } else { Join-Path $HOME 'obsidian' }
+        if (-not $obsRepo) {
+            Write-Log "OBSIDIAN_REPO no definido en ~/.env, no se clona la boveda" 'SKIP'
+        } elseif (Test-Path (Join-Path $obsDir '.git')) {
+            Write-Log "$obsDir ya existe, no se clona la boveda" 'SKIP'
+        } elseif ($DryRun) {
+            Write-Log "[DryRun] Clonar la boveda de Obsidian $obsRepo -> $obsDir" 'SKIP'
+        } else {
+            git clone $obsRepo $obsDir 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Log "Boveda de Obsidian clonada en $obsDir" 'OK'
+            } else {
+                $msg = "Boveda de Obsidian sin clonar - revisa las claves SSH y corre: git clone $obsRepo $obsDir"
+                Write-Log $msg 'WARN'
+                $WARNINGS.Add($msg)
+            }
         }
     }
 

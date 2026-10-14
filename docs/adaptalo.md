@@ -264,3 +264,19 @@ CLAUDE_SMG_MODELS=us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5
 `aws bedrock list-inference-profiles` **no** sirve para saber cuáles están
 habilitados: lista el catálogo entero de la región, no lo que tu rol puede
 invocar.
+
+**Bóveda de Obsidian.** Obsidian es una app opcional del catálogo; la bóveda
+(tus notas) es un repo **privado tuyo**, no de este repo. Para que el bootstrap
+la clone sola en una PC nueva, definí en `~/.env` la URL con el alias SSH de tu
+perfil:
+
+```bash
+OBSIDIAN_REPO=git@github.com-<perfil>:<namespace>/obsidian.git
+# opcional: dónde clonarla (por defecto ~/obsidian)
+OBSIDIAN_DIR=~/obsidian
+```
+
+Se clona después de restaurar las claves SSH, solo si elegiste Obsidian (o ya
+está instalado), `OBSIDIAN_REPO` existe y la carpeta no existe todavía. Sin la
+variable, el paso se omite. Obsidian registra la ruta de cada bóveda por
+máquina: la primera vez hay que abrirla a mano (*Abrir carpeta como bóveda*).

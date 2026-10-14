@@ -437,6 +437,15 @@ perfil predeterminado que se mueve, borrado al cerrar):
   internos de la VPN); extensiones (uBlock Origin, Proton Pass) a mano; Firefox
   Sync intacto.
 
+## Obsidian (`~/obsidian`)
+
+Opcional (grupo `apps`/`extras`). La **bóveda es un repo privado aparte**, nunca
+parte de este repo (son notas personales). El bootstrap solo la clona en
+`~/obsidian` si `~/.env` define `OBSIDIAN_REPO` (URL con alias SSH) y la
+carpeta no existe; detalle en [`docs/adaptalo.md`](docs/adaptalo.md). Dentro de
+la bóveda, `.gitignore` excluye `workspace.json` y el `data.json` del plugin
+Jira (cuenta); la sincronización entre PCs la hace el plugin Obsidian Git.
+
 ## Verificación
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.

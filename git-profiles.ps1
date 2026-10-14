@@ -17,7 +17,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $VAULT_DIR  = if ($env:VAULT_DIR) { $env:VAULT_DIR } else { Join-Path $HOME '.dotfiles-vault' }
-$BACKUP_DIR = Join-Path $HOME ".local\backups\git-profiles\$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
@@ -102,8 +101,7 @@ foreach ($p in $profiles) {
     Write-Host "  $($p.Perfil)  $($p.Name) <$($p.Email)>  " -NoNewline -ForegroundColor Green
     Write-Host "$($p.Alias) · $keytxt" -ForegroundColor DarkGray
 }
-Write-Dim "Se genera el vault en $VAULT_DIR y se aplica en esta maquina"
-Write-Dim "(lo que ya tengas se respalda en $BACKUP_DIR)."
+Write-Dim "Se genera el vault en $VAULT_DIR y se aplica en esta maquina."
 $go = Ask '  ¿Continuar? [S/n]' 's'
 if ($go -match '^[nN]') { Write-Host '  Cancelado. No se toco nada.'; exit 0 }
 
@@ -115,7 +113,6 @@ Write-Head 'Generando el vault'
 foreach ($d in @('git', 'shell', 'ssh\keys')) {
     New-Item -ItemType Directory -Path (Join-Path $VAULT_DIR $d) -Force | Out-Null
 }
-New-Item -ItemType Directory -Path $BACKUP_DIR -Force | Out-Null
 
 # --- git/config-<perfil> ---
 foreach ($p in $profiles) {
@@ -262,7 +259,6 @@ if ($sshBlocks) {
     $sshCfgVault = Join-Path $VAULT_DIR 'ssh\config'
     $prevCfg = Join-Path $sshDir 'config'
     $content = if (Test-Path $prevCfg) {
-        Copy-Item $prevCfg (Join-Path $BACKUP_DIR 'ssh-config.previo') -Force
         (Get-Content -Raw $prevCfg) + "`n# --- generado por git-profiles.ps1 ---`n" + $sshBlocks
     } else {
         "# ssh/config — generado por git-profiles.ps1`n" + $sshBlocks
@@ -278,11 +274,8 @@ if ($sshBlocks) {
 Write-Head 'Aplicando en esta maquina'
 
 function New-LinkOrCopy($src, $dst) {
-    # symlink con backup del archivo real previo; si el symlink falla (sin
+    # symlink (reemplaza el archivo real previo, sin backup); si el symlink falla (sin
     # Modo de desarrollador), cae a copia con aviso.
-    if ((Test-Path $dst) -and -not (Get-Item $dst -Force).LinkType) {
-        Copy-Item $dst (Join-Path $BACKUP_DIR (Split-Path $dst -Leaf)) -Force
-    }
     if (Test-Path $dst) { Remove-Item $dst -Force }
     try {
         New-Item -ItemType SymbolicLink -Path $dst -Target $src -ErrorAction Stop | Out-Null
@@ -372,4 +365,3 @@ if ($pendingAge.Count -gt 0) {
     }
     $n++
 }
-Write-Host "  $n. Backups de lo previo: " -NoNewline; Write-Host $BACKUP_DIR -ForegroundColor DarkGray

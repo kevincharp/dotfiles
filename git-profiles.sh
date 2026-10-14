@@ -22,7 +22,6 @@ set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
-BACKUP_DIR="$HOME/.local/backups/git-profiles/$(date +%Y%m%d-%H%M%S)"
 
 # Entrada interactiva: /dev/tty (funciona bajo 'curl | bash'); para tests se
 # puede inyectar un archivo de respuestas con GIT_PROFILES_INPUT.
@@ -151,8 +150,7 @@ for i in "${!P_NAME[@]}"; do
     _keytxt=$([[ "${P_KEY[i]}" == 1 ]] && echo "clave SSH nueva" || echo "sin clave SSH")
     say "  ${C_OK}${P_NAME[i]}${C_RESET}  ${P_UNAME[i]} <${P_EMAIL[i]}>  ${C_DIM}${_alias} · ${_keytxt}${C_RESET}"
 done
-say "  ${C_DIM}Se genera el vault en $VAULT_DIR y se aplica en esta maquina"
-say "  (lo que ya tengas se respalda en $BACKUP_DIR).${C_RESET}"
+say "  ${C_DIM}Se genera el vault en $VAULT_DIR y se aplica en esta maquina.${C_RESET}"
 _go="$(ask "  ¿Continuar? [S/n] " "s")"
 case "$_go" in [nN]*) say "  Cancelado. No se toco nada."; exit 0 ;; esac
 
@@ -161,7 +159,7 @@ case "$_go" in [nN]*) say "  Cancelado. No se toco nada."; exit 0 ;; esac
 # ==============================================================================
 
 head_ "Generando el vault"
-mkdir -p "$VAULT_DIR/git" "$VAULT_DIR/shell" "$VAULT_DIR/ssh/keys" "$BACKUP_DIR"
+mkdir -p "$VAULT_DIR/git" "$VAULT_DIR/shell" "$VAULT_DIR/ssh/keys"
 
 # --- git/config-<perfil> (identidad de cada contexto) ---
 for i in "${!P_NAME[@]}"; do
@@ -331,7 +329,6 @@ done
 if [[ -n "$_ssh_blocks" ]]; then
     {
         if [[ -f "$HOME/.ssh/config" ]]; then
-            cp "$HOME/.ssh/config" "$BACKUP_DIR/ssh-config.previo"
             cat "$HOME/.ssh/config"
             printf '\n# --- generado por git-profiles.sh ---\n'
         else
@@ -348,12 +345,8 @@ fi
 
 head_ "Aplicando en esta maquina"
 
-_link() {  # _link <src> <dst> — symlink con backup del archivo real previo
+_link() {  # _link <src> <dst> — symlink (reemplaza el archivo real previo, sin backup)
     local src="$1" dst="$2"
-    if [[ -f "$dst" && ! -L "$dst" ]]; then
-        mkdir -p "$BACKUP_DIR"
-        cp "$dst" "$BACKUP_DIR/$(basename "$dst")"
-    fi
     [[ -e "$dst" || -L "$dst" ]] && rm -f "$dst"
     ln -s "$src" "$dst"
 }
@@ -432,5 +425,4 @@ if [[ ${#_pending_age[@]} -gt 0 ]]; then
     done
     _n=$((_n + 1))
 fi
-say "  $_n. Backups de lo previo: ${C_DIM}$BACKUP_DIR${C_RESET}"
 exec 3<&-

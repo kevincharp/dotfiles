@@ -1202,7 +1202,7 @@ claude-smg() {
         # filtra. Sin este mapeo la entrada Haiku resolvia al Haiku por defecto
         # de Claude Code en Bedrock (4.5, no habilitado) y el filtro la ocultaba,
         # y "Default" seguia diciendo Sonnet 4.5.
-        _smg_pick() { printf '%s\n' "${_smg_models//,/$'\n'}" | grep -m1 -i "$1"; }
+        _smg_pick() { printf '%s\n' "$_smg_models" | tr ',' '\n' | grep -m1 -i "$1"; }
         _smg_sonnet="$(_smg_pick sonnet)"; _smg_haiku="$(_smg_pick haiku)"; _smg_opus="$(_smg_pick opus)"
         [[ -n "$_smg_sonnet" ]] && export ANTHROPIC_DEFAULT_SONNET_MODEL="$_smg_sonnet"
         [[ -n "$_smg_opus" ]]   && export ANTHROPIC_DEFAULT_OPUS_MODEL="$_smg_opus"

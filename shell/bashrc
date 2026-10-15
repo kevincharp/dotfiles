@@ -577,6 +577,13 @@ edit-history() {
     edit "${HISTFILE:-$HOME/.bash_history}"
 }
 
+# reload: reinicia el shell actual con 'exec bash' (reemplaza el proceso, no anida
+# otro shell adentro; relee el rc completo). Espejo del bashrc/zshrc/profile.ps1.
+# --- [dotfiles] reload: reinicia el shell (relee la config, sin anidar shells) | uso: reload ---
+reload() {
+    exec bash
+}
+
 # claude-clean: limpia la basura regenerable de ~/.claude (historial, file-history,
 # caches, snapshots, sesiones huerfanas, backups viejos). Muestra que borraria y
 # cuanto libera, y pide confirmacion. NUNCA toca CLAUDE.md, settings*, keybindings,

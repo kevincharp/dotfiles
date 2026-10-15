@@ -536,6 +536,18 @@ function edit-history {
 }
 
 <#
+.SYNOPSIS reiniciar el shell actual (relee el perfil)
+.DESCRIPTION Espejo del reload de bash/zsh (paridad). PowerShell no tiene 'exec':
+lanza un pwsh nuevo en la misma ventana y, al salir de ese, cierra el viejo
+(un '. $PROFILE' dentro de una funcion no afecta a quien la llamo).
+.EXAMPLE reload
+#>
+function reload {
+    & (Get-Process -Id $PID).Path -NoLogo
+    exit
+}
+
+<#
 .SYNOPSIS limpiar la basura regenerable de ~/.claude (historial, caches, sesiones huerfanas)
 .DESCRIPTION Espejo del claude-clean de bash/zsh (paridad). Muestra que borraria y cuanto
 libera, y pide confirmacion. NUNCA toca CLAUDE.md, settings*, keybindings, .credentials.json,
@@ -1950,7 +1962,7 @@ $global:__DotHelpCatMap = @{
     # herramientas
     'claude-smg'='tools'
     # dotfiles / config
-    'clear-history'='dotfiles'; 'edit-history'='dotfiles'; 'vault-sync'='dotfiles'
+    'clear-history'='dotfiles'; 'edit-history'='dotfiles'; 'vault-sync'='dotfiles'; reload='dotfiles'
 }
 
 <#

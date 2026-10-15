@@ -27,6 +27,29 @@ sección, **Preferencias**, es personal: editala a tu gusto.
 - No commitear archivos ajenos al cambio (stagear por path, no `git add -A` a
   ciegas).
 
+## Worktrees (trabajo en paralelo con varios agentes)
+
+`~/repositorios/<contexto>/` tiene **una entrada por repositorio**: un worktree
+nunca se crea como carpeta hermana suelta del repo.
+
+- **Ruta:** `~/repositorios/<contexto>/<proyecto>-worktrees/<rol>/`, dentro de la
+  misma carpeta de contexto (así sigue aplicando la identidad git). El repo
+  principal queda en `~/repositorios/<contexto>/<proyecto>/`.
+- **Ramas:** `agent/<rol>` por worktree, e `integration` para unir el trabajo.
+- **Artefactos** (AppImage, zips, binarios de prueba) en
+  `<proyecto>-worktrees/artefactos/`, **nunca en `/tmp`** (es tmpfs: se vacía al
+  reiniciar).
+- **Efímeros** (diagnóstico, verificación): prefijo `tmp-` en la misma carpeta, y
+  `git worktree remove` al terminar.
+- **No mover un worktree con una sesión de agente abierta adentro**: cerrar todas
+  antes de `git worktree move`. Acertar la ruta al crearlo evita moverlo después.
+- **Mover cuesta caro:** las sesiones de Claude Code se guardan por ruta (el
+  `--continue` pierde las conversaciones) y en proyectos Rust hay que hacer
+  `cargo clean` en el worktree movido (`target/` guarda rutas absolutas).
+- **Peso:** cada worktree trae su propio `node_modules` y `target/`. Con muchos
+  de Rust, considerar un `CARGO_TARGET_DIR` compartido. Al revisar el proyecto,
+  mirar `git worktree list` y los tamaños.
+
 ## Proyectos nuevos
 
 - Crearlos bajo la **carpeta de contexto** que corresponda en `~/repositorios/`

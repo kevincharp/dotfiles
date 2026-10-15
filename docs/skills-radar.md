@@ -45,6 +45,8 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 |---|---|---|---|---|
 | `cyber-neo` | Auditoría read-only rápida (SAST/SCA/secretos) | Pasada de rutina antes de commitear | ✅ | `github.com/Hainrixz/cyber-neo` |
 | `security-audit-skill` | Auditoría adversarial en 6 fases, sub-agentes aislados | Auditoría seria antes de exponer algo a producción — **falta push+install**, ver [nota en agent-skills-catalogo.md](agent-skills-catalogo.md#notas-sobre-security-audit-skill-vs-cyber-neo) | ✅ (pendiente resolver) | `github.com/cloudflare/security-audit-skill` |
+| `security-guidance` | Revisión de seguridad en hooks: edición, fin de turno y commit/push | Red de seguridad automática mientras trabajás, sin invocarla | ✅ | `github.com/anthropics/claude-plugins-official` |
+| `claude-security` | Escaneo multiagente de repo/diff/PR con parches sugeridos | Escaneo a pedido (`/claude-security`) de una rama antes de mergear | ✅ | `github.com/anthropics/claude-plugins-official` |
 | `context-mode` | MCP de ahorro de contexto (sandbox de tools, SQLite) | Ver nota abajo | 🔍 descartado | `github.com/mksglu/context-mode` |
 
 ## Deploy / Infra / Plataforma

@@ -27,7 +27,9 @@
     "mattpocock-skills@claude-plugins-official": true,
     "thermos@kevincharp-dotfiles": true,
     "landing-team@kevincharp-dotfiles": true,
-    "cloudflare@cloudflare": true
+    "cloudflare@cloudflare": true,
+    "security-guidance@claude-plugins-official": true,
+    "claude-security@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {

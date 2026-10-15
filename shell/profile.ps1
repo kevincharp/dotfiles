@@ -1825,7 +1825,8 @@ function claude-smg {
     # despues de usar claude-smg (paridad con el subshell de bash/zsh).
     $prev = @{}
     foreach ($n in 'CLAUDE_CODE_USE_BEDROCK','AWS_PROFILE','AWS_REGION','ANTHROPIC_MODEL','ANTHROPIC_SMALL_FAST_MODEL',
-                   'ANTHROPIC_DEFAULT_SONNET_MODEL','ANTHROPIC_DEFAULT_HAIKU_MODEL','ANTHROPIC_DEFAULT_OPUS_MODEL') {
+                   'ANTHROPIC_DEFAULT_SONNET_MODEL','ANTHROPIC_DEFAULT_HAIKU_MODEL','ANTHROPIC_DEFAULT_OPUS_MODEL',
+                   'SECURITY_REVIEW_MODEL','SG_AGENTIC_MODEL') {
         $prev[$n] = [Environment]::GetEnvironmentVariable($n, 'Process')
     }
 
@@ -1865,6 +1866,10 @@ function claude-smg {
                 else { 'us.anthropic.claude-haiku-5-5' }
     $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $smgHaiku
     $env:ANTHROPIC_SMALL_FAST_MODEL    = $smgHaiku   # nombre viejo, por compat
+    # security-guidance (plugin) revisa con Opus por defecto, bloqueado en la
+    # cuenta de SMG: la revision fallaba en silencio. Se fija al Sonnet de la
+    # lista (a proposito pisa un SECURITY_REVIEW_MODEL del entorno normal).
+    if ($smgSonnet) { $env:SECURITY_REVIEW_MODEL = $smgSonnet; $env:SG_AGENTIC_MODEL = $smgSonnet }
     $smgSettings = @{ availableModels = $smgModels } | ConvertTo-Json -Compress
 
     $cleanup = {

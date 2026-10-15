@@ -1251,6 +1251,13 @@ claude-smg() {
         _smg_haiku="${CLAUDE_SMG_SMALL_MODEL:-${_smg_haiku:-us.anthropic.claude-haiku-5-5}}"
         export ANTHROPIC_DEFAULT_HAIKU_MODEL="$_smg_haiku"
         export ANTHROPIC_SMALL_FAST_MODEL="$_smg_haiku"   # nombre viejo, por compat
+        # security-guidance (plugin) revisa con Opus por defecto, bloqueado en la
+        # cuenta de SMG: la revision fallaba en silencio. Se fija al Sonnet de la
+        # lista (a proposito pisa un SECURITY_REVIEW_MODEL del entorno normal).
+        if [[ -n "$_smg_sonnet" ]]; then
+            export SECURITY_REVIEW_MODEL="$_smg_sonnet"
+            export SG_AGENTIC_MODEL="$_smg_sonnet"
+        fi
         # JSON del picker: "a,b" -> ["a","b"]
         _smg_json="[\"${_smg_models//,/\",\"}\"]"
 

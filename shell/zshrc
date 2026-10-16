@@ -93,6 +93,14 @@ setopt SHARE_HISTORY            # historial compartido entre terminales
 # checkwinsize: sin equivalente; zsh recalcula LINES/COLUMNS solo en cada prompt.
 setopt EXTENDED_GLOB            # glob avanzado (** recursivo ya es nativo en zsh)
 setopt CORRECT                  # ≈ shopt cdspell (corrige comandos; aproximado)
+# Sin control de flujo: Ctrl+S (XOFF) congela la pantalla y parece que la terminal
+# no responde (hay que apretar Ctrl+Q). Pasaba al pegar comandos. Espejo del bashrc.
+# Se usa 'stty -ixon' y no solo 'unsetopt FLOW_CONTROL': esa opcion solo actua
+# dentro del editor de linea, y asi tambien queda libre mientras corre un programa.
+if [[ -t 0 ]]; then
+    stty -ixon 2>/dev/null
+fi
+unsetopt FLOW_CONTROL
 setopt AUTO_CD                  # 'cd' implicito: tipear un dir entra a el
 setopt INTERACTIVE_COMMENTS     # permite '#' comentarios en la linea interactiva
 

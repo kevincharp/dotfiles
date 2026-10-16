@@ -294,6 +294,13 @@ if command -v fzf &>/dev/null; then
     export FZF_CTRL_R_OPTS='--prompt " historial> "'
 fi
 
+# Sin control de flujo: Ctrl+S (XOFF) congela la pantalla y parece que la terminal
+# no responde (hay que apretar Ctrl+Q). Pasaba al pegar comandos. Espejo del zshrc
+# (alli es 'unsetopt FLOW_CONTROL'). Solo con terminal: sin tty 'stty' falla.
+if [[ $- == *i* && -t 0 ]]; then
+    stty -ixon 2>/dev/null
+fi
+
 # ==============================================================================
 # FLECHA ARRIBA → lista de historial estilo PSReadLine ListView (espejo del zshrc)
 # ------------------------------------------------------------------------------

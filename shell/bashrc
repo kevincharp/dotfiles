@@ -7,14 +7,38 @@
 # OS DETECTION
 # ==============================================================================
 
-case "$(uname -s)" in
-    MINGW*|MSYS*|CYGWIN*)
+# $OSTYPE es una variable de bash: no lanza un proceso como `uname`. En Windows
+# el antivirus corporativo escanea cada proceso nuevo (~0.5s c/u), asi que el
+# arranque evita spawns innecesarios.
+case "$OSTYPE" in
+    msys*|cygwin*|win32*)
         IS_WINDOWS=true
         ;;
     *)
         IS_WINDOWS=false
         ;;
 esac
+
+# Cache de los `init` de herramientas que siempre generan el mismo script
+# (zoxide, fzf): evita 1 proceso por herramienta en cada arranque. Se regenera
+# si el binario es mas nuevo que el cache. Uso: _init_cacheado <nombre> <cmd...>
+if [[ "$IS_WINDOWS" == true ]]; then
+    _INIT_CACHE_DIR="$HOME/AppData/Local/bash-init-cache"
+else
+    _INIT_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/bash-init"
+fi
+_init_cacheado() {
+    local nombre="$1"; shift
+    local bin cache="$_INIT_CACHE_DIR/$nombre.bash"
+    bin="$(command -v "$1")" || return 1
+    if [[ ! -s "$cache" || "$bin" -nt "$cache" ]]; then
+        mkdir -p "$_INIT_CACHE_DIR" 2>/dev/null
+        "$@" > "$cache.tmp" 2>/dev/null && [[ -s "$cache.tmp" ]] \
+            && mv -f "$cache.tmp" "$cache" || { rm -f "$cache.tmp"; return 1; }
+    fi
+    source "$cache"
+    return 0
+}
 
 # ==============================================================================
 # PATH — Agregar ~/.local/bin (para oh-my-posh, zoxide, etc.)
@@ -271,7 +295,7 @@ fi
 # ==============================================================================
 
 if command -v zoxide &>/dev/null; then
-    eval "$(zoxide init bash)"
+    _init_cacheado zoxide zoxide init bash
 fi
 
 # ==============================================================================
@@ -281,8 +305,8 @@ fi
 if command -v fzf &>/dev/null; then
     # Cargar keybindings (Ctrl+R historial, Ctrl+T, Alt+C) + completions.
     # fzf >= 0.48 expone todo via 'fzf --bash' (portable, sin adivinar rutas).
-    if fzf --bash &>/dev/null; then
-        eval "$(fzf --bash)"
+    if _init_cacheado fzf fzf --bash; then
+        :
     # Fallback para versiones viejas: las rutas varian por distro.
     elif [[ -f /usr/share/fzf/shell/key-bindings.bash ]]; then   # Fedora 38+
         . /usr/share/fzf/shell/key-bindings.bash

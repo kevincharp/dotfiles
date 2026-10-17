@@ -101,7 +101,7 @@
         BasedOn="{StaticResource BaseItemSubTitleStyle}"
         TargetType="{x:Type TextBlock}">
         <Setter Property="Visibility" Value="Collapsed" />
-        <Setter Property="FontSize" Value="0" />
+        <Setter Property="FontSize" Value="0.01" />
         <Setter Property="Height" Value="0" />
     </Style>
     <Style
@@ -115,7 +115,7 @@
         BasedOn="{StaticResource BaseItemSubTitleSelectedStyle}"
         TargetType="{x:Type TextBlock}">
         <Setter Property="Visibility" Value="Collapsed" />
-        <Setter Property="FontSize" Value="0" />
+        <Setter Property="FontSize" Value="0.01" />
         <Setter Property="Height" Value="0" />
     </Style>
     <!--  Seleccion estilo Claude Code: barra naranja a la izquierda (~3px) + fondo calido.

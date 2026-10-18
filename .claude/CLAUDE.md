@@ -50,6 +50,16 @@ nunca se crea como carpeta hermana suelta del repo.
   de Rust, considerar un `CARGO_TARGET_DIR` compartido. Al revisar el proyecto,
   mirar `git worktree list` y los tamaños.
 
+## Código
+
+- **Comentarios cortos, con el porqué:** un comentario explica lo que no es
+  obvio del código, en 1 a 3 líneas. Si hace falta más de ~6 líneas seguidas,
+  sobra o va a `docs/`.
+- **No narrar la historia:** intentos descartados, hallazgos y "probé X y falló"
+  van en el mensaje del commit o en `docs/`, no en el código.
+- **Sin código desactivado:** no dejar bloques comentados "por si acaso"; se
+  borran y git los recuerda.
+
 ## Proyectos nuevos
 
 - Crearlos bajo la **carpeta de contexto** que corresponda en `~/repositorios/`

@@ -49,21 +49,11 @@ $script:DOTFILES_EXIT_CODE   = 0
 # ==============================================================================
 # RE-EJECUCION COMO ARCHIVO (imprescindible bajo 'irm | iex')
 # ------------------------------------------------------------------------------
-# Bajo 'irm ... | iex' el script corre DENTRO de la sesion interactiva, no como
-# script propio. Ahi 'exit' no termina el script: termina LA SESION, o sea que
-# CIERRA LA VENTANA DE LA TERMINAL — el usuario ni llega a leer el mensaje de
-# error (verificado: con iex, todo lo que sigue a un 'exit' no se ejecuta y la
-# consola muere; con -File la sesion sobrevive).
-#
-# Solucion: si venimos por iex, se baja el script a un archivo temporal y se
-# re-ejecuta con -File. Ahi 'exit' es seguro y todos los mensajes se leen.
-#
-# OJO — por que se BAJA de nuevo y no se usa $MyInvocation: bajo iex,
-# $MyInvocation.MyCommand.ScriptBlock devuelve el texto del script CONTENEDOR
-# (el de la sesion), no el de este script. Verificado: dos fragmentos distintos
-# ejecutados por iex reportan el MISMO largo, el del contenedor. Por eso
-# escribirse "a si mismo" desde $MyInvocation no funciona: guardaba el script de
-# afuera. La fuente confiable es la URL de la que ya se venia descargando.
+# Bajo iex el script corre dentro de la sesion interactiva: 'exit' termina LA SESION
+# (cierra la ventana) y el usuario no llega a leer el error. Por eso, si venimos por
+# iex, se baja el script a un archivo temporal y se re-ejecuta con -File. Se BAJA de
+# nuevo y no se usa $MyInvocation, que bajo iex devuelve el script contenedor, no este.
+# Detalle: docs/notas-tecnicas.md.
 # ==============================================================================
 
 # DOTFILES_INSTALL_REEXEC es la guarda anti-recursion (el hijo no vuelve a entrar).
@@ -241,15 +231,10 @@ function Find-Pwsh7 {
 }
 
 function Install-Winget {
-    # Instala winget (App Installer) descargando el paquete oficial de GitHub.
-    # No se puede asumir que winget exista: falta en Windows LTSC/Server, en
-    # imagenes corporativas sin Microsoft Store y en Windows Sandbox. Es la
-    # unica dependencia sin la cual no podemos instalar NADA mas.
-    # Devuelve $true si al terminar winget esta disponible.
-    #
-    # Ojo: se instala con Add-AppxPackage (por usuario), no requiere admin.
-    # VCLibs y UI.Xaml son dependencias del .msixbundle; si ya estan, el
-    # Add-AppxPackage falla con "ya instalado" y se ignora.
+    # Instala winget (App Installer) descargando el paquete oficial de GitHub: falta en
+    # LTSC/Server, imagenes corporativas sin Store y Windows Sandbox, y sin el no se instala
+    # NADA mas. Devuelve $true si al terminar winget esta disponible. Va por usuario
+    # (Add-AppxPackage, sin admin); si VCLibs/UI.Xaml ya estan, el fallo se ignora.
     Write-Log 'Instalando winget (App Installer)...' 'INFO'
     Write-Log 'Son 4 descargas (~80 MB en total): 3 dependencias y el bundle.' 'INFO'
 
@@ -433,15 +418,9 @@ function Install-Pwsh7Msi {
 # ==============================================================================
 # 0. VERIFICAR (Y OFRECER INSTALAR) POWERSHELL 7 — antes de tocar NADA
 # ------------------------------------------------------------------------------
-# La consola por defecto de Windows es PowerShell 5.1, asi que el one-liner
-# 'irm | iex' arranca ahi por default. El bootstrap exige pwsh 7 y aborta — si
-# ese chequeo llegara recien al final, el usuario ya habria instalado git,
-# clonado el repo y contestado dos preguntas para nada.
-#
-# En vez de mandarlo a copiar comandos: se le ofrece instalar pwsh 7 y el script
-# se RELANZA solo en pwsh, asi el one-liner sigue siendo un unico paso. pwsh 7
-# ademas ya esta en el catalogo del bootstrap (grupo core), asi que instalarlo
-# aca no agrega nada que no fuera a instalarse igual.
+# 'irm | iex' arranca en PowerShell 5.1 y el bootstrap exige pwsh 7: si el chequeo
+# llegara al final, el usuario ya habria instalado git y clonado el repo para nada. Se
+# ofrece instalar pwsh 7 y el script se relanza solo en pwsh (sigue siendo un unico paso).
 # ==============================================================================
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -559,14 +538,9 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 # ==============================================================================
 # 1. VERIFICAR GIT (bootstrap del bootstrap)
 # ------------------------------------------------------------------------------
-# Git hace falta ANTES que nada: este script clona el repo con 'git clone'. Como
-# ya no lo instalamos manual (las opciones del wizard las cubre el .gitconfig del
-# vault: core.editor=nvim, core.autocrlf=input), lo auto-instalamos por winget si
-# falta — y si winget tampoco esta, se ofrece instalarlo (no se puede asumir:
-# falta en LTSC/Server, imagenes corporativas sin Store y Windows Sandbox).
-#
-# Este bloque tambien cubre a quien YA tenia pwsh 7 pero no winget: en ese caso
-# el gate de arriba no corrio y esta es la primera vez que se necesita winget.
+# Git hace falta antes que nada (este script clona el repo). Se auto-instala por winget
+# si falta y, si winget tampoco esta, se ofrece instalarlo. Tambien cubre a quien ya
+# tenia pwsh 7 pero no winget: el gate de arriba no corrio y es la primera vez que se lo necesita.
 # ==============================================================================
 
 Write-Log 'Verificando requisitos...' 'SECTION'

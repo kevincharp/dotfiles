@@ -59,6 +59,11 @@ nunca se crea como carpeta hermana suelta del repo.
   van en el mensaje del commit o en `docs/`, no en el código.
 - **Sin código desactivado:** no dejar bloques comentados "por si acaso"; se
   borran y git los recuerda.
+- **Hacer solo lo pedido:** sin funciones, parámetros, opciones ni capas de
+  abstracción que nadie use todavía; lo que quede sin uso se borra.
+- **Antes del commit, pasar `/simplify`** sobre el cambio (Claude Code); en otros
+  agentes, releer el diff buscando lo mismo: duplicación, código de más y
+  comentarios que sobran.
 
 ## Proyectos nuevos
 

@@ -1,23 +1,14 @@
 #!/usr/bin/env bash
 # ==============================================================================
 #   statusline.sh — linea de estado de Claude Code
-#   Muestra:  carpeta · rama git · cuenta · modelo · effort · fast · thinking ·
-#             contexto (% + tokens) · estilo · costo
-#   - Carpeta: el PROYECTO de la sesion y, si /cd movio el cwd afuera, tambien
-#     el cwd (ver "Carpeta" mas abajo). No son lo mismo: /cd mueve el cwd pero
-#     la memoria, el historial y el CLAUDE.md de proyecto siguen siendo los del
-#     directorio desde el que se lanzo `claude`.
-#   - Cuenta: distingue Bedrock/SMG (claude-smg setea CLAUDE_CODE_USE_BEDROCK=1)
-#     de la cuenta Anthropic normal.
+#   Muestra: carpeta · rama git · cuenta · modelo · effort · fast · thinking ·
+#            contexto (% + tokens) · estilo · costo
+#   - Carpeta: el PROYECTO y, si /cd movio el cwd afuera, tambien el cwd.
+#   - Cuenta: distingue Bedrock/SMG (claude-smg setea CLAUDE_CODE_USE_BEDROCK=1).
 #   - Colores: paleta Claude Code (256-color), espejo de LS_COLORS del bashrc.
-#   Claude Code ejecuta este script en cada refresco y le pasa un JSON por stdin.
-#   Iconos: emoji a color, NO glyphs de Nerd Font. Linux los resuelve con Noto
-#   Color Emoji (lo prioriza el fontconfig/ de este repo) y Windows con Segoe UI
-#   Emoji; el set se cambia en el bloque "Iconos" de abajo. Ocupan dos columnas,
-#   asi que la linea es mas ancha que con glyphs.
-#   - Responsive: si identidad+metricas no entran en $COLUMNS (paneles angostos,
-#     varias sesiones abiertas), se imprimen en 2 lineas en vez de cortarse -
-#     Claude Code hace crecer el panel de status solo para acomodarlas.
+#   - Iconos: emoji a color (Noto Color Emoji en Linux, Segoe UI Emoji en Windows).
+#   - Responsive: si no entra en $COLUMNS, se imprime en 2 lineas.
+#   Claude Code lo ejecuta en cada refresco y le pasa un JSON por stdin.
 # ==============================================================================
 
 input="$(cat)"
@@ -92,14 +83,10 @@ lines_removed="$(_json_get num "$input" 'cost.total_lines_removed')"
 [[ -z "$cwd" ]] && cwd="$PWD"
 
 # --- Carpeta ---
-# El JSON trae por separado el cwd de la sesion (workspace.current_dir, que /cd
-# mueve) y el proyecto (workspace.project_dir, fijo: de ahi salen la memoria, el
-# historial y el CLAUDE.md de proyecto). Se muestran los dos cuando difieren
-# para que el /cd no pase desapercibido:
-#   iguales           →  proyecto
-#   cwd bajo proyecto →  proyecto/ruta/relativa
-#   cwd afuera        →  proyecto ⚠️ cwd   (el cwd en amarillo)
-# Sin project_dir (Claude Code viejo) cae al comportamiento historico: solo cwd.
+# El JSON trae el cwd (workspace.current_dir, que /cd mueve) y el proyecto
+# (workspace.project_dir, fijo: de ahi salen memoria, historial y CLAUDE.md). Se muestran
+# los dos cuando difieren: iguales -> proyecto; cwd bajo proyecto -> proyecto/relativa;
+# cwd afuera -> proyecto ⚠️ cwd (cwd en amarillo). Sin project_dir cae a solo cwd.
 _norm_path() {  # backslashes de Windows a /, sin barras repetidas ni barra final
     # Sin jq los backslashes llegan escapados (C:\\Users), asi que la conversion
     # deja // y hay que colapsarlas para que la comparacion de prefijo funcione.
@@ -176,15 +163,10 @@ if [[ "$ctx" =~ ^[0-9] ]]; then
 fi
 
 # --- Construir la linea ---
-# Cada dato es un segmento independiente. Se empaquetan de a uno por linea
-# tipo word-wrap: el que no entra en $COLUMNS arranca linea nueva, en vez de
-# fijar 2 mitades - una mitad fija podia seguir siendo mas ancha que un panel
-# angosto (con varias sesiones abiertas) y la terminal la truncaba con "..."
-# igual. Claude Code hace crecer el panel de status solo para acomodar las
-# lineas que hagan falta (confirmado contra la doc oficial: soporta
-# multi-linea partiendo el output por "\n", y $COLUMNS/$LINES ya vienen
-# seteados en el entorno del script - "tput cols" NO funciona aca porque
-# Claude Code captura el stdout del script, no lo conecta al tty).
+# Cada dato es un segmento; se empaquetan de a uno por linea (word-wrap): el que no entra
+# en $COLUMNS arranca linea nueva y Claude Code hace crecer el panel (la doc oficial
+# soporta multi-linea partiendo por "\n"). $COLUMNS ya viene seteado; "tput cols" NO
+# sirve: Claude Code captura el stdout, no lo conecta al tty.
 declare -a segs=()
 segs+=("${I_DIR} ${dir}")
 [[ -n "$branch" ]] && segs+=("${I_BRANCH} $(c "$GREEN")${branch}${RESET}")

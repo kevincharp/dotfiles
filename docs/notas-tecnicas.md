@@ -275,6 +275,105 @@ otra herramienta en la máquina que lea `CC` (make, cargo build scripts,
 node-gyp…) va a compilar vía zig-como-gnu en vez de cl.exe/MSVC. Aceptado a
 propósito: la alternativa es no tener resaltado de sintaxis en Windows.
 
+### Plugins de nvim: decisiones movidas desde los comentarios
+
+Los archivos de `nvim/lua/plugins/` llevan una cabecera corta; el porqué largo
+vive acá.
+
+- **lsp.lua:** el "framework" viejo `require('lspconfig')` está deprecado, pero
+  el plugin no: sigue aportando los `lsp/*.lua` (cómo invocar cada servidor y
+  detectar la raíz). La config usa la API nueva y no lo requiere. Antes se
+  mapeaban `gr`, `gI`, `<leader>rn`, `<leader>ca` y `<leader>d`, duplicados de
+  los nativos; mapear `gr` a secas lo vuelve prefijo ambiguo y nvim espera los
+  400 ms de `timeoutlen` para saber si venía `grn/gra/grr`: lag en los seis
+  nativos. `gd` nativo es la declaración local, no la del LSP, por eso se mapea.
+- **pestanas.lua:** bufferline y no barbar, porque replica el look de VSCode
+  (separadores finos, diagnósticos en el tab, offset del explorador); su repo
+  tiene poco movimiento porque está terminado, no abandonado (sin avisos en
+  0.12). `]b`/`[b` son nativos (`:bnext`) pero van por número de buffer: se
+  redefinen para seguir el orden visual. `Alt+1..9` no se puede: Ptyxis y
+  Windows Terminal lo toman para sus pestañas. Shift+H/L pisarían los nativos
+  de tope/pie de pantalla; Ctrl+PageUp/Down los toma la terminal. La lista
+  completa de buffers está en `<leader>fb`.
+- **sesiones.lua:** una sesión por directorio (la clave es desde dónde
+  arrancaste nvim). El flujo del repo es abrir cinco o seis archivos que se
+  referencian; sin sesiones cada `nvim` empieza de cero. La restauración es
+  manual para que `nvim archivo.lua` no arrastre diez buffers viejos. Atajos
+  `<leader>p`: `s` este directorio, `l` la última, `p` elegir, `d` no guardar.
+  El README sugiere `<leader>q`, pero ya es "cerrar ventana" y un atajo suelto
+  bloquea su prefijo (mismo motivo por el que el formateo pasó de `<leader>f` a
+  `<leader>cf`). `<leader>p` se verificó libre sobre los mapeos reales.
+- **pares.lua:** autopairs salta sobre el cierre existente (`f(a|)` + `)` queda
+  `f(a)`), no cierra si lo que sigue es letra o dígito, y `check_ts` solo
+  discrimina las comillas: un `(` sí se cierra dentro de un string o comentario.
+  `fast_wrap` en `<M-e>`: Alt+e no lo toma ni Ptyxis ni Windows Terminal.
+- **todo-comments.lua:** `<leader>st`/`<leader>sT` van al grep del picker de
+  snacks con el patrón que arma el propio plugin, no a `:TodoTelescope`
+  (Telescope no está instalado y snacks no trae fuente `todo_comments`). No se
+  mapean `]t`/`[t`: son nativos (tag list).
+- **snacks.lua:** antes se llamaba `explorador.lua`; se renombró al cubrir más
+  módulos (un archivo por plugin). `image` queda apagado porque Ptyxis no
+  soporta el protocolo gráfico de kitty.
+- **breadcrumbs.lua:** dropbar y no nvim-navic: navic usa la statusline, que es
+  minimalista a propósito; dropbar usa la winbar, por ventana. Cae en cascada de
+  LSP a treesitter a indentación.
+- **buscar-reemplazar.lua:** grug-far es un buffer normal de nvim (usa el
+  ripgrep del bootstrap). Dentro manda el líder local `\`: con
+  `maplocalleader = ' '`, `\s` sería `<space>s`, el prefijo del grupo "buscar".
+- **esquema.lua:** aerial convive con `gO` (consulta puntual, sin jerarquía) y
+  `<leader>ss` (buscar por nombre): son tres usos distintos.
+- **markdown.lua:** render-markdown y no markview por el anti-conceal: muestra el
+  markdown crudo en la línea del cursor, así se lee renderizado y se edita sin
+  apagar nada.
+- **autocompletado.lua:** blink.cmp es el motor moderno de nvim 0.12 (rápido, en
+  Rust). Se eligió el preset `default` (aceptar con `<C-y>`) y no el
+  `<Enter>`/`<Tab>` de VSCode para no pisar reflejos de vim mientras se aprende
+  lo nativo. En Linux `<C-space>` lo captura GNOME antes (Ulauncher).
+- **contexto.lua:** el README del plugin propone `[c` para saltar al contexto,
+  pero `[c` es nativo de vim (cambio anterior en modo diff, `:h [c`). Se mapea
+  solo el toggle en el grupo de alternar. dropbar responde "dónde estoy" (ruta
+  en la winbar); esto muestra "qué dice la firma que ya no veo".
+- **formateo.lua:** conform y no el formateo del LSP, para que el formato sea
+  idéntico dentro y fuera del editor. Antes el atajo era `<leader>f`; se mudó a
+  `<leader>cf` porque un atajo suelto bloquea el prefijo (no podría existir
+  `<leader>ff` ni `<leader>fg`).
+- **lazydev.lua:** declarar `vim` como global (como estaba en lsp.lua) solo
+  callaba el aviso, sin completado ni hover. Cargar todo el runtimepath como
+  librería de lua_ls es mucho más lento y da problemas editando la propia
+  config (nvim-lspconfig#3189). lazydev carga los tipos on demand, solo en
+  `.lua`, y es de folke como snacks y which-key.
+- **init.lua / gestor.lua:** config portable Linux + Windows con el modelo de
+  kickstart.nvim. Los plugins se instalan en el data-dir (`~/.local/share/nvim`),
+  fuera del repo.
+- **lsp.lua (servidores):** el `require('blink.cmp').get_lsp_capabilities()` era
+  redundante (desde nvim 0.11 blink registra sus capabilities solo, en su
+  `plugin/`) y además forzaba a lazy.nvim a cargar blink, saltándose su evento.
+  SQL no lleva servidor: el único maduro (sqls) es inútil sin un `config.yml` con
+  la cadena de conexión, que no puede vivir en este repo público (iría al vault);
+  sin eso solo completa palabras clave, lo que ya hace la fuente `buffer` de
+  blink. Docker usa dos servidores (`dockerls` para Dockerfile,
+  `docker_compose_language_service` para compose) y el compose recibe además
+  yamlls con su esquema por el filetype compuesto `yaml.docker-compose`.
+- **sesiones.lua (`sessionoptions`):** se hace en el plugin y no en opciones.lua
+  porque sin él no hace nada. `blank` no tiene sentido restaurarlo; `terminal`
+  deja un shell muerto (el proceso no sobrevive a la salida; las terminales se
+  abren con `<leader>tf`/`<leader>th`); `globals` guarda variables `g:` que
+  algunos plugins usan; `skiprtp` evita volcar el runtimepath.
+- **todo-comments.lua:** la búsqueda usa `config.search_regex()` del propio plugin
+  (el mismo que resalta), así `WARN(x):` y `WARN:` no se contradicen entre la
+  lista y el color. El `vim.schedule` no es decorativo: `search_regex` es `nil`
+  en el mismo tick en que lazy.nvim carga el plugin y aparece en el siguiente.
+- **atajos.lua (mover líneas):** antes era `J`/`K` en visual, que pisaba el `J`
+  nativo (unir líneas). Alt+flechas llega a nvim: Ptyxis codifica Alt como
+  prefijo ESC (`CSI 1;3A/B`) y solo usa Alt+1..9 para pestañas; los 5 atajos
+  custom de GNOME (Ctrl+Alt+T, Ctrl+Space, Ctrl+Shift+Esc, Super+Shift+S,
+  Super+.) no chocan; Windows Terminal se queda alt+minus/period/w y
+  alt+shift+d/±, pero Ctrl+flechas sí las toma para mover paneles.
+- **statusline.lua:** antes era una barra "cargada" (git, diff, nombre,
+  diagnósticos, tipo); se simplificó a pedido: preferencia por lo prolijo.
+- **tema.lua:** vscode.nvim reproduce Dark Modern pixel por pixel; tokyonight y
+  catppuccin se descartaron porque el objetivo es paridad visual con VSCode.
+
 ## Chrome duplicado en "Aplicaciones predeterminadas → Web"
 
 El `.rpm` oficial de Google instala **dos** `.desktop` en

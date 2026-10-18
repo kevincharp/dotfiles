@@ -1,19 +1,9 @@
 -- ============================================================================
 -- gitsigns.lua — marcas de git en la columna de signos
 -- ============================================================================
--- El "gutter" de git de VSCode: en la columna izquierda marca qué líneas se
--- añadieron (│ verde), modificaron (│ azul) o borraron (‾ rojo) respecto al
--- último commit. También permite navegar entre cambios y ver/revertir hunks.
---
--- Atajos (con líder, grupo <leader>h = "hunk"):
---   ]c / [c        saltar al siguiente / anterior cambio
---   <leader>hp     previsualizar el cambio (hunk) bajo el cursor
---   <leader>hs     stage del hunk      <leader>hr  revertir el hunk
---                  (en modo visual, solo las líneas seleccionadas)
---   <leader>hb     ver blame de la línea en popup (mensaje de commit completo)
---   <leader>hB     alternar el blame INLINE (el gris al final de la línea)
---   <leader>hd     diff del archivo contra HEAD   <leader>hD  contra HEAD~
---   ih             text object del hunk: `dih` borra el cambio, `vih` lo marca
+-- ]c / [c saltan entre cambios. Grupo <leader>h: p previsualizar, s stage, r
+-- revertir (en visual, solo la selección), b blame, B blame inline, d / D diff
+-- contra HEAD / HEAD~. Text object ih: `dih` borra el hunk, `vih` lo marca.
 -- ============================================================================
 
 return {

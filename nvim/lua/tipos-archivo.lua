@@ -1,13 +1,9 @@
 -- ============================================================================
 -- tipos-archivo.lua — detección de tipo de archivo propia (vim.filetype.add)
 -- ============================================================================
--- nvim reconoce solo la enorme mayoría de los archivos. Acá van las excepciones
--- que necesita este stack, porque de qué tipo es un archivo depende TODO lo demás:
--- qué servidor LSP arranca, qué parser de treesitter resalta y qué formateador
--- corre al guardar.
---
--- Se carga desde init.lua, antes de los plugins: si se registra tarde, el primer
--- archivo que abrís ya se detectó con las reglas viejas.
+-- El tipo decide qué LSP arranca, qué parser resalta y qué formateador corre.
+-- Se carga desde init.lua antes de los plugins: si se registra tarde, el primer
+-- archivo ya se detectó con las reglas viejas.
 -- ============================================================================
 
 vim.filetype.add({

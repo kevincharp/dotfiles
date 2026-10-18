@@ -1,28 +1,10 @@
 -- ============================================================================
--- snacks.lua — colección de módulos de folke (explorador, pickers, ayudas visuales)
+-- snacks.lua — módulos de folke (explorador, pickers, ayudas visuales)
 -- ============================================================================
--- ANTES este archivo se llamaba explorador.lua, porque de snacks solo usábamos el
--- árbol de archivos. Se renombró cuando pasó a cubrir varias cosas: snacks es UN
--- plugin con muchos módulos, y la regla del repo es un archivo por plugin (partir
--- sus `opts` en dos archivos funciona pero deja la config con dos cabezas).
---
--- Módulos ACTIVADOS acá y qué dan (todos venían en disco, apagados):
---   explorer     → el árbol de archivos lateral izquierdo (el "Explorer" de VSCode)
---   picker       → buscador flotante: archivos, grep, símbolos… (ver buscador.lua)
---   input        → los popups de entrada de texto ("Add a new file" centrado)
---   indent       → guías verticales de indentación + resaltado del bloque actual
---   words        → resalta TODAS las apariciones de la palabra bajo el cursor
---   statuscolumn → junta número + signo de git + diagnóstico + plegado, prolijo
---   scroll       → scroll suave (ayuda a no perder de vista dónde estabas)
---
--- Los que siguen apagados a propósito: image (Ptyxis no soporta el protocolo
--- gráfico de kitty — ver CLAUDE.md), dashboard, notifier, zen, dim.
---
--- El árbol se abre/cierra con <leader>e (toggle). Dentro del árbol:
---   <Enter>  abrir           a  crear archivo/carpeta (popup flotante)
---   d        borrar          r  renombrar    m  mover
---   c / p    copiar / pegar  H / I  alternar ocultos / ignorados    ?  ayuda
---   /        filtrar (la barra '>' de arriba)
+-- Activos: explorer, picker, input, indent, words, statuscolumn y scroll.
+-- Apagados: image (Ptyxis no soporta el protocolo kitty), dashboard, notifier,
+-- zen, dim. <leader>e abre/cierra el árbol; dentro: a crear, d borrar,
+-- r renombrar, m mover, c/p copiar/pegar, H/I ocultos/ignorados, ? ayuda.
 -- ============================================================================
 
 return {

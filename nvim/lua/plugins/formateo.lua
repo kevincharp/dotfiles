@@ -1,21 +1,9 @@
 -- ============================================================================
--- formateo.lua — formateo automático de código (conform.nvim)
+-- formateo.lua — formateo automático al guardar (conform.nvim)
 -- ============================================================================
--- El "Format on Save" de VSCode: al guardar, ordena el código con el formateador
--- estándar de cada lenguaje (prettier para web, ruff para python, etc.).
---
--- Por qué conform y no el formateo del LSP: conform usa las MISMAS herramientas
--- de línea de comandos que usarías en la terminal o en CI (prettier, shfmt...),
--- así el formato es idéntico dentro y fuera del editor. Se apoya en Mason para
--- instalar esos binarios automáticamente (mismo mecanismo que los servidores LSP).
---
--- Atajo:
---   <leader>cf  formatear el archivo a mano (además del automático al guardar)
---
--- OJO, esto ANTES era <leader>f. Se mudó a <leader>cf (grupo "código") porque
--- <leader>f como atajo suelto BLOQUEA todo el prefijo: no puede existir un
--- <leader>ff ni un <leader>fg si <leader>f ya es una acción terminada. Ese
--- prefijo ahora es el grupo "buscar" de los pickers (ver snacks.lua).
+-- Usa las mismas herramientas de línea de comandos que la terminal o la CI
+-- (prettier, shfmt, ruff…), instaladas vía Mason. <leader>cf formatea a mano; no
+-- es <leader>f porque un atajo suelto bloquea el grupo "buscar" (snacks.lua).
 -- ============================================================================
 
 return {

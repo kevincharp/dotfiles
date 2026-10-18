@@ -1,13 +1,8 @@
 -- ============================================================================
--- iconos.lua — íconos por tipo de archivo (Nerd Font)
+-- iconos.lua — íconos por tipo de archivo (nvim-web-devicons)
 -- ============================================================================
--- nvim-web-devicons provee los glifos que ves en el árbol de archivos, la
--- statusline, el finder, etc. (el iconito de .ts, .lua, .json...). Requiere una
--- Nerd Font en la terminal: ya tenés FiraCode Nerd Font instalada y activa en
--- Ptyxis/Windows Terminal, así que renderizan bien.
---
--- No necesita config: otros plugins (neo-tree, lualine) lo cargan como dependencia.
--- Lo dejamos como spec propia para que quede explícito y con lazy = false.
+-- Requiere una Nerd Font en la terminal (FiraCode Nerd Font). Spec propia con
+-- lazy = false para que quede explícito; otros plugins lo cargan como dependencia.
 -- ============================================================================
 
 return {

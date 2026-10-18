@@ -1,12 +1,7 @@
 -- ============================================================================
 -- which-key.lua — menú de atajos (aparece al apretar el líder)
 -- ============================================================================
--- Al apretar <espacio> (líder) y esperar, muestra un popup con los atajos
--- disponibles y su descripción. Es la mejor forma de APRENDER los atajos
--- nativos sin memorizarlos: vas viendo qué hay a medida que tipeás.
---
--- Lee las descripciones (desc = ...) que definimos en cada map. Por eso vale la
--- pena poner desc en español en todos los atajos: which-key los muestra ahí.
+-- Muestra los atajos disponibles con su desc (en español en cada map).
 -- ============================================================================
 
 return {

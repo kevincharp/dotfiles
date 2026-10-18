@@ -1,23 +1,8 @@
 -- ============================================================================
 -- markdown.lua — Markdown legible dentro del editor (render-markdown)
 -- ============================================================================
--- Este repo es casi todo Markdown (CLAUDE.md, README, docs/), así que valía la
--- pena. Dibuja el documento EN EL BUFFER: los `#` se vuelven encabezados con
--- fondo, las viñetas `-` un •, los `---` una línea completa, las tablas quedan
--- alineadas con bordes, los bloques de código con su lenguaje y su marco, y las
--- casillas `- [ ]` / `- [x]` con íconos.
---
--- Por qué render-markdown y no markview.nvim (el otro candidato serio):
--- el ANTI-CONCEAL. Los dos ocultan la sintaxis para que se lea lindo, pero
--- render-markdown la MUESTRA DE VUELTA en la línea donde está el cursor. O sea
--- que lees el documento renderizado y editás el markdown crudo, sin apagar nada.
--- Es la diferencia entre un visor y algo con lo que se puede trabajar.
---
--- No es una preview en el navegador ni un panel aparte: es el mismo buffer, así
--- que el cursor, la búsqueda y los atajos siguen siendo los de siempre.
---
--- Y NO agrega atajos, así que no hay nada que pueda chocar. Los comandos son
--- :RenderMarkdown enable / disable / toggle si alguna vez molesta.
+-- Dibuja el documento en el buffer y muestra el markdown crudo en la línea del
+-- cursor (por eso no markview). Sin atajos; :RenderMarkdown toggle si molesta.
 -- ============================================================================
 
 return {

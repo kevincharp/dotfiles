@@ -1,39 +1,9 @@
 -- ============================================================================
--- treesitter.lua — resaltado de sintaxis preciso (motor Tree-sitter)
+-- treesitter.lua — resaltado de sintaxis preciso (Tree-sitter)
 -- ============================================================================
--- Tree-sitter analiza el código como un árbol sintáctico real (no con regex,
--- como el highlighter viejo de vim). De ahí sale el resaltado preciso tipo
--- VSCode, la indentación inteligente, los pliegues (folds) y la selección por
--- bloque semántico. Lo consumen además dropbar, aerial, autopairs, ts-autotag y
--- render-markdown.
---
--- ---------------------------------------------------------------------------
--- POR QUÉ ESTE ARCHIVO USA LA RAMA 'main' (y antes decía lo contrario)
--- ---------------------------------------------------------------------------
--- El repo tiene dos ramas con APIs INCOMPATIBLES. Hasta acá esta config fijaba
--- 'master', que era el consejo correcto cuando se escribió. Ya no lo es:
---
---   * 'master' está CONGELADA y su propio README declara nvim 0.12 no soportado.
---   * Rompe de verdad, no en teoría: abrir cualquier .md con un bloque de código
---     con lenguaje (```lua) tiraba un error de query_predicates.lua:141,
---     "attempt to call method 'range' (a nil value)". La causa es que en nvim
---     0.11+ `match[capture_id]` pasó a ser una LISTA de nodos y la rama congelada
---     lo sigue tratando como un nodo solo. Se reproducía sin ningún otro plugin
---     en juego, así que no había forma de esquivarlo desde acá.
---   * Y su instalador de parsers depende de tarballs que ya devuelven 404 (por eso
---     el parser 'jsonc' era imposible de bajar).
---
--- La migración NO es cambiar una línea: 'main' no configura nada por opts, no
--- prende el resaltado sola y no soporta carga diferida. De ahí la forma de abajo.
---
--- ---------------------------------------------------------------------------
--- QUÉ NECESITA LA MÁQUINA
--- ---------------------------------------------------------------------------
--- 'main' compila los parsers con el CLI de tree-sitter, así que suma una
--- dependencia externa nueva: `tree-sitter-cli` (>= 0.25). Se instala por gestor
--- de paquetes, NO por npm — en Fedora está en los repos base (dnf install
--- tree-sitter-cli) y el bootstrap lo agrega junto con neovim. Más un compilador C:
--- en Linux ya hay gcc; en Windows hace falta zig o MSVC.
+-- Rama 'main': 'master' está congelada y rompe en nvim 0.12. No soporta carga
+-- diferida y compila los parsers con tree-sitter-cli (>= 0.25) + un compilador C.
+-- Detalle: docs/notas-tecnicas.md (treesitter en rama main).
 -- ============================================================================
 
 -- Parsers a instalar. Cubren el stack decidido: Web (JS/TS/React, HTML, CSS),

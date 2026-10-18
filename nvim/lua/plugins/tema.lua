@@ -1,13 +1,9 @@
 -- ============================================================================
--- tema.lua — colorscheme: réplica exacta del "Default Dark Modern" de VSCode
+-- tema.lua — colorscheme: "Default Dark Modern" de VSCode (vscode.nvim)
 -- ============================================================================
--- Mofiqul/vscode.nvim reproduce los colores del tema por defecto de VSCode
--- (Dark Modern) pixel por pixel. Elegido a propósito para que nvim se vea igual
--- que VSCode. Alternativas más "bonitas pero distintas" (tokyonight, catppuccin)
--- se descartaron: acá el objetivo es paridad visual con VSCode.
---
--- priority = 1000 → se carga ANTES que el resto (un tema debe aplicarse primero
--- para que los demás plugins hereden sus colores). lazy = false → al arranque.
+-- Paridad visual con VSCode; por eso se descartaron tokyonight y catppuccin.
+-- priority = 1000 y lazy = false: se aplica antes que el resto para que los demás
+-- plugins hereden sus colores.
 -- ============================================================================
 
 return {

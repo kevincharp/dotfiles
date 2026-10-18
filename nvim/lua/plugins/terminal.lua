@@ -1,17 +1,8 @@
 -- ============================================================================
 -- terminal.lua — terminal integrada dentro del editor (toggleterm)
 -- ============================================================================
--- El panel de terminal de VSCode (Ctrl+`): abre una terminal SIN salir de nvim.
--- Se abre/cierra con el mismo atajo (toggle) y recuerda su contenido entre togglers.
---
--- Atajos:
---   <C-\>          abrir/cerrar la terminal (toggle) — en cualquier modo
---   <leader>tf     terminal FLOTANTE (ventana centrada, tipo popup)
---   <leader>th     terminal HORIZONTAL (abajo, como el panel de VSCode)
---   <Esc><Esc>     salir del modo terminal (volver a normal para navegar)
---
--- Nota: dentro de la terminal, el teclado va a la shell. Para volver a mover el
--- cursor por nvim, salí del modo insert de la terminal con <Esc><Esc>.
+-- <C-\> abre/cierra; <leader>tf flotante, <leader>th horizontal.
+-- <Esc><Esc> sale del modo terminal para volver a mover el cursor por nvim.
 -- ============================================================================
 
 return {

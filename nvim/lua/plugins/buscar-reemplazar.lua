@@ -1,25 +1,9 @@
 -- ============================================================================
--- buscar-reemplazar.lua — buscar y reemplazar en TODO el proyecto (grug-far)
+-- buscar-reemplazar.lua — buscar y reemplazar en todo el proyecto (grug-far)
 -- ============================================================================
--- Es el panel "Search & Replace" de VSCode (Ctrl+Shift+H): escribís qué buscar y
--- con qué reemplazar, ves los resultados de todos los archivos en vivo, y aplicás
--- el cambio a todo de una. Lo que faltaba: el picker de snacks BUSCA (<leader>fg)
--- pero no reemplaza, y el `:%s/.../.../` de vim es por archivo.
---
--- No es un buffer raro: es un buffer NORMAL de nvim. Escribís en los campos con
--- las teclas de siempre y los resultados se refrescan mientras tipeás (usa el
--- ripgrep que ya instala el bootstrap).
---
--- Atajos:
---   <leader>fR   abrir el panel (en modo visual, prefijado con la selección)
---   <leader>fW   abrir el panel buscando la palabra bajo el cursor
--- Dentro del panel manda el LÍDER LOCAL (que ahora es \, ver init.lua):
---   \r  aplicar el reemplazo       \s  sincronizar los cambios hechos a mano
---   \q  mandar los resultados a la quickfix    \c  cerrar el panel
---   g?  ayuda con la lista completa de atajos del panel
--- (Esos \ son la prueba de por qué había que sacar el líder local del espacio:
---  con maplocalleader = ' ', \s habría sido <space>s, o sea el prefijo del grupo
---  "buscar" de which-key.)
+-- <leader>fR abre el panel (en visual, con la selección); <leader>fW busca la
+-- palabra bajo el cursor. Dentro manda el líder local \: \r aplicar, \s sincronizar,
+-- \q a la quickfix, \c cerrar, g? ayuda. Por eso maplocalleader no es el espacio.
 -- ============================================================================
 
 return {

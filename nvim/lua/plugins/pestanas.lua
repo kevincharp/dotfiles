@@ -1,39 +1,10 @@
 -- ============================================================================
 -- pestanas.lua — pestañas de archivos abiertos (bufferline)
 -- ============================================================================
--- La barra de pestañas de VSCode arriba: un tab por archivo abierto, con ícono,
--- nombre, marca de "modificado" y contador de errores del LSP. En vim los
--- archivos abiertos son "buffers" y viven invisibles (`:ls`); esto los hace
--- visibles, que es la pieza que más se extraña viniendo de un editor gráfico.
---
--- Por qué bufferline y no barbar: bufferline es el que replica el look de VSCode
--- (separadores finos, diagnósticos en el tab, "offset" para no montarse sobre el
--- explorador). Su repo tiene poco movimiento porque está terminado, no
--- abandonado: funciona en 0.12 sin avisos de deprecación (verificado).
---
--- ATAJOS — se investigó cada uno antes de mapearlo:
---   ]b / [b        siguiente / anterior pestaña. NO es un mapeo nuevo: ]b y [b
---                  YA son nativos de nvim 0.11+ (:bnext / :bprevious). Se
---                  REDEFINEN al equivalente de bufferline por una sola razón:
---                  los nativos van por NÚMERO de buffer, así que si movés una
---                  pestaña de lugar, "siguiente" deja de ser la de la derecha.
---                  Misma semántica, orden visual correcto.
---   <leader>1..9   ir directo a la pestaña N (el Alt+1..9 de VSCode NO se puede:
---                  Ptyxis usa Alt+1..9 para SUS pestañas y las captura antes de
---                  que lleguen a nvim; en Windows Terminal, Alt+número es lo
---                  mismo). <leader>N no choca con nada: los dígitos con líder
---                  estaban libres, y como líder es espacio no se confunde con
---                  un contador de vim.
---   <leader>bd     cerrar la pestaña SIN cerrar la ventana (el `:bd` pelado te
---                  deja el split vacío o cierra nvim; esto usa Snacks.bufdelete)
---   <leader>bo     cerrar todas menos la actual
---   <leader>bp     fijar (pin) la pestaña, para que no se cierre con <leader>bo
---   <leader>b< / > mover la pestaña a la izquierda / derecha
--- (Si hay tantos archivos abiertos que la barra no alcanza, la lista completa
--- está en <leader>fb, el picker de buffers de snacks.)
--- Deliberadamente NO se usan Shift+H / Shift+L (el atajo típico de las configs
--- de moda): pisan H y L nativos, que son "ir al tope / al pie de la pantalla".
--- Tampoco Ctrl+PageUp/PageDown: los toma la terminal para sus propias pestañas.
+-- Un tab por buffer, con ícono, estado y errores del LSP (look de VSCode).
+-- ]b / [b redefinen los nativos para seguir el orden visual; <leader>1..9 va a la
+-- pestaña N; <leader>bd cerrar, bo cerrar otras, bp fijar, b< / b> mover.
+-- Sin Shift+H/L (pisan nativos) ni Ctrl+PageUp/Down (los toma la terminal).
 -- ============================================================================
 
 return {

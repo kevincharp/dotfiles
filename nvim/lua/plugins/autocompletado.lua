@@ -1,23 +1,9 @@
 -- ============================================================================
 -- autocompletado.lua — menú de autocompletado (blink.cmp)
 -- ============================================================================
--- El popup de sugerencias de VSCode mientras escribís: completa símbolos del
--- LSP, palabras del buffer, rutas de archivos y snippets. blink.cmp es el motor
--- moderno de nvim 0.12 (rápido, en Rust) — el que usan configs actuales.
---
--- Cómo se maneja (preset 'default', estilo nvim idiomático):
---   <C-space>   abrir/cerrar el menú — OJO: en LINUX esta tecla NO LLEGA a nvim.
---               Ctrl+Space es el atajo global de Ulauncher (gnome/media-keys.dconf,
---               custom1) y GNOME la captura antes. Usá <C-n>/<C-p>, que además
---               abren el menú si estaba cerrado. En Windows sí funciona.
---   <C-n>/<C-p> siguiente / anterior sugerencia (y abren el menú)
---   <C-y>       ACEPTAR la sugerencia seleccionada
---   <C-e>       cerrar el menú
---   <Tab>       saltar al siguiente campo del snippet (una vez expandido)
---
--- Nota: se eligió el preset 'default' (aceptar con <C-y>) en vez del típico
--- <Enter>/<Tab> de VSCode, para no pisar reflejos de vim mientras aprendés lo
--- nativo. Los atajos estilo VSCode se ajustarán en la etapa de keymaps.
+-- Preset 'default': <C-n>/<C-p> navegan (y abren el menú), <C-y> acepta, <C-e>
+-- cierra, <Tab> salta entre campos del snippet. <C-space> NO llega a nvim en Linux:
+-- es el atajo global de Ulauncher (gnome/media-keys.dconf, custom1).
 -- ============================================================================
 
 return {

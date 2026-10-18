@@ -1,26 +1,9 @@
 -- ============================================================================
--- breadcrumbs.lua — la ruta del símbolo actual arriba del archivo (dropbar)
+-- breadcrumbs.lua — ruta del símbolo actual arriba del archivo (dropbar)
 -- ============================================================================
--- Los "breadcrumbs" de VSCode: una línea arriba de la ventana que dice dónde
--- estás parado, no solo en qué archivo. Por ejemplo:
---   nvim  lua  plugins  breadcrumbs.lua  󰡱 setup  󰊕 callback
--- Sirve leyendo archivos largos, donde el nombre de la función que te contiene
--- quedó 200 líneas más arriba.
---
--- Se eligió dropbar y no nvim-navic porque navic mete la ruta en la STATUSLINE,
--- y la statusline de esta config es minimalista a propósito (ver statusline.lua).
--- dropbar usa la WINBAR: es por ventana, así que con dos splits cada uno muestra
--- su propia ruta, que es justo lo que hace VSCode.
---
--- Fuentes de la ruta, en orden: LSP (símbolos reales) → treesitter → indentación.
--- O sea que funciona igual en un archivo sin servidor de lenguaje, con menos
--- precisión. No hay nada que configurar para eso, es el default.
---
--- Atajos:
---   <leader>;   modo "pick": pone una letra sobre cada tramo de la ruta y con esa
---               tecla saltás ahí (o abrís el menú desplegable de ese nivel).
---   Con el mouse: click en un tramo abre su menú de hermanos. Requiere
---               mousemoveevent, que ya está prendido en opciones.lua.
+-- Usa la winbar (por ventana), no la statusline minimalista de statusline.lua.
+-- Fuentes: LSP, treesitter, indentación. <leader>; activa el modo pick; el
+-- click abre el menú del tramo (requiere mousemoveevent, en opciones.lua).
 -- ============================================================================
 
 return {

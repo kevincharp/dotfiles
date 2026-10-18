@@ -1,41 +1,10 @@
 -- ============================================================================
--- lsp.lua — servidores de lenguaje (LSP): el "cerebro" tipo IDE
+-- lsp.lua — servidores de lenguaje (LSP)
 -- ============================================================================
--- El LSP (Language Server Protocol) es lo que hace que VSCode "entienda" el
--- código: ir a la definición, ver errores mientras escribís, documentación al
--- pasar el cursor (hover), renombrar símbolos en todo el proyecto, autocompletar.
---
--- Piezas:
---   mason.nvim            → instala los servidores (binarios) automáticamente
---   mason-lspconfig       → traduce nombres de servidor ↔ nombres de paquete Mason
---   nvim-lspconfig        → aporta el cmd/filetypes/root de cada servidor
---
--- Sobre nvim-lspconfig: su "framework" viejo (require('lspconfig')) está DEPRECADO,
--- pero el plugin NO — sigue siendo la fuente de los archivos lsp/*.lua con cómo se
--- invoca cada servidor y cómo se detecta la raíz del proyecto. Esta config ya usa
--- la API nueva (vim.lsp.config + vim.lsp.enable) y no lo requiere en ningún lado.
---
--- Los servidores se instalan en el data-dir (~/.local/share/nvim/mason), FUERA
--- del repo. NOTA: Mason baja binarios de internet; algunos necesitan node (ya lo
--- tenés). En Windows detrás de proxy corporativo puede fallar alguno (ver CLAUDE.md).
---
--- ATAJOS: nvim 0.12 ya trae los principales DE FÁBRICA, así que acá se mapea lo
--- mínimo que falta. Los nativos (existen siempre, no hay que configurarlos):
---   grn  renombrar símbolo      gra  acciones de código (quick fix)
---   grr  ver referencias        gri  ir a la implementación
---   grt  ir al tipo             grx  ejecutar codelens
---   gO   estructura del archivo (símbolos)   K  hover (documentación)
---   <C-w>d  ver el diagnóstico bajo el cursor
---   <C-s>   (en modo insert) ver los parámetros de la función
---
--- Antes este archivo mapeaba gr, gI, <leader>rn, <leader>ca y <leader>d, que son
--- exactamente esos defaults duplicados. Peor todavía: mapear `gr` A SECAS convierte
--- `gr` en prefijo AMBIGUO, así que nvim tiene que esperar los 400 ms de timeoutlen
--- para saber si venía grn/gra/grr — metía lag perceptible en los seis nativos.
---
--- Lo que sí se mapea acá (no tiene default):
---   gd       ir a la definición ('gd' nativo es la declaración LOCAL, no el LSP)
---   [d / ]d  saltar al diagnóstico anterior / siguiente
+-- mason instala los servidores (en ~/.local/share/nvim/mason), mason-lspconfig
+-- traduce nombres y nvim-lspconfig aporta cmd/filetypes/root. API nueva
+-- (vim.lsp.config + vim.lsp.enable). nvim 0.12 ya trae grn/gra/grr/gri/grt/grx,
+-- gO, K y <C-w>d: acá solo gd (definición del LSP) y [d / ]d.
 -- ============================================================================
 
 return {
@@ -128,15 +97,10 @@ return {
     })
 
     -- ---------------------------------------------------------------------
-    -- NO hace falta pasar `capabilities` a mano. Antes acá había un
-    -- require('blink.cmp').get_lsp_capabilities(), y era redundante: desde nvim
-    -- 0.11 blink registra sus capabilities solo, en su plugin/, con
-    -- vim.lsp.config('*', {...}) — o sea que aplican a TODOS los servidores.
-    -- Encima ese require forzaba a lazy.nvim a cargar blink acá, saltándose su
-    -- propio evento declarado. Lo dice su doc: "with 0.11+ you may skip this step".
+    -- No hace falta pasar `capabilities`: desde nvim 0.11 blink las registra solo
+    -- con vim.lsp.config('*', {...}) para todos los servidores.
     -- ---------------------------------------------------------------------
-    -- Servidores del stack decidido (Web, Python, Bash, Lua). La clave es el
-    -- nombre del servidor; el valor, su config (settings específicos).
+    -- Servidores del stack (Web, Python, Bash, Lua): clave = nombre, valor = settings.
     -- ---------------------------------------------------------------------
     local servers = {
       -- Web: TypeScript/JavaScript/React. vtsls es el wrapper moderno de tsserver.
@@ -197,18 +161,12 @@ return {
       -- ir-a-la-definición sobre un enlace. Es justo lo que hace falta con los
       -- CLAUDE.md, los README y los docs/ de este repo, que se referencian entre sí.
       marksman = {},
-      -- SQL NO lleva servidor LSP, y es una decisión, no un olvido: el único
-      -- maduro (sqls) es inútil sin un archivo config.yml con la CADENA DE CONEXIÓN
-      -- de la base; sin eso solo completa palabras clave, que es lo que ya hace la
-      -- fuente 'buffer' de blink. Y una config con credenciales no puede vivir en
-      -- este repo, que es público (iría al vault). Lo que sí aporta el editor
-      -- —resaltado con treesitter y formateo de la consulta— está cubierto en
-      -- treesitter.lua y formateo.lua.
-      -- Docker: dos servidores que se reparten el trabajo.
-      --   dockerls → los Dockerfile (instrucciones, flags, avisos de mala práctica)
-      --   docker_compose_language_service → los compose (servicios, redes, volúmenes)
-      -- El compose recibe ADEMÁS yamlls con su esquema, gracias al filetype
-      -- compuesto 'yaml.docker-compose' (ver lua/tipos-archivo.lua).
+      -- SQL no lleva servidor a propósito: sqls necesita un config.yml con la cadena
+      -- de conexión y este repo es público. Resaltado y formateo: treesitter.lua y
+      -- formateo.lua.
+      -- Docker: dockerls (Dockerfile) y docker_compose_language_service (compose);
+      -- el compose recibe además yamlls por el filetype 'yaml.docker-compose'
+      -- (ver lua/tipos-archivo.lua).
       dockerls = {},
       docker_compose_language_service = {},
       -- Python: pyright (tipos/navegación) + ruff (linter rápido; formateo va en conform).

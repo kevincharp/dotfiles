@@ -1,15 +1,8 @@
 -- ============================================================================
 -- gestor.lua — bootstrap de lazy.nvim (gestor de plugins)
 -- ============================================================================
--- lazy.nvim se instala solo la primera vez (clona el repo si no existe) y luego
--- carga TODOS los archivos de lua/plugins/. Cada uno devuelve una spec de plugin.
---
--- Reproducibilidad: lazy.nvim escribe lazy-lock.json con la versión exacta de
--- cada plugin. Ese lock SE VERSIONA en el repo → ambas máquinas (Linux/Windows)
--- instalan idénticos plugins. Para actualizar: :Lazy sync y commitear el lock.
---
--- El código de los plugins se instala en un directorio de DATOS del usuario
--- (~/.local/share/nvim en Linux), FUERA del repo, así que no ensucia el árbol.
+-- Se instala solo la primera vez. lazy-lock.json SE VERSIONA para que Linux y
+-- Windows tengan los mismos plugins: actualizar con :Lazy sync y commitear el lock.
 -- ============================================================================
 
 -- Ruta de instalación de lazy.nvim (dentro del data-dir de nvim, no del repo).

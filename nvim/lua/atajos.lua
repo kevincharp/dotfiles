@@ -1,13 +1,8 @@
 -- ============================================================================
--- atajos.lua — mapeos de teclado NATIVOS
+-- atajos.lua — mapeos de teclado nativos (líder = espacio)
 -- ============================================================================
--- Por ahora solo atajos idiomáticos de nvim (líder = espacio). La mímica de
--- teclado de VSCode (Ctrl+P, Ctrl+Shift+P, Ctrl+`, Ctrl+B) se sumará más
--- adelante, cuando ya haya soltura con lo nativo — irá en su propio archivo
--- sin tocar esto.
---
--- Cada plugin además define sus propios atajos en su archivo (lua/plugins/*).
--- Acá viven solo los que no dependen de ningún plugin.
+-- Solo atajos idiomáticos que no dependen de ningún plugin; cada plugin define
+-- los suyos en su archivo (lua/plugins/*).
 -- ============================================================================
 
 local map = vim.keymap.set
@@ -26,17 +21,8 @@ map('n', '<leader>w', '<cmd>write<CR>', { desc = 'Guardar archivo' })
 map('n', '<leader>q', '<cmd>quit<CR>', { desc = 'Cerrar ventana' })
 
 -- --- Mover y duplicar líneas: Alt+↑/↓ y Alt+Shift+↓/↑, igual que VSCode ---
--- ANTES esto era J/K en modo visual, y estaba MAL: pisaba el J nativo (unir
--- líneas), que es un comando de uso diario. Alt+flechas no pisa nada.
---
--- Verificado que las teclas llegan a nvim en las tres capas de arriba:
---   Ptyxis/VTE      → Alt se codifica como prefijo ESC, Alt+flecha = CSI 1;3A/B.
---                     Ptyxis usa Alt+1..9 para pestañas, pero NO las flechas.
---   GNOME           → sus 5 atajos custom son Ctrl+Alt+T, Ctrl+Space,
---                     Ctrl+Shift+Esc, Super+Shift+S y Super+. — ninguno choca.
---   Windows Terminal → se queda alt+minus/period/w y alt+shift+d/±, no las
---                     flechas (Ctrl+flechas SÍ las toma para mover paneles, por
---                     eso acá se usa Alt y no Ctrl).
+-- Alt+flechas no pisa nada (J/K en visual pisaba el J nativo) y llega a nvim en
+-- Ptyxis, GNOME y Windows Terminal; Ctrl+flechas no: Windows Terminal las usa.
 map('n', '<M-Down>', '<cmd>move .+1<CR>==', { desc = 'Mover línea abajo' })
 map('n', '<M-Up>', '<cmd>move .-2<CR>==', { desc = 'Mover línea arriba' })
 map('i', '<M-Down>', '<Esc><cmd>move .+1<CR>==gi', { desc = 'Mover línea abajo' })

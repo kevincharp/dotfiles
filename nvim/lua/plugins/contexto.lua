@@ -1,22 +1,8 @@
 -- ============================================================================
--- contexto.lua — "sticky scroll": la función en la que estás, fija arriba
+-- contexto.lua — sticky scroll: la función en la que estás, fija arriba
 -- ============================================================================
--- Es el Sticky Scroll de VSCode. Al bajar por una función larga, las líneas que
--- abren el bloque (la firma de la función, el `if`, el `for`) quedan CLAVADAS en
--- la primera línea de la ventana en vez de irse por arriba. Sirve para no perder
--- de vista en qué estás cuando el cuerpo no entra en pantalla.
---
--- Se complementa con dropbar (breadcrumbs.lua) sin pisarse: dropbar vive en el
--- winbar y muestra la RUTA completa (archivo › clase › método) en una línea;
--- esto muestra el CÓDIGO REAL de las líneas que abrieron el bloque, con su
--- resaltado, encima del buffer. Uno responde "dónde estoy" y el otro "qué dice
--- la firma que ya no veo".
---
--- No agrega ningún atajo por su cuenta. Los que sugiere su README serían un
--- problema: propone `[c` para saltar al contexto, y `[c` es NATIVO de vim
--- (saltar al cambio anterior en modo diff, :h [c). Acá solo se mapea el toggle,
--- en el grupo de alternar:
---   <leader>uc  mostrar / ocultar el contexto fijo
+-- Complementa a dropbar (ruta) mostrando el código real de las líneas que abren
+-- el bloque. Solo se mapea <leader>uc (mostrar/ocultar): `[c` es nativo (diff).
 -- ============================================================================
 
 return {

@@ -1,24 +1,9 @@
 -- ============================================================================
--- esquema.lua — panel de estructura del archivo (aerial) = "Outline" de VSCode
+-- esquema.lua — panel de estructura del archivo (aerial)
 -- ============================================================================
--- Una barra lateral con el índice del archivo: clases, funciones, métodos,
--- variables, anidados y en orden. Se navega con el cursor y salta al símbolo.
---
--- Qué agrega sobre lo que ya había, que se parece pero no es lo mismo:
---   gO            (nativo) tira los símbolos a la lista de ubicaciones: es una
---                 consulta puntual, se cierra al usarla y no muestra jerarquía.
---   <leader>ss    (picker de snacks) busca un símbolo por nombre: perfecto si
---                 sabés qué buscás, inútil para "qué tiene este archivo".
---   aerial        panel PERMANENTE, con la jerarquía dibujada y sincronizado con
---                 el cursor: mientras te movés por el código, resalta dónde estás.
--- Los tres se quedan; son tres usos distintos.
---
--- Igual que dropbar, usa LSP → treesitter → markdown en cascada, así que también
--- da estructura en archivos sin servidor de lenguaje.
---
--- Atajos:
---   <leader>o   abrir / cerrar el panel (queda a la derecha, como en VSCode)
---   Dentro del panel: <Enter> salta al símbolo, o/zo/za despliegan y pliegan.
+-- Panel permanente con la jerarquía de símbolos, sincronizado con el cursor.
+-- Convive con gO (consulta puntual) y <leader>ss (buscar por nombre).
+-- <leader>o lo abre/cierra; dentro: <Enter> salta, o/zo/za despliegan y pliegan.
 -- ============================================================================
 
 return {

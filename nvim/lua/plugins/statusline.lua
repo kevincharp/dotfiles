@@ -1,12 +1,8 @@
 -- ============================================================================
--- statusline.lua — barra de estado inferior (lualine), estilo MINIMALISTA
+-- statusline.lua — barra de estado inferior (lualine), minimalista
 -- ============================================================================
--- Versión limpia, inspirada en el setup que nos gustó: solo el modo a la
--- izquierda y posición + reloj a la derecha. El centro queda vacío a propósito
--- (menos ruido). Toma los colores del tema activo (vscode.nvim) vía theme='auto'.
---
--- Antes teníamos una barra "cargada" (git + diff + nombre + diagnósticos +
--- tipo). Se simplificó a pedido: preferencia por lo prolijo sobre lo informativo.
+-- Solo el modo a la izquierda y posición + reloj a la derecha, con los colores del
+-- tema activo (theme = 'auto'). El centro queda vacío a propósito.
 -- ============================================================================
 
 return {

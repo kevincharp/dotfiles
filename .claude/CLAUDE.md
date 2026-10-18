@@ -63,6 +63,9 @@ nunca se crea como carpeta hermana suelta del repo.
   borran y git los recuerda.
 - **Hacer solo lo pedido:** sin funciones, parámetros, opciones ni capas de
   abstracción que nadie use todavía; lo que quede sin uso se borra.
+- **Sin defensas imaginarias:** nada de validaciones ni manejo de errores para
+  casos que no pueden ocurrir, ni docstrings en todo; nombres del dominio, no
+  genéricos (`data`, `result`, `handler`).
 - **Antes del commit, pasar `/simplify`** sobre el cambio (Claude Code); en otros
   agentes, releer el diff buscando lo mismo: duplicación, código de más y
   comentarios que sobran.
@@ -86,7 +89,10 @@ nunca se crea como carpeta hermana suelta del repo.
   (`gremote <alias> <namespace/repo>`), nunca `github.com`/`gitlab.com`
   pelados (no enganchan la clave correcta).
 - Completar el `.gitignore` con lo específico del stack y crear un README
-  mínimo (qué es, cómo correr, cómo probar).
+  mínimo (qué es, cómo correr, cómo probar): corto y concreto, sin emojis ni
+  listas de "características" infladas.
+- Si el proyecto tiene lógica, llevar **tests y un workflow de CI** que los corra
+  desde el primer commit; no darlo por terminado si fallan.
 
 ## Secretos
 

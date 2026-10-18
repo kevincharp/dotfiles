@@ -550,3 +550,42 @@ aparece sola — se agrega a mano.
   defaults viven en el repo (son IDs públicos, no secretos) porque antes vivían
   solo en `~/.env` y, en una PC nueva sin el `.env` migrado, el picker volvía a
   mostrar todo.
+
+## Bootstrap: decisiones movidas desde los comentarios
+
+- **`want_tool` gatea las configs:** sin ese gate se symlinkeaban configs de
+  herramientas que el tercero nunca pidió (un `~/.config/nvim` apuntando a esta
+  config aunque no tenga nvim y, peor, el `CLAUDE.md` con reglas personales del
+  autor). Cuenta "ya instalada" a propósito: si la máquina ya tenía nvim de antes
+  y no se marcó, igual quiere su config (el caso normal al re-correr).
+- **VS Code no se symlinkea** (`~/.config/Code/User/settings.json`): con Settings
+  Sync activo, la primera sincronización en una máquina nueva pisa el archivo
+  completo con el perfil synced, de-symlinkea el destino sin avisar y mete datos
+  privados que el perfil traiga (pasó: trajo credenciales de un server interno).
+  Las 2 claves de telemetría se setean a mano una vez y Settings Sync las propaga;
+  no van a `settingsSync.ignoredSettings` porque eso las excluiría del sync en los
+  dos sentidos y quedarían prendidas en las demás máquinas.
+- **Windows, VS Code y Python por winget:** antes eran manuales por miedo a que
+  winget no pusiera `code`/`python` en el PATH o dejara solo el launcher `py.exe`.
+  Ninguna se sostuvo: `nvim/` no usa `python3_host_prog` y el instalador de
+  python.org acepta `PrependPath=1` por `--override`. El PATH de usuario va antes
+  que `WindowsApps` (atajos de la Store que "tapan" python). Pendiente verificar
+  en una máquina sin VS Code que `code` quede en el PATH. Git for Windows
+  también va por winget: editor y line endings los fija el `.gitconfig` del vault
+  (`core.editor=nvim`, `core.autocrlf=input`).
+- **Módulos de PowerShell:** se instalaban los tres siempre; ahora los gatea el
+  catálogo. `posh-git` salió: `profile.ps1` no lo usa (el estado de git del prompt
+  lo da oh-my-posh).
+- **`winget list`:** sin `--source` consulta también msstore, que la primera vez
+  frena pidiendo aceptar términos; con la salida redirigida el bootstrap quedaba
+  colgado. No se fuerza `--source winget` para seguir detectando lo de la Store
+  (p. ej. pwsh). "Ya instalado" es exit 0: la búsqueda por texto fallaba porque
+  winget recorta los Id con `…` (sospecha, no confirmada, con Logi Options+).
+- **Neovim en Windows con `XDG_CONFIG_HOME`:** si está seteada, Neovim resuelve
+  `stdpath('config')` ahí y no en `%LOCALAPPDATA%\nvim`; symlinkear solo el
+  segundo lo deja con defaults.
+- **`winget install` en segundo plano:** zig y OnlyOffice tardan minutos detrás de
+  un antivirus/proxy; con la barra quieta parecía colgado. Antes, un proceso que
+  ni arrancaba no sumaba a `$ERRORS` (el resumen decía "1 error" con 25 paquetes
+  sin instalar); ahora devuelve `ExitCode = -1`.
+

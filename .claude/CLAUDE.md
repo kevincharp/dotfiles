@@ -66,6 +66,11 @@ nunca se crea como carpeta hermana suelta del repo.
 - **Sin defensas imaginarias:** nada de validaciones ni manejo de errores para
   casos que no pueden ocurrir, ni docstrings en todo; nombres del dominio, no
   genéricos (`data`, `result`, `handler`).
+- **Dependencias:** preguntar antes de sumar una nueva; si ya hay una que
+  resuelve el caso, usar esa.
+- **Si un intento falla:** deshacer solo tus cambios, por archivo, antes de
+  probar otro enfoque; nunca `git reset`/`checkout` sobre trabajo ajeno sin
+  commitear.
 - **Antes del commit, pasar `/simplify`** sobre el cambio (Claude Code); en otros
   agentes, releer el diff buscando lo mismo: duplicación, código de más y
   comentarios que sobran.

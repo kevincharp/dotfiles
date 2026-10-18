@@ -10,6 +10,10 @@
 !.env.example
 *.pem
 *.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
 credentials*
 secrets*
 
@@ -42,3 +46,4 @@ Thumbs.db
 
 # Agentes de IA — estado local por-máquina
 .claude/settings.local.json
+CLAUDE.local.md

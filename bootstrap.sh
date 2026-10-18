@@ -180,16 +180,10 @@ has_cmd() {
 }
 
 # ── BARRA DE PROGRESO GLOBAL ─────────────────────────────────────────────────
-# UNA sola barra que cruza los 7 pasos (0→100%), con dos lineas fijas abajo:
-#   ▰▰▰▱▱  42%
-#   [3/7] Creando carpetas · ~/.local/bin
-# El % es global y ponderado: cada paso vale un tramo (_GB_WEIGHTS) del total, y
-# dentro del paso avanza con un "sub" 0..100. La accion de abajo cambia en vivo.
-# En interacciones (selector, sudo, passphrase, selector de shell) se PAUSA con
-# gb_pause (borra la barra) y se retoma sola en la proxima gb_step/gb_sub.
-# Sin TTY (curl|bash, CI) NO dibuja: cae a headers de texto '[N/7] ...' vía log().
-#
-# Pesos por paso (suman 100). Instalar paquetes es lo mas largo -> pesa mas.
+# UNA barra global ponderada (_GB_WEIGHTS, suman 100; instalar paquetes pesa mas) que
+# cruza los 7 pasos, con la accion actual en una segunda linea fija. En interacciones
+# (selector, sudo, passphrase) se pausa con gb_pause y se retoma en la proxima
+# gb_step/gb_sub. Sin TTY (curl|bash, CI) no dibuja: cae a headers '[N/7] ...' via log().
 _GB_WEIGHTS=(0 6 40 8 30 4 6 6)   # indice 1..7 (el 0 no se usa)
 _GB_BASE=(0 0 6 46 54 84 88 94)  # % acumulado ANTES de cada paso (calculado a mano de _GB_WEIGHTS)
 _GB_STEP=0 _GB_LABEL="" _GB_ACTION="" _GB_SUB=0 _GB_ACTIVE=0
@@ -299,16 +293,9 @@ ensure_base_deps() {
 # ==============================================================================
 # CATALOGO DE HERRAMIENTAS
 # ------------------------------------------------------------------------------
-# Fuente unica de verdad de lo que instala el bootstrap. Cada entrada es
-# "id|grupo|descripcion". La deteccion de "ya instalado" vive en tool_installed()
-# y el metodo de instalacion (que varia por distro) en install_tool().
-#
-# Grupos: core (basicas), shell (prompt/navegacion), dev (runtime + IA),
-#         cloud (nube/git remoto), fonts (tipografias).
-#
-# Agregar una herramienta = una linea aca + su case en las dos funciones
-# (tool_installed e install_tool). El selector (ver SELECTOR DE HERRAMIENTAS)
-# decide cuales del catalogo se instalan.
+# Fuente unica de lo que instala el bootstrap: "id|grupo|descripcion". Grupos: core,
+# shell, dev, cloud, fonts. Agregar una herramienta = una linea aca + su case en
+# tool_installed() e install_tool(); el selector decide cuales se instalan.
 # ==============================================================================
 
 TOOLS_CATALOG=(
@@ -397,18 +384,10 @@ tool_installed() {
     esac
 }
 
-# want_tool <id> — DECISION UNICA de "¿el usuario quiere esta herramienta?":
-# 0 si la eligio en el selector (SELECTED_TOOLS) o ya la tiene instalada.
-#
-# Es el gate de las CONFIGS del paso [4/7]: sin esto se symlinkeaban configs de
-# herramientas que el tercero nunca pidio (un ~/.config/nvim apuntando a esta
-# config aunque no tenga nvim, y peor, el CLAUDE.md con reglas personales del
-# autor). El README promete "nada se instala sin que lo marques": esto lo hace
-# valer tambien para las configs, no solo para los paquetes.
-#
-# Cuenta "ya instalada" a proposito: si la maquina ya tiene nvim de antes y el
-# usuario no lo marco (no hacia falta reinstalarlo), igual quiere su config.
-# Ese es el caso normal al re-correr el bootstrap.
+# want_tool <id> — decision unica de "¿el usuario quiere esta herramienta?": 0 si la
+# eligio en el selector (SELECTED_TOOLS) o ya la tiene instalada. Es el gate de las
+# CONFIGS del paso [4/7]: sin esto se symlinkeaban configs de herramientas que nadie
+# pidio. Cuenta "ya instalada" a proposito: es el caso normal al re-correr el bootstrap.
 want_tool() {
     local id="$1" t
     for t in "${SELECTED_TOOLS[@]:-}"; do
@@ -523,20 +502,10 @@ install_tool() {
             fi
             ;;
         yazi)
-            # yazi + bundle de deps de preview (mismo criterio que en Windows):
-            #   poppler-utils / poppler -> preview de PDF (pdftoppm)
-            #   ffmpeg                  -> thumbnails de video/audio
-            #   ImageMagick             -> mas formatos de imagen
-            #   p7zip / 7zip            -> navegar dentro de comprimidos
-            #   file                    -> deteccion de MIME (suele venir de base)
-            #   chafa                   -> preview de imagenes por bloques (fallback).
-            # Sobre chafa: yazi elige adapter en orden kitty-protocol > sixel > chafa
-            # segun lo que soporte el terminal. Ptyxis (nuestro default en Fedora) NO
-            # soporta sixel ni kitty-protocol (limitacion del propio Ptyxis, no del
-            # VTE), asi que cae SIEMPRE a chafa -> sin chafa no hay preview de imagen.
-            # Es fallback universal inofensivo: si algun dia se usa un terminal con
-            # sixel/kitty (Kitty, Ghostty, WezTerm...), yazi usa ese y chafa queda
-            # sin usar, sin estorbar. Por eso se instala siempre.
+            # yazi + bundle de deps de preview: poppler (PDF), ffmpeg (video/audio), ImageMagick
+            # (imagenes), p7zip (comprimidos), file (MIME) y chafa. Ptyxis no soporta sixel ni
+            # kitty-protocol, asi que sin chafa no hay preview de imagen; en otro terminal yazi
+            # elige el suyo y chafa no estorba (ver docs/notas-tecnicas.md).
             if [[ "$PKG_MANAGER" == "dnf" ]]; then
                 # yazi NO esta en los repos base de Fedora: se habilita el COPR
                 # oficial (lihaohong/yazi), mismo patron que lazygit (atim/lazygit).
@@ -845,18 +814,10 @@ install_tool() {
 # ==============================================================================
 # SELECTOR DE HERRAMIENTAS
 # ------------------------------------------------------------------------------
-# Decide que ids del catalogo se instalan y los deja en el array SELECTED_TOOLS.
-# Prioridad:
-#   1. --tools=id1,id2  -> exactamente esos (valida contra el catalogo)
-#   2. --all-tools / --dry-run -> todo el catalogo, sin preguntar
-#   3. terminal interactiva (hay /dev/tty) -> menu agrupado, pregunta siempre
-#   4. sin terminal (CI/pipe sin tty) -> no instala nada; pide usar --tools/--all-tools
-#
-# El menu arranca SIN nada pre-marcado (opt-in): el usuario elige que instalar.
-# Enter sin marcar nada = no instala nada. Coherente con opt-in: el modo no
-# interactivo (sin /dev/tty) tampoco instala por sorpresa — hay que ser explicito.
-# NOTA: este dotfiles es para maquinas de escritorio/laptop (uso interactivo real),
-# no para servers headless; el caso sin-tty es un borde (CI/pipe), no el uso normal.
+# Deja en SELECTED_TOOLS los ids a instalar. Prioridad: 1) --tools=a,b (valida contra
+# el catalogo), 2) --all-tools / --dry-run (todo), 3) terminal interactiva (menu
+# agrupado, opt-in: arranca sin nada marcado), 4) sin tty (CI/pipe): no instala nada y
+# pide --tools/--all-tools. Es para escritorio/laptop, no para servers headless.
 # ==============================================================================
 
 SELECTED_TOOLS=()
@@ -1803,16 +1764,11 @@ if want_tool chrome || has_cmd chromium; then
     copy_dotfile "fontconfig/fonts.conf"  "$HOME/.config/fontconfig/fonts.conf"  "link"
 fi
 
-# Claude Code
-# settings.json va por symlink: editarlo en el repo (o cambios via /config) se
-# versionan al instante. OJO: un '/model' en cualquier sesion tambien escribe a
-# traves del symlink y deja el repo modificado — revisar el diff antes de commitear.
-# settings.local.json NO se toca: es config por-maquina (permisos con rutas
-# absolutas), no esta trackeado y cada PC mantiene el suyo. statusline.sh tampoco
-# se copia: el settings.json lo referencia directo desde el repo.
-# Gateado por want_tool: quien no eligio Claude Code se llevaba igual un
-# ~/.claude/settings.json apuntando al statusline.sh de este repo y, sobre todo,
-# las REGLAS de trabajo del autor (ver nota de CLAUDE.md abajo).
+# Claude Code: settings.json va por symlink (editarlo en el repo o via /config se
+# versiona al instante; un '/model' tambien escribe a traves del symlink: revisar el
+# diff antes de commitear). settings.local.json es por-maquina y no se toca;
+# statusline.sh no se copia, el settings.json lo referencia desde el repo. Gateado por
+# want_tool (ver la nota de CLAUDE.md abajo).
 if want_tool claude; then
     copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
     # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
@@ -1865,39 +1821,22 @@ if want_tool openlogi; then
     copy_dotfile "openlogi/config.toml" "$HOME/.config/openlogi/config.toml" "link"
 fi
 
-# VS Code — NO se symlinkea ~/.config/Code/User/settings.json (a diferencia
-# de ulauncher/openlogi). Motivo real, no teorico: con Settings Sync activo
-# (se sincroniza a proposito entre todas las maquinas via cuenta de GitHub),
-# la primera sincronizacion en una maquina nueva PISA el archivo completo con
-# el perfil synced — de-symlinkea el destino de git sin avisar y de paso mete
-# ahi cualquier dato personal/privado que el perfil synced traiga (paso en la
-# practica: trajo credenciales de conexion a un server interno). Automatizar
-# esto es peor que no tocarlo.
-# Las 2 claves de telemetria (ver vscode/settings.json) se setean a mano UNA
-# vez, en cualquier maquina, y Settings Sync las propaga solas al resto — no
-# van a settingsSync.ignoredSettings (eso las excluiria del sync en los dos
-# sentidos y quedarian prendidas en las demas maquinas, que es lo que NO se
-# quiere: la telemetria tiene que quedar apagada en TODAS).
+# VS Code — NO se symlinkea ~/.config/Code/User/settings.json: con Settings Sync, la
+# primera sincronizacion en una maquina nueva pisa el archivo con el perfil synced,
+# de-symlinkea el destino y puede meter datos privados (paso: trajo credenciales de un
+# server interno). Las 2 claves de telemetria (vscode/settings.json) se setean a mano
+# UNA vez y Settings Sync las propaga; no van a ignoredSettings porque quedarian
+# prendidas en las demas maquinas.
 if want_tool vscode; then
     log "  VS Code: aplica a mano las 2 claves de telemetria (ver vscode/settings.json); con Settings Sync activo se propagan solas al resto de tus maquinas" "INFO"
     WARNINGS+=("VS Code: telemetria no se symlinkea (choca con Settings Sync) — aplicar vscode/settings.json a mano")
 fi
 
-# Google Chrome — deduplicar la entrada "Web" de Ajustes > Aplicaciones
-# predeterminadas Y el "Abrir con" de Nautilus. El .rpm de Google instala DOS
-# .desktop: google-chrome.desktop (historico) y com.google.Chrome.desktop (nuevo,
-# formato reverse-DNS), y ambos declaran x-scheme-handler/http(s). El panel de
-# GNOME y el "Abrir con" de Nautilus NO respetan NoDisplay (de hecho el .rpm ya
-# marca el segundo con NoDisplay y aun asi aparece en ambos lados): listan
-# cualquier .desktop que registre el tipo, asi que Chrome sale DOS veces. Se
-# neutraliza con un override local de com.google.Chrome.desktop SIN los
-# scheme-handlers (conserva PDF/imagenes, cubiertos igual por google-chrome.desktop)
-# Y con Hidden=true, copiado a ~/.local/share/applications (tiene prioridad sobre
-# /usr/share y sobrevive a los updates de Chrome). A diferencia de NoDisplay,
-# Hidden=true SI se respeta: GLib lo borra por completo de g_app_info_get_all()
-# (verificado con Gio.AppInfo.get_all() antes/despues), no solo le pone
-# should_show()=false — por eso hace falta la combinacion de los dos fixes. Si
-# algun dia Google unifica los .desktop, basta con borrar el override.
+# Google Chrome — deduplicar "Web" en Ajustes > Aplicaciones predeterminadas y el "Abrir
+# con" de Nautilus: el .rpm instala dos .desktop con x-scheme-handler/http(s) y GNOME
+# ignora NoDisplay. Se crea un override local de com.google.Chrome.desktop sin
+# scheme-handlers y con Hidden=true (ese si se respeta) en ~/.local/share/applications.
+# Detalle: docs/notas-tecnicas.md. Si Google unifica los .desktop, se borra el override.
 _chrome_sys_desktop="/usr/share/applications/com.google.Chrome.desktop"
 _chrome_override="$HOME/.local/share/applications/com.google.Chrome.desktop"
 if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys_desktop" ]]; then

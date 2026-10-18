@@ -154,35 +154,19 @@ $TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 # ==============================================================================
 # VS CODE Y PYTHON (antes eran instalaciones manuales)
 # ------------------------------------------------------------------------------
-# Se dejaban a mano por miedo a que el instalador de winget no pusiera `code` /
-# `python` en el PATH (y a que dejara solo el launcher py.exe, que se creia que
-# rompia el python3_host_prog de Neovim). Ninguna de las dos cosas se sostuvo:
-# nvim/ no referencia python3_host_prog, y el instalador de python.org acepta
-# sus opciones por --override (PrependPath=1), asi que winget lo instala igual
-# que el wizard. Python entra por usuario (sin admin); el PATH de usuario va
-# antes que WindowsApps, donde viven los atajos de la Store que "tapan" python.
-# VS Code va con el User Installer de winget (sin override). PENDIENTE verificar
-# en una maquina sin VS Code que `code` quede en el PATH de usuario; si no, sumar
-# un Override con /MERGETASKS=addtopath. Tras instalar, abrir una terminal nueva.
-#
-# NOTA: Git for Windows SI se instala por winget (Id 'Git.Git', grupo core).
-# Antes era manual para elegir en el wizard el editor, los line endings y el SSH,
-# pero esas opciones hoy las fija el .gitconfig versionado del vault
-# (core.editor=nvim, core.autocrlf=input), que tiene prioridad sobre los defaults
-# del instalador. El SSH del server se resuelve con el OpenSSH nativo de Windows,
-# no con el de Git. Ver [[git-for-windows-winget]] en las notas del repo.
+# Se dejaban a mano por miedo a que winget no pusiera `code`/`python` en el PATH;
+# ninguna de las dos cosas se sostuvo (nvim/ no usa python3_host_prog y el instalador
+# de python.org acepta PrependPath=1 por --override). Python va por usuario (sin admin);
+# VS Code con el User Installer. PENDIENTE verificar en una maquina sin VS Code que
+# `code` quede en el PATH; si no, sumar Override con /MERGETASKS=addtopath.
+# Git for Windows tambien va por winget (Id 'Git.Git'): editor y line endings los fija
+# el .gitconfig versionado del vault, y el SSH es el OpenSSH nativo de Windows.
 # ==============================================================================
 
-# Modulos de PowerShell — gateados por el catalogo, igual que los paquetes.
-# Antes se instalaban los tres SIEMPRE (ni figuraban en el selector), asi que
-# quien elegia 3 herramientas se llevaba igual modulos que no pidio.
-# Cada uno declara la Key que lo habilita:
-#   PSReadLine     -> pwsh: es el editor de linea del shell, profile.ps1 lo
-#                     configura entero (historial, ListView, colores, Ctrl+R).
-#   Terminal-Icons -> pwsh: lo usa 'll' (carga diferida, ver profile.ps1).
-# posh-git SALE de la lista: profile.ps1 no lo importa ni lo usa en ningun lado
-# — el estado de git en el prompt lo da oh-my-posh. Era un modulo instalado
-# de mas en toda maquina.
+# Modulos de PowerShell, gateados por el catalogo; cada uno declara la Key que lo
+# habilita: PSReadLine (editor de linea, profile.ps1 lo configura entero) y
+# Terminal-Icons (lo usa 'll', carga diferida). posh-git salio: profile.ps1 no lo usa,
+# el estado de git del prompt lo da oh-my-posh.
 $PS_MODULES = @(
     @{ Name='PSReadLine';     Tool='pwsh' }
     @{ Name='Terminal-Icons'; Tool='pwsh' }
@@ -270,15 +254,9 @@ $script:C_WARN  = "$ESC[33m"
 $script:C_ERR   = "$ESC[31m"
 
 # ── BARRA DE PROGRESO GLOBAL (espejo de gb_* en bootstrap.sh) ────────────────
-# UNA sola barra que cruza los 8 pasos (0→100%), con dos lineas fijas abajo:
-#   ▰▰▰▱▱  42%
-#   [3/8] Codex/Claude/FiraCode · claude
-# El % es global y ponderado (GB_WEIGHTS). En interacciones (selector, sudo N/A,
-# passphrase, login AWS) se PAUSA (Suspend-Bar) y retoma en el proximo Step/Sub.
-# Sin consola interactiva NO dibuja: cae a headers de texto '[N/8] ...'.
-#
-# Pesos por paso (suman 100). Instalar winget es lo mas largo -> pesa mas.
-# Indice 1..8. GB_BASE = % acumulado ANTES de cada paso.
+# UNA barra global ponderada (GB_WEIGHTS, suman 100; GB_BASE = % acumulado antes de
+# cada paso) que cruza los 8 pasos. Se pausa en interacciones (Suspend-Bar) y se
+# retoma en el proximo Step/Sub. Sin consola interactiva no dibuja: headers '[N/8] ...'.
 $script:GB_WEIGHTS = @(0, 4, 34, 14, 8, 6, 22, 4, 8)
 $script:GB_BASE    = @(0, 0, 4, 38, 52, 60, 66, 88, 92)
 $script:GB_STEP   = 0
@@ -614,15 +592,10 @@ function Get-WingetPhase {
 }
 
 function Invoke-WingetInstall {
-    # Corre 'winget install' en segundo plano y, mientras tanto, anima la linea
-    # de accion de la barra: "Zig (compilador C) ⠹ 3m12s · extrayendo".
-    # Motivo: paquetes pesados (zig, OnlyOffice) tardan minutos detras de un
-    # antivirus/proxy corporativo y, con la barra quieta, parecia colgado.
-    # No inventa un %: el spinner y el reloj prueban que sigue vivo y la fase
-    # sale de lo que va imprimiendo winget.
-    # Devuelve @{ ExitCode; Output }. Si el proceso ni arranca, ExitCode = -1
-    # (antes ese caso no sumaba a $ERRORS: el resumen decia "1 error" con 25
-    # paquetes sin instalar).
+    # Corre 'winget install' en segundo plano y anima la linea de accion de la barra
+    # ("Zig ⠹ 3m12s · extrayendo"): los paquetes pesados tardan minutos detras de un
+    # antivirus/proxy y con la barra quieta parecia colgado. Devuelve @{ ExitCode; Output };
+    # si el proceso ni arranca, ExitCode = -1 (suma a $ERRORS).
     param([string]$Id, [string]$Name, [string]$Override = '')
 
     $exe  = if ($script:WINGET_EXE) { $script:WINGET_EXE } else { 'winget.exe' }
@@ -694,20 +667,13 @@ function Install-WingetPackage {
         [string]$Override = ''
     )
 
-    # --accept-source-agreements + --disable-interactivity: sin --source, 'list'
-    # consulta tambien msstore, que la PRIMERA vez frena pidiendo aceptar sus
-    # terminos. Con la salida redirigida ese prompt no se ve y el bootstrap
-    # quedaba colgado sin explicacion. (No se fuerza --source winget para no
-    # dejar de detectar lo instalado desde la Store, p.ej. pwsh.)
-    #
-    # "Ya instalado" = exit 0 de 'winget list' (si no encuentra nada devuelve
-    # NO_APPLICATIONS_FOUND, distinto de 0). Antes solo se buscaba el Id como
-    # texto en la tabla, que winget recorta con '…' cuando la columna no entra:
-    # un paquete instalado podia no detectarse y el bootstrap reintentaba
-    # instalarlo (sospecha, no confirmada, en el caso de Logi Options+: ya estaba
-    # instalado y su instalador devolvio 1287/1008). La busqueda por texto queda
-    # como respaldo. $LASTEXITCODE se resetea antes
-    # porque si winget no llega a arrancar conserva el valor de otra llamada.
+    # --accept-source-agreements + --disable-interactivity: sin --source, 'list' consulta
+    # tambien msstore, que la primera vez pide aceptar sus terminos y, con la salida
+    # redirigida, el bootstrap quedaba colgado. No se fuerza --source winget para seguir
+    # detectando lo instalado desde la Store (p.ej. pwsh).
+    # "Ya instalado" = exit 0 de 'winget list' (sin resultados devuelve NO_APPLICATIONS_FOUND);
+    # la tabla recorta los Id con '…', asi que la busqueda por texto queda de respaldo.
+    # $LASTEXITCODE se resetea antes: si winget no arranca conserva el de otra llamada.
     if (Test-WingetPackageInstalled $Id) {
         Write-Log "$Name ya instalado, saltando" 'SKIP'
         return
@@ -750,16 +716,10 @@ function Install-WingetPackage {
 # ==============================================================================
 # SELECTOR DE HERRAMIENTAS
 # ------------------------------------------------------------------------------
-# Espejo del selector de bootstrap.sh. Deja en $script:SELECTED_KEYS las Keys
-# del catalogo a instalar. Prioridad:
-#   1. -Tools "a,b,c"  -> exactamente esas (valida contra el catalogo)
-#   2. -AllTools / -DryRun -> todo, sin preguntar
-#   3. consola interactiva -> menu agrupado, pregunta siempre
-#   4. sin consola (irm | iex no interactivo) -> no instala nada; pide -Tools/-AllTools
-# El menu arranca SIN nada pre-marcado (opt-in): el usuario elige que instalar.
-# Enter sin marcar nada = no instala nada. Coherente con opt-in: el modo no
-# interactivo tampoco instala por sorpresa. Este dotfiles es para escritorio/laptop
-# (uso interactivo real), no servers headless; el caso sin-consola es un borde.
+# Espejo del selector de bootstrap.sh: deja en $script:SELECTED_KEYS las Keys a instalar.
+# Prioridad: 1) -Tools "a,b,c", 2) -AllTools / -DryRun (todo), 3) consola interactiva
+# (menu opt-in, sin nada marcado), 4) sin consola (irm | iex): no instala nada y pide
+# -Tools/-AllTools. Es para escritorio/laptop, no para servers headless.
 # ==============================================================================
 
 $script:SELECTED_KEYS = @()
@@ -1197,18 +1157,10 @@ if ($SkipWinget) {
             }
             Install-WingetPackage -Id $pkg.Id -Name $pkg.Name -Optional $pkg.Optional -Override $pkg['Override']
 
-            # yazi arrastra sus dependencias de preview (bundle): sin estas, yazi
-            # funciona pero no previsualiza PDF/video/imagenes ni entra a comprimidos.
-            #   poppler     -> preview de PDF (pdftoppm)
-            #   ffmpeg      -> thumbnails de video/audio
-            #   imagemagick -> mas formatos de imagen y mejor calidad (via Sixel)
-            #   7zip        -> preview/navegacion dentro de .zip/.7z/.tar
-            # OJO: algunas descargas vienen de GitHub releases y el proxy corporativo
-            # puede bloquearlas; si pasa, quedan como WARN y se instalan a mano.
-            # NOTA (paridad con Linux): en Linux se suma 'chafa' como fallback de
-            # preview de imagen porque Ptyxis no soporta Sixel. Aca NO hace falta:
-            # Windows Terminal soporta Sixel (>=1.22), asi que yazi usa Sixel directo
-            # y chafa (que ademas no tiene paquete confiable en winget) no aplica.
+            # yazi + bundle de deps de preview: poppler (PDF), ffmpeg (video/audio), imagemagick
+            # (imagenes), 7zip (comprimidos). Si el proxy corporativo bloquea las descargas de
+            # GitHub releases quedan como WARN y se instalan a mano. Sin chafa (que Linux si
+            # necesita): Windows Terminal soporta Sixel (>=1.22).
             if ($pkg.Key -eq 'yazi') {
                 $yaziDeps = @(
                     @{ Id='oschwartz10612.Poppler';    Name='poppler (yazi: PDF)'         }
@@ -1550,16 +1502,11 @@ if ($SkipDotfiles) {
     }
 
     # --- Neovim: config completa versionada (nvim/) ---
-    # Symlink de DIRECTORIO a %LOCALAPPDATA%\nvim (path de nvim en Windows;
-    # paridad con el link_dir de bootstrap.sh). Si habia config real previa,
-    # se borra antes de linkear (sin backup: el repo es el historial).
-    # Gateado: sin esto, quien no eligio Neovim se llevaba %LOCALAPPDATA%\nvim
-    # apuntando a esta config, y al instalar nvim mas adelante arrancaba con ESTA
-    # en vez de la propia (paridad con el want_tool neovim de bootstrap.sh).
-    # Si $XDG_CONFIG_HOME esta seteada (algunas maquinas la fijan a mano, ver
-    # reference_xdg_windows), Neovim la respeta tambien en Windows y resuelve
-    # stdpath('config') ahi en vez de %LOCALAPPDATA%\nvim: symlinkear solo el
-    # segundo deja a nvim sin encontrar la config (arranca con defaults).
+    # Symlink de DIRECTORIO a %LOCALAPPDATA%\nvim (paridad con link_dir de bootstrap.sh);
+    # si habia config real previa se borra antes (sin backup: el repo es el historial).
+    # Gateado: sin eso, quien no eligio Neovim quedaba con esta config al instalarlo
+    # despues. Si $XDG_CONFIG_HOME esta seteada, Neovim resuelve stdpath('config') ahi
+    # tambien en Windows: symlinkear solo %LOCALAPPDATA% lo deja con defaults.
     Sub-Bar 65 "config de nvim"
     $nvimSrc = Join-Path $REPO_ROOT 'nvim'
     $nvimDst = if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME 'nvim' } else { Join-Path $env:LOCALAPPDATA 'nvim' }
@@ -1608,15 +1555,11 @@ if ($SkipDotfiles) {
     }
 
     # --- Shim de compilador C para nvim-treesitter (zig actuando como 'cc') ---
-    # Ver la cabecera de nvim/windows-cc-shim.c para el por que completo: en
-    # resumen, tree-sitter-cli invoca literalmente un programa llamado "cc" (no
-    # entiende CC="zig cc", usa solo la primera palabra) y le pasa un target
-    # triple en formato Rust ("x86_64-pc-windows-msvc") que el parser de zig no
-    # entiende sin MSVC instalado. Este shim resuelve ambas cosas.
-    # OJO: CC queda seteada a nivel de USUARIO (no solo para nvim) — cualquier
-    # otra herramienta en esta maquina que lea CC (make, cargo build scripts,
-    # node-gyp...) va a compilar via zig-como-gnu en vez de cl.exe/MSVC.
-    # Aceptado a proposito: la alternativa es no tener resaltado de sintaxis.
+    # tree-sitter-cli invoca literalmente "cc" y le pasa un target triple en formato Rust
+    # que zig no entiende sin MSVC; el shim resuelve ambas (ver nvim/windows-cc-shim.c).
+    # OJO: CC queda seteada a nivel de USUARIO: cualquier herramienta que la lea (make,
+    # cargo, node-gyp...) compilara via zig-como-gnu en vez de MSVC. Aceptado: la
+    # alternativa es no tener resaltado de sintaxis.
     Sub-Bar 66 "shim de compilador (zig -> cc) para treesitter"
     $ccShimSrc = Join-Path $REPO_ROOT 'nvim\windows-cc-shim.c'
     $ccShimBin = Join-Path $HOME '.local\bin\cc.exe'
@@ -2056,22 +1999,12 @@ if (Test-Path $loaderProfile) {
 }
 
 # --- SSL de git detras del proxy corporativo (parte del paso 8) ---
-# El gitconfig DE SISTEMA de Git for Windows fija http.sslbackend=openssl con su
-# propio ca-bundle.crt, que NO tiene la CA de Netskope: todo clone por HTTPS muere
-# con "self-signed certificate in certificate chain". Y por SSH tampoco anda, porque
-# aca los remotes usan host aliases (git@github.com pelado no engancha ninguna clave).
-# Sintoma concreto: 'claude plugin marketplace add' falla siempre, o sea no se puede
-# instalar NINGUN plugin/skill de terceros.
-#
-# Se arregla con GIT_SSL_CAINFO (= http.sslCAInfo) apuntando al mismo combined-ca.pem
-# del paso 7. Por que asi y no de las formas "obvias":
-#   - 'git config --global' escribiria DENTRO DEL VAULT (~/.gitconfig es symlink a
-#     $VAULT_DIR/git/config) y ademas viajaria a Fedora, que no necesita nada de esto.
-#   - 'http.sslBackend=schannel' tambien funciona, pero es una opcion sin sentido
-#     fuera de Windows y no hay includeIf por SO donde encerrarla.
-#   - GIT_SSL_CAINFO es una variable dedicada: no secuestra GIT_CONFIG_COUNT (que
-#     pisaria cualquier otra herramienta que la use) y al ser variable de usuario de
-#     Windows no existe en Linux.
+# El gitconfig de sistema de Git for Windows usa su propio ca-bundle sin la CA de
+# Netskope: todo clone por HTTPS muere con "self-signed certificate" (y por SSH no sirve:
+# los remotes usan host aliases). Sintoma: 'claude plugin marketplace add' falla.
+# Se arregla con GIT_SSL_CAINFO apuntando al combined-ca.pem del paso 7: 'git config
+# --global' escribiria dentro del vault (~/.gitconfig es symlink) y viajaria a Fedora, y
+# GIT_SSL_CAINFO es una variable de usuario de Windows que no existe en Linux.
 Sub-Bar 60 "SSL de git (proxy corporativo)"
 $gitCaBundle = Get-NetskopeCaBundle
 if ($gitCaBundle) {

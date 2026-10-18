@@ -517,3 +517,36 @@ que sí detectaba **dentro del repo** (vía symlink), generando conflictos en el
 `wsl.exe ~` (la distro por defecto de cada máquina, se llame como se llame), y
 `disabledProfileSources` apaga esos generadores. Costo: una distro nueva no
 aparece sola — se agrega a mano.
+
+## Shell: decisiones movidas desde los comentarios
+
+- **ble.sh (bash):** se sourcea con el attach por defecto (`=prompt`), que lo
+  adjunta en el primer prompt vía `PROMPT_COMMAND`. Con `--noattach` +
+  `ble-attach` manual el redibujado del prompt empeora al adjuntarse. El prompt
+  duplicado se resolvió quitando el newline inicial del tema
+  (`claude-code.omp.json`) más `bleopt prompt_command_changes_layout`. La paleta
+  de faces espeja los `-Colors` de PSReadLine: Command `#C79BFF`, Parameter
+  `#7AB8FF`, String `#86E89A`, Variable `#FFDF61`, Operator `#56B6C2`, Error
+  `#FF7A7A`, Comment e InlinePrediction `#6B5448`, directorios `#D4874E`
+  (`LS_COLORS di=172`).
+- **`_infer_git_profile`:** dos señales por orden de confianza. 1) host del
+  remoto contra `GIT_PROFILE_REMOTES` del vault (exacto: el alias SSH ya
+  identifica la clave). 2) carpeta `~/repositorios/<ctx>/`: el `ctx` puede ser el
+  perfil, una clave de `GIT_IDENTITY_FILES` o, si no, se lee el email de
+  `~/.gitconfig-<ctx>` y se busca qué perfil lo tiene. Así funciona con vaults
+  donde el sufijo no es el perfil (el propio mapea `personal` a `kevincharp`) sin
+  hardcodear nombres.
+- **dothelp, el menú inserta solo el nombre:** la plantilla de uso lleva `<arg>`
+  y `[opcional]`, que no son ejecutables; pegada tal cual, zsh muere en el glob
+  (`bad pattern: [-p`) y bash en la redirección (`url: No existe el fichero`),
+  con un error que no dice nada del comando. Insertando solo el nombre, el Enter
+  llega a la función y es ella la que imprime su uso: una sola fuente de verdad.
+- **GNOME (dconf):** `dconf load` es aditivo (solo escribe las claves del
+  archivo), por eso `shell.dconf` trae solo `enabled-extensions` sin pisar el
+  resto de `/org/gnome/shell/`. Las apps pineadas (`favorite-apps`) no se
+  versionan: son estado personal y `gnome-load` las pisaría.
+- **`claude-smg`, modelos:** Bedrock lista muchos modelos (Opus, Fable, GPT…) pero
+  la empresa los bloquea, y en `/model` son ruido que falla al invocarse. Los
+  defaults viven en el repo (son IDs públicos, no secretos) porque antes vivían
+  solo en `~/.env` y, en una PC nueva sin el `.env` migrado, el picker volvía a
+  mostrar todo.

@@ -472,11 +472,9 @@ fi
 # ==============================================================================
 # 13. GATE DE CONFIGS POR HERRAMIENTA
 # ------------------------------------------------------------------------------
-# Ninguna config debe aplicarse por el solo hecho de estar en el repo: primero
-# pasa por want_tool (bash) / Test-ToolWanted (pwsh). Sin esto, un tercero que
-# elige 3 herramientas se lleva igual la config de nvim y las reglas de IA del
-# autor. Se verifica de forma ESTATICA (grep sobre los bootstraps): correr el
-# bootstrap real desde el test cambiaria la maquina.
+# Ninguna config se aplica solo por estar en el repo: pasa por want_tool (bash) /
+# Test-ToolWanted (pwsh). Se verifica ESTATICAMENTE (grep): correr el bootstrap real
+# desde el test cambiaria la maquina.
 # ==============================================================================
 
 section "13. Gate de configs por herramienta"
@@ -540,15 +538,10 @@ for _entry in 'yazi\yazi.toml|yazi' '.claude\CLAUDE.md|claude' '.claude\settings
     fi
 done
 
-# Trampa de set -e (cuarta variante, suma a las tres del CLAUDE.md): una funcion
-# cuyo ULTIMO comando es '(( flag )) && cmd' devuelve 1 cuando flag vale 0, y con
-# set -e eso aborta el script entero. Paso con gb_note y '(( _GB_ENABLED )) &&
-# _gb_render': sin TTY el bootstrap moria en [2/7] sin ningun mensaje.
-#
-# Se chequea ESTATICAMENTE (linea '(( ... )) && ...' seguida del cierre de la
-# funcion) y no ejecutando el bootstrap: una corrida real solo llega a gb_note si
-# hay una herramienta NUEVA para instalar, asi que en la maquina del autor
-# —donde ya esta todo— el test pasaba sin ejercitar el bug.
+# Trampa de set -e (cuarta variante): una funcion cuyo ultimo comando es
+# '(( flag )) && cmd' devuelve 1 si flag vale 0 y aborta el script (paso con gb_note:
+# sin TTY el bootstrap moria en [2/7] sin mensaje). Se chequea ESTATICAMENTE: una
+# corrida real solo llega a gb_note con una herramienta nueva por instalar.
 for _bs in "$_bs_sh" "$_repo_root/install.sh" "$_repo_root/uninstall.sh"; do
     [[ -f "$_bs" ]] || continue
     _bad=$(awk '/^[[:space:]]*\(\(.*\)\)[[:space:]]*&&/ { prev=NR; line=$0; next }
@@ -566,12 +559,9 @@ unset _bs_sh _bs_ps _gated_sh _entry _pat _tool _ln
 # ==============================================================================
 # 14. STATUSLINE DE CLAUDE CODE
 # ==============================================================================
-# Se ejercita de verdad (alimentando el JSON por stdin) porque tiene DOS caminos:
-# con jq y el fallback grep/sed que se usa en Git Bash, donde jq no viene.
-# Lo que se protege: que la linea muestre el PROYECTO de la sesion y el cwd
-# cuando /cd los separa. /cd mueve workspace.current_dir pero NO
-# workspace.project_dir (de ahi salen memoria, historial y CLAUDE.md de
-# proyecto): sin ese aviso se trabaja en otro repo con las reglas del original.
+# Se ejercita de verdad (JSON por stdin) porque tiene dos caminos: con jq y el fallback
+# grep/sed de Git Bash. Protege que la linea muestre el PROYECTO y el cwd cuando /cd los
+# separa (docs/notas-tecnicas.md).
 # ==============================================================================
 
 section "14. Statusline de Claude Code"

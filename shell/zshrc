@@ -269,12 +269,9 @@ bindkey '^[[1;5C' forward-word
 # ==============================================================================
 # FLECHA ARRIBA → lista de historial estilo PSReadLine ListView
 # ------------------------------------------------------------------------------
-# Replica el ListView de PSReadLine: al apretar ↑, abre fzf con el historial en
-# lista vertical, mostrando SOLO el comando (sin fecha/indice/duracion) y
-# filtrado por PREFIJO con lo ya tipeado ('cd' trae lo que empieza con cd, no
-# donde la c y la d aparecen sueltas). Ctrl+R sigue siendo la busqueda difusa
-# por cualquier parte del comando (ver bloque FZF). Espejo en bashrc via ble.sh.
-# 'path' esta ligado a $PATH en zsh: NO usar esa palabra como variable local.
+# ↑ abre fzf con el historial en lista vertical, solo el comando, filtrado por
+# PREFIJO con lo ya tipeado. Ctrl+R sigue siendo la búsqueda difusa (bloque FZF).
+# Espejo en bashrc via ble.sh. 'path' está ligado a $PATH en zsh: no usarla de variable.
 # ==============================================================================
 if command -v fzf &>/dev/null; then
     _fzf_history_widget() {
@@ -697,16 +694,10 @@ _git_url_host() {
     printf '%s' "$host"
 }
 
-# Infiere el perfil de identidad git cuando no se paso -p. Deja el resultado en
-# _gi_profile y el origen (para loguear) en _gi_profile_src. Devuelve 1 si no
-# pudo inferir. Dos senales, en orden de confianza:
-#   1. host del remoto vs. GIT_PROFILE_REMOTES del vault (exacto: el host-alias
-#      SSH ya identifica la clave y por lo tanto la identidad).
-#   2. carpeta de contexto ~/repositorios/<ctx>/... El ctx puede ser el nombre
-#      del perfil, una clave de GIT_IDENTITY_FILES (mapa sufijo->perfil) o, si no,
-#      se resuelve leyendo el email de ~/.gitconfig-<ctx> y buscando que perfil
-#      lo tiene: asi funciona con vaults donde el sufijo no es el perfil (el
-#      propio mapea 'personal' -> 'kevincharp') sin hardcodear nombres propios.
+# Infiere el perfil de identidad git cuando no se paso -p; deja el resultado en
+# _gi_profile y su origen en _gi_profile_src (devuelve 1 si no pudo). Orden: host
+# del remoto vs. GIT_PROFILE_REMOTES, luego la carpeta ~/repositorios/<ctx> (nombre
+# de perfil, clave de GIT_IDENTITY_FILES o el perfil dueño del email de ~/.gitconfig-<ctx>).
 # --- [git] _infer_git_profile: (interna) deduce el perfil git de un remoto/carpeta | uso: _infer_git_profile <url> <dir> ---
 _infer_git_profile() {
     local url="$1" dir="$2"
@@ -1199,16 +1190,11 @@ claude-smg() {
         export CLAUDE_CODE_USE_BEDROCK="1"
         export AWS_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
         export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
-        # Modelos Bedrock: la cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5.
-        # Bedrock lista muchos mas (Opus, Fable, GPT...), pero la empresa los
-        # bloquea: en /model son ruido que falla al invocarse. El picker se
-        # restringe a esta lista via --settings availableModels (mas abajo) y el
-        # primero queda como default (ANTHROPIC_MODEL).
-        # Defaults EN EL REPO (son IDs publicos de Bedrock, no secretos) para que
-        # funcione aunque falte ~/.env: antes vivian solo ahi y, en una PC nueva
-        # sin el .env migrado, el picker volvia a mostrar todo. Se pisan con
-        # CLAUDE_SMG_MODELS (lista separada por comas); CLAUDE_SMG_MODEL (singular,
-        # nombre viejo) sigue valiendo como lista de uno.
+        # La cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5 en Bedrock: el picker se
+        # restringe a esa lista con --settings availableModels y el primero es el default
+        # (ANTHROPIC_MODEL). Los defaults están en el repo (IDs públicos) para funcionar sin
+        # ~/.env; se pisan con CLAUDE_SMG_MODELS (lista separada por comas) o CLAUDE_SMG_MODEL
+        # (nombre viejo, lista de uno).
         _smg_models="${CLAUDE_SMG_MODELS:-${CLAUDE_SMG_MODEL:-us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5}}"
         _smg_models="${_smg_models// /}"
         export ANTHROPIC_MODEL="${_smg_models%%,*}"
@@ -1397,28 +1383,17 @@ icloud-move() {
 }
 
 # ==============================================================================
-# DOTHELP — ayuda ("--help" del repo): lista comandos por categoría
+# DOTHELP — ayuda del repo: lista comandos por categoría
 # ==============================================================================
-# Muestra las funciones/aliases propios agrupados por categoría, con su
-# descripción y una PLANTILLA de uso lista para copiar/pegar. La info sale de un
-# comentario anotado justo encima de cada definición, con este formato:
-#
+# La info sale de un comentario anotado encima de cada definición:
 #   # --- [categoria] nombre: descripción | uso: nombre <arg> [opcional] ---
-#
-# Convención de la plantilla: <arg> = requerido, [arg] = opcional. La línea de
-# uso solo se muestra cuando el comando lleva argumentos (si no, se ejecuta tal
-# cual y no aporta). Categorías conocidas (orden de salida): git, nav, sistema,
-# ssh, nube, tools, dotfiles. Los ALIASES se detectan solos (sin anotar): g* caen
-# en git, el resto en nav. Paridad con bashrc/profile.ps1.
-#
-# Uso:
-#   dothelp          MENÚ interactivo (fzf): elegís categoría → comando. Al
-#                    aceptar, muestra el formato de uso y deja el NOMBRE del
-#                    comando listo (en zsh escrito en la línea con print -z; en
-#                    bash impreso para copiar). Los args los completás vos: si le
-#                    das Enter pelado, el propio comando te dice qué espera.
-#   dothelp git      listado estático filtrado (rápido, sin menú)
-#   Sin fzf o salida a pipe → cae al listado estático.
+# <arg> = requerido, [arg] = opcional; la línea de uso solo se muestra si el
+# comando lleva argumentos. Categorías (orden de salida): git, nav, sistema, ssh,
+# nube, tools, dotfiles. Los aliases se detectan solos (g* = git, el resto = nav).
+# Paridad con bashrc/profile.ps1.
+#   dothelp        menú interactivo (fzf): categoría → comando; deja el NOMBRE
+#                  escrito en la línea (print -z)
+#   dothelp git    listado estático filtrado; sin fzf o a un pipe, cae al estático
 
 # Fuente ÚNICA de datos: emite un registro por comando en formato TSV
 #   categoría <tab> nombre <tab> descripción <tab> uso
@@ -1479,17 +1454,11 @@ _dothelp_static() {
     printf '\n'
 }
 
-# Menú interactivo (fzf) en DOS pasos: 1) elegís categoría → 2) elegís comando
-# (con preview de descripción + uso al costado). Al aceptar, deja el comando
-# escrito en la línea de edición (print -z), listo para editar y ejecutar.
-#
-# OJO: se inserta SOLO el nombre del comando, NO la plantilla de uso. La
-# plantilla lleva <obligatorio> y [opcional], que NO son ejecutables: al apretar
-# Enter sin editarla, zsh muere en el glob ('bad pattern: [-p') y bash en la
-# redireccion ('url: No existe el fichero') — un error del shell que no dice
-# nada del comando. Insertando solo el nombre, ese Enter llega a la funcion y
-# es ELLA la que imprime su uso (y sus perfiles/opciones validos): una sola
-# fuente de verdad, imposible que el menu y el comando se contradigan.
+# Menú interactivo (fzf) en dos pasos: categoría → comando, con preview de
+# descripción y uso; deja el comando escrito en la línea (print -z). Se inserta solo
+# el NOMBRE, no la plantilla de uso: <arg> y [opcional] no son ejecutables (zsh falla
+# en el glob, bash en la redirección). Con solo el nombre, es la propia función la
+# que imprime su uso.
 _dothelp_menu() {
     local data="$1"
     local -a cats=(git nav sistema ssh nube tools dotfiles)
@@ -1590,14 +1559,10 @@ ptyxis-load() {
 # ==============================================================================
 # GNOME — sincronizar configuracion del escritorio (dconf <-> repo)
 # ==============================================================================
-# GNOME guarda atajos, dock, extensiones, etc. en dconf (no en archivos), por
-# eso no se puede symlinkear. gnome-save vuelca al repo; gnome-load restaura.
-#
-# Para versionar una rama nueva: agregala a _GNOME_DCONF_MAP con el formato
-# "ruta/dconf/:archivo.dconf". 'dconf load' es ADITIVO (solo escribe las claves
-# del archivo, no borra el resto), por eso shell.dconf trae solo
-# enabled-extensions sin pisar el resto de /org/gnome/shell/. Las apps pineadas
-# (favorite-apps) NO se versionan: son estado personal y gnome-load las pisaria.
+# GNOME guarda su config en dconf (no en archivos): gnome-save la vuelca al repo y
+# gnome-load la restaura. Una rama nueva se agrega a _GNOME_DCONF_MAP
+# ("ruta/dconf/:archivo.dconf"). 'dconf load' es ADITIVO; las apps pineadas
+# (favorite-apps) no se versionan: son estado personal.
 
 # Mapa "rama dconf : archivo en gnome/" (relativo a ~/.dotfiles/gnome/)
 _GNOME_DCONF_MAP=(

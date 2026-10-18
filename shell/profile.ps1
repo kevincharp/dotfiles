@@ -1848,16 +1848,11 @@ function claude-smg {
     $env:CLAUDE_CODE_USE_BEDROCK = "1"
     $env:AWS_PROFILE             = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
     $env:AWS_REGION              = if ($env:CLAUDE_SMG_AWS_REGION)  { $env:CLAUDE_SMG_AWS_REGION }  else { 'us-east-1' }
-    # Modelos Bedrock: la cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5.
-    # Bedrock lista muchos mas (Opus, Fable, GPT...), pero la empresa los
-    # bloquea: en /model son ruido que falla al invocarse. El picker se
-    # restringe a esta lista via --settings availableModels (mas abajo) y el
-    # primero queda como default (ANTHROPIC_MODEL).
-    # Defaults EN EL REPO (son IDs publicos de Bedrock, no secretos) para que
-    # funcione aunque falte ~/.env: antes vivian solo ahi y, en una PC nueva
-    # sin el .env migrado, el picker volvia a mostrar todo. Se pisan con
-    # CLAUDE_SMG_MODELS (lista separada por comas); CLAUDE_SMG_MODEL (singular,
-    # nombre viejo) sigue valiendo como lista de uno. Paridad con bash/zsh.
+    # La cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5 en Bedrock: el picker se
+    # restringe a esa lista con --settings availableModels y el primero es el default
+    # (ANTHROPIC_MODEL). Los defaults están en el repo (IDs públicos) para funcionar sin
+    # ~/.env; se pisan con CLAUDE_SMG_MODELS (lista separada por comas) o CLAUDE_SMG_MODEL
+    # (nombre viejo, lista de uno). Paridad con bash/zsh.
     $smgList = if ($env:CLAUDE_SMG_MODELS) { $env:CLAUDE_SMG_MODELS }
                elseif ($env:CLAUDE_SMG_MODEL) { $env:CLAUDE_SMG_MODEL }
                else { 'us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5' }
@@ -1915,27 +1910,16 @@ function claude-smg {
 }
 
 # ==============================================================================
-# DOTHELP — ayuda ("--help" del repo): lista comandos por categoría
+# DOTHELP — ayuda del repo: lista comandos por categoría
 # ==============================================================================
-# Paridad con bashrc/zshrc. Diferencia clave: en PowerShell la info NO sale de
-# comentarios "# --- [cat] ... ---", sino del comment-based help que ya tiene
-# cada función (.SYNOPSIS = descripción, .EXAMPLE = plantilla de uso). La
-# CATEGORÍA se asigna con el mapa $catMap de abajo (editable a mano).
-#
-# Uso:
-#   dothelp          MENÚ interactivo (fzf): elegís categoría → comando. Al
-#                    aceptar, muestra el formato de uso y deja el NOMBRE del
-#                    comando escrito en la línea (PSReadLine). Los args los
-#                    completás vos: si le das Enter pelado, el propio comando
-#                    te dice qué espera.
-#   dothelp git      listado estático filtrado (sin menú)
-#   Sin fzf → listado estático.
-#
-# Las funciones internas NO se listan: se filtran por el prefijo '_' en el
-# nombre o por '(interna)' al principio del .SYNOPSIS.
-#
-# Categoría 'unix' = emuladores de comandos Linux que solo existen en Windows
-# (cat, grep, find, ll, touch...); en Linux esos son nativos y no aparecen.
+# Paridad con bashrc/zshrc. La info sale del comment-based help de cada función
+# (.SYNOPSIS = descripción, .EXAMPLE = plantilla de uso) y la categoría, del mapa
+# $catMap de abajo. Se filtran las internas ('_' en el nombre o '(interna)' en el
+# .SYNOPSIS). La categoría 'unix' son emuladores de comandos Linux que solo existen
+# en Windows.
+#   dothelp        menú interactivo (fzf): categoría → comando; deja el NOMBRE
+#                  escrito en la línea (PSReadLine)
+#   dothelp git    listado estático filtrado; sin fzf, listado estático
 
 if (-not $global:__ProfileFile) {
     $global:__ProfileFile = if (Test-Path $PROFILE.AllUsersAllHosts) { $PROFILE.AllUsersAllHosts } else { $PROFILE }

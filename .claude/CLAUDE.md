@@ -14,6 +14,8 @@ sección, **Preferencias**, es personal: editala a tu gusto.
 - **Granulares:** uno por cambio lógico (separar por archivo/propósito).
 - **Conventional Commits:** `tipo(scope): descripción` (`feat`, `fix`, `docs`,
   `refactor`, `chore`…).
+- **Mensaje breve:** una sola línea que diga el qué, sin cuerpo explicativo; la
+  historia larga va a `docs/`.
 - **Sin** línea `Co-Authored-By` ni trailer de coautoría.
 - **Commitear sin pedir autorización** tras cada cambio lógico terminado.
 - **Nunca pushear:** el push lo hace el usuario manualmente.
@@ -56,7 +58,7 @@ nunca se crea como carpeta hermana suelta del repo.
   obvio del código, en 1 a 3 líneas. Si hace falta más de ~6 líneas seguidas,
   sobra o va a `docs/`.
 - **No narrar la historia:** intentos descartados, hallazgos y "probé X y falló"
-  van en el mensaje del commit o en `docs/`, no en el código.
+  van en `docs/` (el commit lleva solo el qué), no en el código.
 - **Sin código desactivado:** no dejar bloques comentados "por si acaso"; se
   borran y git los recuerda.
 - **Hacer solo lo pedido:** sin funciones, parámetros, opciones ni capas de

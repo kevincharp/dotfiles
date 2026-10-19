@@ -157,8 +157,7 @@ $TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 # Se dejaban a mano por miedo a que winget no pusiera `code`/`python` en el PATH;
 # ninguna de las dos cosas se sostuvo (nvim/ no usa python3_host_prog y el instalador
 # de python.org acepta PrependPath=1 por --override). Python va por usuario (sin admin);
-# VS Code con el User Installer. PENDIENTE verificar en una maquina sin VS Code que
-# `code` quede en el PATH; si no, sumar Override con /MERGETASKS=addtopath.
+# VS Code con el User Installer (verificado: deja `code` en el PATH de usuario sin Override).
 # Git for Windows tambien va por winget (Id 'Git.Git'): editor y line endings los fija
 # el .gitconfig versionado del vault, y el SSH es el OpenSSH nativo de Windows.
 # ==============================================================================

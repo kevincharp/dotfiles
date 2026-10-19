@@ -569,8 +569,9 @@ aparece sola — se agrega a mano.
   winget no pusiera `code`/`python` en el PATH o dejara solo el launcher `py.exe`.
   Ninguna se sostuvo: `nvim/` no usa `python3_host_prog` y el instalador de
   python.org acepta `PrependPath=1` por `--override`. El PATH de usuario va antes
-  que `WindowsApps` (atajos de la Store que "tapan" python). Pendiente verificar
-  en una máquina sin VS Code que `code` quede en el PATH. Git for Windows
+  que `WindowsApps` (atajos de la Store que "tapan" python). Verificado en una
+  máquina sin VS Code: el User Installer (`%LOCALAPPDATA%\Programs\Microsoft VS Code`)
+  deja `code` en el PATH de usuario sin override; una terminal ya abierta no lo ve. Git for Windows
   también va por winget: editor y line endings los fija el `.gitconfig` del vault
   (`core.editor=nvim`, `core.autocrlf=input`).
 - **Módulos de PowerShell:** se instalaban los tres siempre; ahora los gatea el

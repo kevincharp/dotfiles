@@ -458,7 +458,7 @@ GNOME asocia mal algunos `.desktop`.
   tipo `persist-data-on-shutdown` (leído en `Sanitizer.sys.mjs`: `maybeSanitizeSessionPrincipals`),
   no las `cookie` que insertaba el script. `Personal` tenía 9 filas de ese tipo
   (cargadas desde la interfaz); `Aplicaciones` tenía 0. El script ahora inserta
-  ambos tipos. No verificado cerrando Firefox con `cookiesAndStorage=true`.
+  ambos tipos. Se quitó el override `cookiesAndStorage=false` de `user-aplicaciones.js`: `Aplicaciones` vuelve a borrar al cerrar con excepciones. Pendiente verificar cerrando Firefox.
 - Diagnóstico que sirvió: copiar `cookies.sqlite*` a un tmp y listar
   `host, name, expiry` (sin valores) antes y después de cerrar. `expiry` está en ms.
 

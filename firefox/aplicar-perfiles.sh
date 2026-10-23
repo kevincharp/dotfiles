@@ -125,7 +125,10 @@ cargar_cookies() {
     while IFS= read -r origen; do
         [[ -z "$origen" || "$origen" == \#* ]] && continue
         esc="$(sq "$origen")"
-        sql+="INSERT INTO moz_perms(origin,type,permission,expireType,expireTime,modificationTime) SELECT '$esc','cookie',1,0,0,$ahora WHERE NOT EXISTS (SELECT 1 FROM moz_perms WHERE origin='$esc' AND type='cookie');"
+        # persist-data-on-shutdown es el que respeta el borrado al cerrar; cookie es el permiso clasico.
+        for tipo in cookie persist-data-on-shutdown; do
+            sql+="INSERT INTO moz_perms(origin,type,permission,expireType,expireTime,modificationTime) SELECT '$esc','$tipo',1,0,0,$ahora WHERE NOT EXISTS (SELECT 1 FROM moz_perms WHERE origin='$esc' AND type='$tipo');"
+        done
     done < "$lista"
     if sqlite3 -cmd ".timeout 3000" "$db" "BEGIN; $sql COMMIT;" 2>/dev/null; then
         info "$etiqueta: excepciones de cookies cargadas"

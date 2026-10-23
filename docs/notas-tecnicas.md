@@ -454,6 +454,11 @@ GNOME asocia mal algunos `.desktop`.
   `aplicar-perfiles.sh` en vez de por la UI; **sin discriminar**). Las filas de
   Microsoft, WhatsApp y X en `Personal` también las insertó el script y no se
   probaron.
+- **Causa probable (2026-10-23):** el borrado al cerrar solo respeta excepciones de
+  tipo `persist-data-on-shutdown` (leído en `Sanitizer.sys.mjs`: `maybeSanitizeSessionPrincipals`),
+  no las `cookie` que insertaba el script. `Personal` tenía 9 filas de ese tipo
+  (cargadas desde la interfaz); `Aplicaciones` tenía 0. El script ahora inserta
+  ambos tipos. No verificado cerrando Firefox con `cookiesAndStorage=true`.
 - Diagnóstico que sirvió: copiar `cookies.sqlite*` a un tmp y listar
   `host, name, expiry` (sin valores) antes y después de cerrar. `expiry` está en ms.
 

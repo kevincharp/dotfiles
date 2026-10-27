@@ -153,7 +153,16 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   Editar ese archivo cambia las reglas de los tres. Claude Code ≥v2.1.277 lee
   `AGENTS.md` nativamente, pero solo cuando NO hay ningún `CLAUDE.md` en el
   working dir o arriba — con nuestro symlink siempre hay uno, así que el
-  mecanismo real sigue siendo el symlink, no la lectura nativa.
+  mecanismo real sigue siendo el symlink, no la lectura nativa. Para los
+  **proyectos** sí se usa la lectura nativa: verificado que un `AGENTS.md` de
+  proyecto se lee aunque exista el `CLAUDE.md` global.
+- `.claude/agents/` → **symlink de carpeta** a `~/.claude/agents/`: subagentes
+  propios (explorador, builder, revisor, devops, seguridad). Agregar uno es
+  crear un archivo. Molde, equipo y formato en otras herramientas:
+  [`docs/molde-agente.md`](docs/molde-agente.md); flujo de uso:
+  [`docs/playbook-desarrollo.md`](docs/playbook-desarrollo.md); plantilla del
+  `AGENTS.md` de cada proyecto:
+  [`docs/plantilla-agents-proyecto.md`](docs/plantilla-agents-proyecto.md).
 - `settings.json` → **symlink** (cambios se versionan al instante).
 - **Los plugins ya viajan solos, gratis:** `/plugin marketplace add` y
   `/plugin install` escriben `extraKnownMarketplaces` y `enabledPlugins` **dentro

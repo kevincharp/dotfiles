@@ -4,6 +4,11 @@ Machete de "si pasa X, hago Y" para no depender de la memoria. El proceso es
 independiente de la herramienta; lo específico de Claude Code está en la
 columna **Hoy en Claude Code** y es lo único que se reescribe si cambio de
 herramienta. Equipo y molde de agentes: [`molde-agente.md`](molde-agente.md).
+Cada proyecto lleva su `AGENTS.md`, copiado de
+[`plantilla-agents-proyecto.md`](plantilla-agents-proyecto.md). Los agentes
+(`explorador`, `builder`, `revisor`, `devops`, `seguridad`) están en
+`.claude/agents/`; se usan pidiéndole a la sesión que delegue en ellos por
+nombre.
 
 **Estado:** armado leyendo la documentación de las skills, sin probar todavía
 en un proyecto real. Ajustar las filas con el uso.

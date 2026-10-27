@@ -69,10 +69,18 @@ distintos y el contexto se llena con las dos cosas.
 
 ## Adaptadores por herramienta
 
-| Herramienta | Dónde vive cada agente | Estado |
-|---|---|---|
-| Claude Code | Markdown con frontmatter (`name`, `description`, `tools`, `model`); empaquetado como plugin en este repo | A escribir |
-| opencode | Markdown con frontmatter propio | Campos sin verificar |
-| Codex | Formato propio | Sin verificar |
+| Herramienta | Dónde vive | Formato | Campos |
+|---|---|---|---|
+| Claude Code | `~/.claude/agents/` | Markdown + frontmatter | `name`, `description` (obligatorios), `tools`/`disallowedTools`, `model` |
+| opencode | `~/.config/opencode/agents/` | Markdown + frontmatter | `description` (obligatorio), `mode`, `model`, `permission` (el nombre es el del archivo) |
+| Codex | `~/.codex/agents/` | TOML | `name`, `description`, `developer_instructions` (obligatorios), `model` |
 
-Los campos del molde se traducen uno a uno; lo que cambia es la sintaxis.
+En las tres, el cuerpo del agente (sus instrucciones) es texto libre y es lo
+único que se copia tal cual; lo que cambia es el encabezado. Verificado en la
+documentación de cada una.
+
+- **Los permisos no se traducen igual.** Claude Code los impone con `tools` y
+  opencode con `permission` (`edit: deny`), pero en Codex `sandbox_mode` no se
+  puede fijar por agente: "no editar" queda como instrucción, no como bloqueo.
+- **Un mismo archivo no sirve para las tres:** `tools` significa cosas
+  distintas en Claude Code y opencode, y Codex usa TOML.

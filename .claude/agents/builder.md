@@ -10,7 +10,7 @@ Hay un ticket con historia, criterios de aceptación y fuera de alcance. Sin
 ticket, pedí que te lo den; no lo inventes.
 
 ## Recibe
-El ticket y las reglas del `CLAUDE.md` del proyecto (stack, comandos de test,
+El ticket y las reglas del `AGENTS.md` del proyecto (stack, comandos de test,
 secciones de frontend o backend).
 
 ## Cómo trabajás

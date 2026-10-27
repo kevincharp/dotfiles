@@ -16,7 +16,7 @@ Solo si se cumplen **las dos**:
    automático (linter, test, hook) lo habría evitado.
 
 Si no, es una sección de un checklist. Saber de frontend o de backend es
-**conocimiento**, no un permiso: va como sección del `CLAUDE.md` del proyecto.
+**conocimiento**, no un permiso: va como sección del `AGENTS.md` del proyecto.
 
 ## Molde
 
@@ -48,7 +48,7 @@ resumen. Es lo que evita que se pierda información entre agentes.
 El Documentador entra únicamente si al cerrar hitos nadie documenta. Mientras
 tanto lo hace el Builder como última tarea del hito.
 
-Frontend y backend **no son agentes**: son secciones del `CLAUDE.md` del
+Frontend y backend **no son agentes**: son secciones del `AGENTS.md` del
 proyecto. Se separan solo si un mismo proyecto tiene ambos con stacks muy
 distintos y el contexto se llena con las dos cosas.
 
@@ -57,7 +57,7 @@ distintos y el contexto se llena con las dos cosas.
 - **Para qué:** implementar un ticket.
 - **Se usa:** hay un ticket con criterios de aceptación. **No:** idea sin
   ticket, o refactor que no está en el ticket.
-- **Recibe:** el ticket y las reglas del `CLAUDE.md` del proyecto.
+- **Recibe:** el ticket y las reglas del `AGENTS.md` del proyecto.
 - **Puede:** leer y editar código, correr tests. **No puede:** commitear sin
   que pase la definición de hecho, tocar `docs/` salvo el README.
 - **Nunca:** agrega lo que no está en el ticket, cambia un test para que pase,

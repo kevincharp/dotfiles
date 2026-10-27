@@ -53,6 +53,7 @@ DOTFILES_TARGETS=(
     "$HOME/.config/fontconfig/fonts.conf"
     "$HOME/.claude/settings.json"
     "$HOME/.claude/CLAUDE.md"
+    "$HOME/.claude/agents"
     # settings.local.json NO va aca a proposito: bootstrap.sh nunca lo crea ni
     # lo symlinkea (es per-maquina, el usuario lo edita a mano). Si estuviera
     # en esta lista, el loop de abajo lo borraria como "archivo real" aunque

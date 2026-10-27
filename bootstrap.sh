@@ -1774,6 +1774,9 @@ if want_tool claude; then
     # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
     # que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
     copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
+    # Subagentes propios (equipo estandar): carpeta entera, para que agregar uno
+    # sea crear un archivo en el repo.
+    link_dir ".claude/agents"                    "$HOME/.claude/agents"
 fi
 # El MISMO archivo rige para los otros agentes de IA: Codex y opencode leen
 # AGENTS.md (en ~/.codex y ~/.config/opencode). Fuente unica: editar el

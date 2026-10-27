@@ -502,6 +502,7 @@ _gated_sh=(
     'link_dir "nvim"|neovim'
     'yazi/yazi.toml|yazi'
     'copy_dotfile ".claude/settings.json"|claude'
+    'link_dir ".claude/agents"|claude'
     'ulauncher/settings.json|ulauncher'
     'openlogi/config.toml|openlogi'
     'shell/zshrc|zsh'

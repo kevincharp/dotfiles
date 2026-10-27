@@ -206,6 +206,8 @@ $DOTFILES = @(
     # que sea portable en cada instalacion (paridad con bootstrap.sh).
     @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link'; Tool='claude' }
     @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link'; Tool='claude' }
+    # Subagentes propios (equipo estandar): carpeta entera (paridad con link_dir).
+    @{ Src='.claude\agents';                Dst="$HOME\.claude\agents"                ; Mode='link'; Tool='claude' }
     # Flow Launcher (launcher de Windows): config general por symlink. Los
     # Settings.json de cada plugin se agregan abajo desde $flowPlugins.
     @{ Src='flowlauncher\Settings.json';    Dst="$env:APPDATA\FlowLauncher\Settings\Settings.json"; Mode='link'; Tool='flowlauncher' }

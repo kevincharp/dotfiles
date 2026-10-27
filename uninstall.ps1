@@ -38,6 +38,7 @@ $DOTFILES_TARGETS = @(
     # en esta lista, el loop de abajo lo borraria como "archivo real" aunque
     # nunca lo haya instalado este repo.
     "$HOME\.claude\CLAUDE.md"
+    "$HOME\.claude\agents"
     "$HOME\.codex\AGENTS.md"
     "$HOME\.config\opencode\AGENTS.md"
     "$env:APPDATA\yazi\config\yazi.toml"

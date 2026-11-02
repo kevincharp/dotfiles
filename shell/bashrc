@@ -1725,6 +1725,32 @@ battery-limit() {
     esac
 }
 
+# --- [sistema] _aviso_fedora_nueva: avisa (sin actualizar) si ya salio la proxima Fedora ---
+# Solo informa: cambiar de version lo decide el usuario. La proxima version esta
+# publicada cuando su repo de releases responde 200 (antes responde 403).
+_aviso_fedora_nueva() {
+    local _ver_actual _ver_nueva _gnome _azul _violeta _gris _reset _ico_fedora _ico_gnome
+    _ver_actual=$(. /etc/os-release 2>/dev/null && [[ "$ID" == fedora ]] && echo "$VERSION_ID")
+    [[ -n "$_ver_actual" ]] || return 0
+    _ver_nueva=$((_ver_actual + 1))
+    curl -fsI -m 5 -o /dev/null \
+        "https://dl.fedoraproject.org/pub/fedora/linux/releases/${_ver_nueva}/Everything/$(uname -m)/os/repodata/repomd.xml" || return 0
+    _gnome=$(curl -fs -m 5 "https://bodhi.fedoraproject.org/updates/?releases=F${_ver_nueva}&packages=gnome-shell&status=stable&rows_per_page=1" \
+        | grep -oE 'gnome-shell-[0-9]+\.[0-9]+' | head -1 | sed 's/gnome-shell-//')
+    _azul=$'\033[38;2;81;162;218m'; _violeta=$'\033[38;2;192;132;252m'
+    _gris=$'\033[38;5;245m'; _reset=$'\033[0m'
+    _ico_fedora=$'\uf30a'; _ico_gnome=$'\uf2bc'
+    echo
+    printf '%s▌%s %s%s Fedora %s%s' "$_azul" "$_reset" "$_azul" "$_ico_fedora" "$_ver_nueva" "$_reset"
+    [[ -n "$_gnome" ]] && printf '  %s· %s GNOME %s%s' "$_violeta" "$_ico_gnome" "$_gnome" "$_reset"
+    printf '  ya disponible\n'
+    printf '%s▌ No se actualiza sola; cuando decidas, corre:%s\n' "$_azul" "$_reset"
+    printf '%s▌%s   sudo dnf upgrade --refresh\n' "$_azul" "$_reset"
+    printf '%s▌%s   sudo dnf system-upgrade download --releasever=%s\n' "$_azul" "$_reset" "$_ver_nueva"
+    printf '%s▌%s   sudo dnf offline reboot\n' "$_azul" "$_reset"
+    printf '%s▌ Tip: conviene esperar 2-4 semanas tras el lanzamiento.%s\n' "$_gris" "$_reset"
+}
+
 # --- [sistema] update-all: actualiza todo lo que dnf no cubre | uso: update-all ---
 # dnf solo actualiza sus propios paquetes. Esta funcion recorre los demas
 # gestores presentes (Flatpak, npm, Claude Code) ademas de dnf. Lo instalado
@@ -1800,6 +1826,7 @@ update-all() {
     fi
     echo "Listo. Nota: lazyssh y lazysql (binarios GitHub) y los instalados por curl"
     echo "(oh-my-posh, zoxide, opencode) se actualizan aparte."
+    _aviso_fedora_nueva
 }
 
 # ==============================================================================

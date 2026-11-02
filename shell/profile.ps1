@@ -1122,6 +1122,27 @@ function killdev {
 }
 
 # ==============================================================================
+# ACTIVE DIRECTORY (reemplazo de `net user <usuario> /domain`)
+# ==============================================================================
+
+<#
+.SYNOPSIS datos de un usuario de AD y todos sus grupos (requiere RSAT)
+.EXAMPLE aduser jperez
+#>
+function aduser {
+    param([Parameter(Mandatory=$true)][string]$Usuario)
+    Get-ADUser $Usuario -Properties DisplayName,Description,EmailAddress,LockedOut,AccountExpirationDate,
+        PasswordLastSet,PasswordNeverExpires,CannotChangePassword,'msDS-UserPasswordExpiryTimeComputed',
+        LastLogonDate,LogonWorkstations,ScriptPath,ProfilePath,HomeDirectory |
+      Select-Object SamAccountName,DisplayName,EmailAddress,Description,Enabled,LockedOut,AccountExpirationDate,
+        PasswordLastSet,
+        @{n='PasswordExpires'; e={ if ($_.PasswordNeverExpires) { 'Nunca' } else { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') } }},
+        CannotChangePassword,LastLogonDate,LogonWorkstations,ScriptPath,ProfilePath,HomeDirectory,
+        @{n='Grupos'; e={ (Get-ADPrincipalGroupMembership $Usuario).Name | Sort-Object }} |
+      Format-List
+}
+
+# ==============================================================================
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================
 

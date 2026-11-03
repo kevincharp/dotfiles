@@ -1138,7 +1138,7 @@ function aduser {
         PasswordLastSet,
         @{n='PasswordExpires'; e={ if ($_.PasswordNeverExpires) { 'Nunca' } else { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') } }},
         CannotChangePassword,LastLogonDate,LogonWorkstations,ScriptPath,ProfilePath,HomeDirectory,
-        @{n='Grupos'; e={ (Get-ADPrincipalGroupMembership $Usuario).Name | Sort-Object }} |
+        @{n='Grupos'; e={ ((Get-ADPrincipalGroupMembership $Usuario).Name | Sort-Object) -join ', ' }} |
       Format-List
 }
 

@@ -11,3 +11,7 @@
 # CLAUDE.md), que es el único script que lee PowerShell 5.1.
 nvim/**/*.lua       text eol=lf
 nvim/lazy-lock.json text eol=lf
+
+# Flow Launcher reescribe sus JSON con CRLF en cada guardado: se guardan tal cual
+# (sin conversion de EOL) para que git no los vea modificados.
+flowlauncher/**/*.json -text

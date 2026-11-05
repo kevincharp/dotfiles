@@ -34,6 +34,7 @@ pipeline='pipeline_default'
 sigma=30
 
 [popup]
+blur=false
 pipeline='pipeline_default_rounded'
 
 [screenshot]

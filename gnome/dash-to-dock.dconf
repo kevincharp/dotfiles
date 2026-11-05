@@ -1,9 +1,9 @@
 [/]
 always-center-icons=true
-apply-custom-theme=true
+apply-custom-theme=false
 autohide-in-fullscreen=true
 background-color='rgb(119,118,123)'
-background-opacity=0.89000000000000001
+background-opacity=0.40000000000000002
 click-action='minimize'
 custom-background-color=true
 custom-theme-shrink=true
@@ -32,10 +32,11 @@ shift-click-action='minimize'
 shift-middle-click-action='launch'
 show-apps-always-in-the-edge=false
 show-apps-at-top=false
+show-dock-urgent-notify=true
 show-favorites=true
 show-mounts=false
 show-mounts-network=false
 show-mounts-only-mounted=false
 show-show-apps-button=false
 show-trash=false
-transparency-mode='DYNAMIC'
+transparency-mode='FIXED'

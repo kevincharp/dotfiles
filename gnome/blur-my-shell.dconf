@@ -27,10 +27,14 @@ pipeline='pipeline_default'
 pipeline='pipeline_default'
 
 [panel]
+blur=false
 brightness=0.59999999999999998
 corner-radius=0
 pipeline='pipeline_default'
 sigma=30
+
+[popup]
+pipeline='pipeline_default_rounded'
 
 [screenshot]
 pipeline='pipeline_default'

@@ -86,6 +86,42 @@ atajo/lanzador no hace nada. Verificado en Fedora.
   se descartó: bajo Wayland tiene el mismo comportamiento (app en dock,
   `Ctrl+V` porque su auto-paste vía xdotool no inyecta en apps Wayland
   nativas). Solo sumaba favoritos/tags a cambio de una dependencia extra.
+- **Fedora 45 (Python 3.15) lo rompe:** `ulauncher 5.15.15-5.fc45` crashea al
+  importar, `ssl.PROTOCOL_TLSv1` ya no existe (lo usa su servidor websocket
+  embebido en `utils/SimpleWebSocketServer.py`). Parche local de una línea,
+  que un update del paquete pisa: `sudo sed -i
+  's/ssl\.PROTOCOL_TLSv1\b/ssl.PROTOCOL_TLS/'` sobre ese archivo.
+- **Siempre con `GDK_BACKEND=x11`** (ya lo hace el autostart): en Wayland nativo
+  GNOME ignora la posición que pide la app y la ventana se abre centrada en vez
+  de arriba. Si se lanza a mano, usar `env GDK_BACKEND=x11 ulauncher`.
+
+## Dock y barra superior en GNOME 51: Dash to Dock, Blur My Shell y sus trampas
+
+- **`apply-custom-theme=true` (tema integrado de Dash to Dock) fija el fondo en
+  `#303030` opaco** e ignora `background-color`, `background-opacity` y
+  `transparency-mode` (`theming.js` sale de `_adjustTheme()` antes de aplicarlos;
+  la regla está en `stylesheet.css`). Un dock plano `rgb(48,48,48)` que no cambia
+  con el wallpaper es esto, no el blur. Para un dock translúcido: `apply-custom-theme=false`
+  más `transparency-mode='FIXED'` y `background-opacity` (hoy 0.4). En `DYNAMIC` sin
+  `customize-alphas` los alfas son los del CSS (0.8 / 0.2), no `max-alpha`.
+- **Blur My Shell 75 del paquete de Fedora 45 viene sin la carpeta `styles/`**,
+  aunque su `stylesheet.css` importa diez archivos de ahí (`panel.css`, `dash.css`,
+  `overview.css`…). `rpm -V` no marca nada: el paquete sale así. Las clases
+  `transparent-dash` / `transparent-panel` quedan inertes. Candidato a reporte
+  en Bugzilla; hasta entonces solo funciona su blur "puro", no el estilo.
+- **Línea de 1px con el wallpaper entre la barra superior y una ventana
+  maximizada:** desapareció al apagar el blur de la barra
+  (`blur-my-shell.panel blur=false`, ya versionado). La causa más probable es el
+  la tira de blur de la barra, que se pasa unos píxeles (`components/panel.js`); no
+  se confirmó leyendo el código.
+- **La barra superior es negra a propósito:** es el comportamiento estándar de
+  GNOME (solo es transparente en la vista general). Con el blur apagado no hay
+  translucidez posible sin la hoja de estilos faltante.
+- **El hover de una app en la vista general es opaco por diseño:**
+  `.overview-tile:hover` = `st-lighten(#222226, 7%)` ≈ `rgb(50,50,56)`. No es un
+  bug de las extensiones.
+- **Cómo se diagnosticó:** midiendo píxeles de capturas. Un fondo plano y
+  neutro es un relleno sólido; uno translúcido arrastra el tinte del fondo.
 
 ## `keybindings.json`: por qué no se versiona, y por qué `shift+enter` es imposible en Ptyxis
 

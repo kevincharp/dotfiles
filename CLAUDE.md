@@ -141,7 +141,10 @@ Ulauncher tiene tres piezas, versionadas distinto:
   (dark/light), vendorizado desde [kayozxo/ulauncher-liquid-glass]. El vidrio
   esmerilado real lo da la extensión GNOME **Blur My Shell**, config en
   `gnome/blur-my-shell.dconf`. En Wayland una extensión recién instalada no
-  carga hasta reiniciar sesión.
+  carga hasta reiniciar sesión. **Hoy ese vidrio no está activo:** el blur de
+  `applications` está en `false` y el paquete de Fedora 45 trae Blur My Shell
+  sin su carpeta `styles/`
+  ([notas](docs/notas-tecnicas.md#dock-y-barra-superior-en-gnome-51-dash-to-dock-blur-my-shell-y-sus-trampas)).
 
 ## Claude Code (`.claude/`)
 

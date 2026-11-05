@@ -111,9 +111,17 @@ atajo/lanzador no hace nada. Verificado en Fedora.
   en Bugzilla; hasta entonces solo funciona su blur "puro", no el estilo.
 - **Línea de 1px con el wallpaper entre la barra superior y una ventana
   maximizada:** desapareció al apagar el blur de la barra
-  (`blur-my-shell.panel blur=false`, ya versionado). La causa más probable es el
-  la tira de blur de la barra, que se pasa unos píxeles (`components/panel.js`); no
+  (`blur-my-shell.panel blur=false`, ya versionado). La causa más probable es la
+  tira de blur de la barra, que se pasa unos píxeles (`components/panel.js`); no
   se confirmó leyendo el código.
+- **Recuadro de esquinas cuadradas detrás del OSD del volumen:** el componente
+  `popup` de Blur My Shell registra los OSD (`components/popup/index.js`,
+  `Main.osdWindowManager._osdWindows`) y les pone una superficie de blur
+  rectangular de radio 24-28, más cuadrada que la píldora del OSD; sin los
+  `styles/popup/*.css` que faltan en el paquete, nada la iguala ni la oculta.
+  Desapareció al apagar `blur-my-shell.popup blur=false` (confirmado a ojo, ya
+  versionado). Se pierde el blur de menús, notificaciones y OSD, que sin esos
+  estilos salía mal igual.
 - **La barra superior es negra a propósito:** es el comportamiento estándar de
   GNOME (solo es transparente en la vista general). Con el blur apagado no hay
   translucidez posible sin la hoja de estilos faltante.

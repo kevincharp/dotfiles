@@ -29,7 +29,8 @@
     "landing-team@kevincharp-dotfiles": true,
     "cloudflare@cloudflare": true,
     "security-guidance@claude-plugins-official": true,
-    "claude-security@claude-plugins-official": true
+    "claude-security@claude-plugins-official": true,
+    "watch@claude-video": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -77,6 +78,13 @@
         "repo": "cloudflare/skills"
       },
       "autoUpdate": true
+    },
+    "claude-video": {
+      "source": {
+        "source": "github",
+        "repo": "bradautomates/claude-video"
+      },
+      "autoUpdate": false
     }
   },
   "modelSettings": {

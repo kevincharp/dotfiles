@@ -49,6 +49,27 @@ del [`CLAUDE.md`](../CLAUDE.md) de este repo.
 | `thermos` | `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `thermos` (orquestador) | Doble revisión de branch/PR en paralelo: bugs/breaking changes/seguridad/devex/feature-gate leaks + mantenibilidad/estructura, sintetizadas. Ver nota de adaptación abajo | Tercero, adaptado de Cursor (`thermos`, marketplace propio) |
 | `landing-team` | *(sin skills — 4 agentes: `planner`, `builder`, `qa`, `security`)* | Agentes con `tools` restringidos para el [equipo de landing pages](guia-landing-pages.md); usados por el workflow `landing-pipeline` o sueltos vía el Agent tool | **Propia** (`claude-skills/landing-team`) |
 | `cloudflare` | `agents-sdk`, `cloudflare-email-service`, `cloudflare-one-migrations`, `cloudflare-one`, `cloudflare`, `durable-objects`, `nextjs-on-cloudflare`, `sandbox-migrate-to-next`, `sandbox-next`, `sandbox-stable`, `turnstile-spin`, `web-perf`, `workers-best-practices`, `wrangler` | Guía oficial de la plataforma Cloudflare (Workers, Durable Objects, Agents SDK, Wrangler, Cloudflare One, etc.). También registra el MCP server remoto `mcp.cloudflare.com/mcp` — la primera vez que se use pide conectar la cuenta real de Cloudflare | Tercero (`cloudflare`, marketplace propio) |
+| `watch` | `watch` (`/watch`) | Deja que Claude "mire" un video: descarga (yt-dlp), extrae frames (ffmpeg), transcribe y entrega todo al contexto | Tercero (`bradautomates/claude-video`, MIT), marketplace propio `claude-video` con **`autoUpdate` desactivado** |
+
+### Notas sobre `watch` (claude-video)
+
+- **Auditado antes de sumarlo** (v0.3.2, commit `03ceb42`, solo lectura): sin
+  comportamiento malicioso, telemetría ni TLS debilitado; los riesgos son de
+  configuración. Un solo mantenedor y sin PRs mergeados, por eso **`autoUpdate:
+  false`** (excepción a los demás marketplaces) y hay que re-auditar al subir de
+  versión. No se verificó si el marketplace admite fijar `ref`/sha.
+- **Lo único que corre solo** es un hook `SessionStart` (`check-setup.sh`, 5 s)
+  que solo avisa si falta configuración. No instala nada al registrarse.
+- **Qué sale de la máquina:** con una clave Gemini/Groq/OpenAI en el entorno o en
+  `~/.config/watch/.env`, un `/watch` normal sube video o audio a esa API. Para
+  mantenerlo local: `WATCH_ENGINE=local` y `WATCH_WHISPER_BACKEND=whisperx|none`
+  en ese `.env`, y **no exportar claves** en bashrc/zshrc/`profile.ps1`.
+- **Inyección por contenido:** título, subtítulos y transcripción de un video
+  llegan al contexto y el skill declara `allowed-tools: Bash`. Usarlo solo con
+  videos de confianza y no pegar claves en el chat.
+- **Requisitos:** `ffmpeg` (ya está, `ffmpeg-free` 9.0.2: rechaza `-vsync` pero el
+  plugin detecta y usa `-fps_mode`), `yt-dlp` (`sudo dnf install yt-dlp`) y
+  `python3`. En Windows no se probó.
 
 ### Notas sobre `mattpocock-skills`
 

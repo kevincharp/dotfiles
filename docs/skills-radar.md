@@ -89,6 +89,12 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 |---|---|---|---|---|
 | `context7` | MCP de Upstash, docs actualizadas de librerías | Se preguntó dos veces si instalar, nunca se contestó | 📋 | `github.com/upstash/context7` |
 
+## Multimedia / Video
+
+| Nombre | Funcionalidad | Caso de uso | Estado | Repo |
+|---|---|---|---|---|
+| `watch` (claude-video) | Descarga un video, extrae frames, transcribe y se lo entrega a Claude (`/watch`) | Resumir o consultar un video, tutorial o reunión grabada. Detalle y precauciones en el [catálogo](agent-skills-catalogo.md) | ✅ `autoUpdate` off | `github.com/bradautomates/claude-video` |
+
 ## Bundle general (mixto, no una sola categoría)
 
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |

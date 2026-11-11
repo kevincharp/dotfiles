@@ -25,7 +25,6 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 | `ui-ux-pro-max` | Tokens, paletas, componentes shadcn, banners, slides | Necesitás una base de datos de diseño buscable | 📦 | `github.com/nextlevelbuilder/ui-ux-pro-max-skill` |
 | `taste-skill` | Anti-genérico por estilo + genera `DESIGN.md` + image-to-code | Necesitás un `DESIGN.md` inventado a medida | 📦 | `github.com/Leonxlnx/taste-skill` |
 | `impeccable` | Auditor/pulidor de frontend, corre solo tras cada edición | Vigilar calidad de UI mientras se construye | ❌ desinstalado (su motor no baja detrás del proxy; ver `agent-skills-catalogo.md`) | `github.com/pbakaus/impeccable` |
-| `premium-website-generator` | Sitios estáticos premium genéricos (HTML/CSS/JS vanilla) | Sitio de propósito general sin build | 📦 | Adaptada de terceros, origen sin registrar (`claude-skills/`) |
 | `claude-webkit` | Plantilla clonable Next.js+Tailwind+shadcn con 21 skills | Ver nota abajo | 🔍 descartado | `github.com/hainrixz/claude-webkit` |
 | `refero_skill` | Skill+MCP para investigar 150K screens/flows reales antes de implementar | Ver nota abajo | 🔍 sin decidir | `github.com/referodesign/refero_skill` |
 | `google-labs-code/design.md` + `VoltAgent/awesome-design-md` | CLI+lint+export de tokens / galería de `DESIGN.md` reales | Validar/inspirar el `DESIGN.md` que ya generan `stitch-skill`/`impeccable` | 🔍 sin decidir | `github.com/google-labs-code/design.md`, `github.com/VoltAgent/awesome-design-md` |
@@ -112,7 +111,7 @@ atribución). Publica a Vercel sin necesitar cuenta.
 
 Se descartó porque solapa con lo que ya está armado en este repo
 (en ese momento `landing-team`/`landing-pipeline`, `landing-cro` y
-`landing-a-secciones`, eliminados el 2026-11-11, más `premium-website-generator`) — mismo caso de uso (sitio a partir de un brief, con
+`landing-a-secciones` y `premium-website-generator`, eliminados el 2026-11-11) — mismo caso de uso (sitio a partir de un brief, con
 deploy), stack distinto (Next.js/React con build vs. HTML/CSS/JS vanilla sin
 build, más liviano). Si algún día aparece la necesidad real de un sitio
 Next.js/React (no estático), vale la pena reabrir esta evaluación.

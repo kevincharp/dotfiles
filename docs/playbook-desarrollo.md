@@ -64,7 +64,7 @@ limpio, nunca en el que escribió el código.
 | Si… | Entonces… | Hoy en Claude Code |
 |---|---|---|
 | Tengo una idea de proyecto | Ubicarme en el flujo y afilar la idea con una entrevista | `/ask-matt`, `/grill-with-docs` |
-| Es chico | Una sesión, sin tickets | Skill de sitio (`premium-website-generator`) |
+| Es chico | Una sesión, sin tickets | La skill de diseño que sugiera `/bibliotecario` |
 | Es mediano | Especificación → tickets con dependencias → un ticket por vez | `/to-spec`, `/to-tickets`, `/implement` |
 | Tengo un bug mío | Anotarlo como ticket; si es chico, diagnosticarlo ahora | `/triage`, `diagnosing-bugs` |
 | Me llega un bug o pedido de otro | Pasarlo por triage | `/triage` |

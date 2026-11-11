@@ -55,7 +55,6 @@ instalan en el proyecto que los necesite con
 | `all-deploy` | `all-deploy` | Deploy a Vercel/Railway/Docker+VPS/cloudflared con auditoría previa y flujo preview→prod | Tercero, envuelto en **este repo** |
 | `ui-ux-pro-max` | `banner-design`, `brand`, `design`, `design-system`, `slides`, `ui-styling`, `ui-ux-pro-max` | Diseño UI/UX: tokens, paletas, tipografías, componentes shadcn/Tailwind, banners, slides, brand voice | Tercero (`ui-ux-pro-max-skill`) |
 | `rust-analyzer-lsp` | *(LSP, no es skill con `/`)* | Autocompletado/análisis de código Rust en vivo | Oficial |
-| `premium-website-generator` | `premium-website-generator` | Genera sitios estáticos premium (HTML/CSS/JS vanilla) listos para Hostinger | Adaptada de terceros, origen sin registrar; la copia del repo es la fuente (`claude-skills/premium-website-generator`) |
 | `example-skills` | `algorithmic-art`, `brand-guidelines`, `canvas-design`, `doc-coauthoring`, `frontend-design`, `internal-comms`, `mcp-builder`, `skill-creator`, `slack-gif-creator`, `theme-factory`, `web-artifacts-builder`, `webapp-testing` | Bundle de 12 skills de ejemplo de Anthropic — diseño visual, arte generativo, co-escritura de docs, comms internas, builder de MCP, testing con Playwright, artifacts, temas, GIFs de Slack. Se listan con el prefijo `example-skills:<nombre>` | Oficial (`anthropic-agent-skills`) |
 | `diagram-design` | `diagram-design` | 40 tipos de diagramas técnicos (arquitectura, ER, UML, flowcharts, Gantt, Sankey…) como HTML+SVG autocontenido; redibuja `.drawio`/Mermaid/Excalidraw | Tercero (`diagram-design`, marketplace propio) |
 | `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
@@ -65,6 +64,12 @@ instalan en el proyecto que los necesite con
 `landing-team`, `landing-cro` y `landing-a-secciones` se eliminaron del repo
 (2026-11-11): el equipo de landing duplicaba a los agentes base, y las otras dos
 eran de dropshipping/Shopify, que ya no se hace. Quedan en el historial de git.
+
+`premium-website-generator` también se eliminó (2026-11-11): imponía su propio
+proceso (decisiones en silencio, Hostinger por FTP, librerías sin preguntar) y
+chocaba con el flujo de tickets. Para diseño web, instalar `taste-skill` o
+`example-skills` (`frontend-design`) en el proyecto. Sus reglas de robustez y su
+`verify_project.py` se pueden rescatar del historial si hacen falta.
 
 `the-architect` se desinstaló y se quitó su marketplace (`soyenriquerocha`):
 se solapa con `superpowers` y la experiencia de uso fue mala. Sigue en las

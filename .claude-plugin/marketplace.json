@@ -54,13 +54,6 @@
       "category": "development"
     },
     {
-      "name": "premium-website-generator",
-      "source": "./claude-skills/premium-website-generator",
-      "description": "Genera sitios web estaticos premium (HTML/CSS/JS vanilla, sin build) listos para Hostinger/hosting estatico: 10 arquetipos visuales, catalogo de efectos, pipeline de imagenes (Openverse/WebP) y verificacion post-generacion.",
-      "keywords": ["web", "static-site", "hostinger", "design", "html", "css"],
-      "category": "design"
-    },
-    {
       "name": "thermos",
       "source": "./claude-skills/thermos",
       "description": "Doble revision de branch/PR en paralelo: thermo-nuclear-review (bugs, breaking changes, seguridad, devex, feature-flag leaks) + thermo-nuclear-code-quality-review (mantenibilidad/estructura, code-judo, regla de 1k lineas), sintetizadas por el orquestador thermos. Adaptado del plugin thermos de Cursor (MIT) a los subagentes de Claude Code.",

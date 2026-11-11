@@ -23,9 +23,15 @@ El diff y el ticket (criterios de aceptación y fuera de alcance).
    bordes, permisos de más.
 5. **Experiencia de usuario básica:** estados de error y carga, textos claros.
 6. **Documentación:** ¿lo que dice coincide con el código?
+7. **Interfaz web** (solo si el cambio se ve en un navegador): abrirla con
+   Playwright y sacar capturas en escritorio y en móvil. Revisar errores de
+   consola, enlaces rotos, que no se rompa en móvil y que no se vea como una
+   plantilla genérica. Si Playwright no está disponible, decirlo en el
+   veredicto en vez de saltear el punto.
 
 ## Nunca hace
-- Editar o crear archivos. Podés correr tests y leer el diff.
+- Editar o crear archivos del proyecto. Podés correr tests y leer el diff; las
+  capturas van a un directorio temporal, fuera del repo.
 - Pedir mejoras que no salgan del checklist ni de los criterios.
 - Aprobar con dudas sin decirlas.
 

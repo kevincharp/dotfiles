@@ -24,32 +24,49 @@ así que `enabledPlugins` y `extraKnownMarketplaces` llegan solos con un
 se versiona. Detalle del mecanismo completo:
 [`.claude/rules/claude-code.md`](../.claude/rules/claude-code.md).
 
-## Habilitados hoy
+## Globales (activos en todo proyecto)
+
+Solo lo que sirve en cualquier proyecto; el resto se instala donde haga falta.
+Costo fijo medido con `claude plugin details`: ~2.600 tokens por sesión (eran
+~10.100 con los 22 plugins en alcance user).
+
+| Plugin | Skill(s) | Para qué sirve | Origen |
+|---|---|---|---|
+| `security-guidance` | *(hooks, sin skills)* | Revisión de seguridad automática mientras se trabaja: regex en cada edición (sin modelo), revisión del diff al final de cada turno y revisión agéntica en cada `git commit`/`push` de Claude. No bloquea: pasa los hallazgos a Claude. Consume uso (Python 3.10+). Capas apagables con `ENABLE_PATTERN_RULES=0`, `ENABLE_STOP_REVIEW=0`, `ENABLE_COMMIT_REVIEW=0` o `SECURITY_GUIDANCE_DISABLE=1` | Oficial (`claude-plugins-official`) |
+| `claude-security` | `claude-security` | Escaneo multiagente de vulnerabilidades del repo o de un diff/rama/PR (`/claude-security`), con verificación independiente y parches sugeridos que nunca se aplican solos; reporte MD/JSONL/SARIF. Pide plan pago o API y consume uso (Python 3.9+) | Oficial (`claude-plugins-official`) |
+| `superpowers` | `superpowers` | Brainstorming y desarrollo dirigido por subagentes | Oficial |
+| `code-review` | `code-review` | Revisión automatizada de PRs con specs múltiples | Oficial |
+| `mattpocock-skills` | **engineering:** `ask-matt`, `grill-with-docs`, `triage`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `to-spec`, `to-tickets`, `implement`, `wayfinder`, `prototype`, `diagnosing-bugs`, `research`, `tdd`, `domain-modeling`, `codebase-design`, `code-review`, `resolving-merge-conflicts`, `wizard` · **productivity:** `grill-me`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `grilling`, `writing-for-agents` · **misc (sin documentar en el README, no explorado):** `git-guardrails-claude-code`, `migrate-to-shoehorn`, `scaffold-exercises`, `setup-pre-commit` | Disciplina de ingeniería real: alineación por "grilling" antes de codear, TDD, diagnóstico de bugs, domain modeling, flujo spec→tickets→implement contra un issue tracker, review por Standards+Spec en paralelo. Requiere correr `/setup-matt-pocock-skills` una vez por repo | Oficial (`claude-plugins-official`, autor Matt Pocock/aihero.dev) |
+| `watch` | `watch` (`/watch`) | Deja que Claude "mire" un video: descarga (yt-dlp), extrae frames (ffmpeg), transcribe y entrega todo al contexto | Tercero (`bradautomates/claude-video`, MIT), marketplace propio `claude-video` con **`autoUpdate` desactivado** |
+
+## Biblioteca (se instalan por proyecto)
+
+No están en `enabledPlugins`: su marketplace sigue registrado, así que se
+instalan en el proyecto que los necesite con
+`claude plugin install <plugin>@<marketplace> --scope local` (solo para mí) o
+`--scope project` (queda en el `.claude/settings.json` del repo).
 
 | Plugin | Skill(s) | Para qué sirve | Origen |
 |---|---|---|---|
 | `claude-code-setup` | `claude-automation-recommender` | Analiza el código y recomienda automatizaciones de Claude Code (hooks, subagents, skills, plugins, MCP) | Oficial (`claude-plugins-official`) |
-| `the-architect` | `architect`, `architect-quick`, `architect-brownfield`, `architect-refresh`, `architect-audit`, `architect-next` | Entrevista, diseña y genera bundles de construcción para proyectos nuevos o cambios sobre un repo existente, con criterios de aceptación validados | Tercero (`soyenriquerocha`) |
 | `cyber-neo` | `cyber-neo` | Auditoría de seguridad read-only (SAST, SCA, secretos, OWASP/CWE) | Tercero, envuelto en **este repo** (`kevincharp-dotfiles`) |
 | `security-audit-skill` | `security-audit` | Auditoría de seguridad adversarial en 6 fases con sub-agentes aislados (recon → hunting con cobertura → validación adversarial → salida estructurada → re-verificación independiente → reporte). Ver nota de solapamiento con `cyber-neo` abajo | Tercero, envuelto en **este repo** (`kevincharp-dotfiles`) |
-| `security-guidance` | *(hooks, sin skills)* | Revisión de seguridad automática mientras se trabaja: regex en cada edición (sin modelo), revisión del diff al final de cada turno y revisión agéntica en cada `git commit`/`push` de Claude. No bloquea: pasa los hallazgos a Claude. Consume uso (Python 3.10+). Capas apagables con `ENABLE_PATTERN_RULES=0`, `ENABLE_STOP_REVIEW=0`, `ENABLE_COMMIT_REVIEW=0` o `SECURITY_GUIDANCE_DISABLE=1` | Oficial (`claude-plugins-official`) |
-| `claude-security` | `claude-security` | Escaneo multiagente de vulnerabilidades del repo o de un diff/rama/PR (`/claude-security`), con verificación independiente y parches sugeridos que nunca se aplican solos; reporte MD/JSONL/SARIF. Pide plan pago o API y consume uso (Python 3.9+) | Oficial (`claude-plugins-official`) |
 | `all-deploy` | `all-deploy` | Deploy a Vercel/Railway/Docker+VPS/cloudflared con auditoría previa y flujo preview→prod | Tercero, envuelto en **este repo** |
 | `ui-ux-pro-max` | `banner-design`, `brand`, `design`, `design-system`, `slides`, `ui-styling`, `ui-ux-pro-max` | Diseño UI/UX: tokens, paletas, tipografías, componentes shadcn/Tailwind, banners, slides, brand voice | Tercero (`ui-ux-pro-max-skill`) |
 | `rust-analyzer-lsp` | *(LSP, no es skill con `/`)* | Autocompletado/análisis de código Rust en vivo | Oficial |
 | `premium-website-generator` | `premium-website-generator` | Genera sitios estáticos premium (HTML/CSS/JS vanilla) listos para Hostinger | **Propia** (`claude-skills/premium-website-generator`) |
-| `superpowers` | `superpowers` | Brainstorming y desarrollo dirigido por subagentes | Oficial |
-| `code-review` | `code-review` | Revisión automatizada de PRs con specs múltiples | Oficial |
 | `example-skills` | `algorithmic-art`, `brand-guidelines`, `canvas-design`, `doc-coauthoring`, `frontend-design`, `internal-comms`, `mcp-builder`, `skill-creator`, `slack-gif-creator`, `theme-factory`, `web-artifacts-builder`, `webapp-testing` | Bundle de 12 skills de ejemplo de Anthropic — diseño visual, arte generativo, co-escritura de docs, comms internas, builder de MCP, testing con Playwright, artifacts, temas, GIFs de Slack. Se listan con el prefijo `example-skills:<nombre>` | Oficial (`anthropic-agent-skills`) |
 | `landing-cro` | `landing-cro` | Genera una landing de venta directa (HTML autocontenido, CRO/conversión, mobile-first) a partir de una URL de referencia o de marketplace (AliExpress/Amazon/Temu/Alibaba) | **Propia** (`claude-skills/landing-cro`) |
 | `landing-a-secciones` | `landing-a-secciones` | Convierte un HTML de landing (p. ej. el de `landing-cro`) en secciones `.liquid` del tema Dawn de Shopify | **Propia** (`claude-skills/landing-a-secciones`) |
 | `diagram-design` | `diagram-design` | 40 tipos de diagramas técnicos (arquitectura, ER, UML, flowcharts, Gantt, Sankey…) como HTML+SVG autocontenido; redibuja `.drawio`/Mermaid/Excalidraw | Tercero (`diagram-design`, marketplace propio) |
 | `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
-| `mattpocock-skills` | **engineering:** `ask-matt`, `grill-with-docs`, `triage`, `improve-codebase-architecture`, `setup-matt-pocock-skills`, `to-spec`, `to-tickets`, `implement`, `wayfinder`, `prototype`, `diagnosing-bugs`, `research`, `tdd`, `domain-modeling`, `codebase-design`, `code-review`, `resolving-merge-conflicts`, `wizard` · **productivity:** `grill-me`, `handoff`, `teach`, `to-questionnaire`, `wait-what`, `grilling`, `writing-for-agents` · **misc (sin documentar en el README, no explorado):** `git-guardrails-claude-code`, `migrate-to-shoehorn`, `scaffold-exercises`, `setup-pre-commit` | Disciplina de ingeniería real: alineación por "grilling" antes de codear, TDD, diagnóstico de bugs, domain modeling, flujo spec→tickets→implement contra un issue tracker, review por Standards+Spec en paralelo. Requiere correr `/setup-matt-pocock-skills` una vez por repo | Oficial (`claude-plugins-official`, autor Matt Pocock/aihero.dev) |
 | `thermos` | `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `thermos` (orquestador) | Doble revisión de branch/PR en paralelo: bugs/breaking changes/seguridad/devex/feature-gate leaks + mantenibilidad/estructura, sintetizadas. Ver nota de adaptación abajo | Tercero, adaptado de Cursor (`thermos`, marketplace propio) |
 | `landing-team` | *(sin skills — 4 agentes: `planner`, `builder`, `qa`, `security`)* | Agentes con `tools` restringidos para el [equipo de landing pages](guia-landing-pages.md); usados por el workflow `landing-pipeline` o sueltos vía el Agent tool | **Propia** (`claude-skills/landing-team`) |
 | `cloudflare` | `agents-sdk`, `cloudflare-email-service`, `cloudflare-one-migrations`, `cloudflare-one`, `cloudflare`, `durable-objects`, `nextjs-on-cloudflare`, `sandbox-migrate-to-next`, `sandbox-next`, `sandbox-stable`, `turnstile-spin`, `web-perf`, `workers-best-practices`, `wrangler` | Guía oficial de la plataforma Cloudflare (Workers, Durable Objects, Agents SDK, Wrangler, Cloudflare One, etc.). También registra el MCP server remoto `mcp.cloudflare.com/mcp` — la primera vez que se use pide conectar la cuenta real de Cloudflare | Tercero (`cloudflare`, marketplace propio) |
-| `watch` | `watch` (`/watch`) | Deja que Claude "mire" un video: descarga (yt-dlp), extrae frames (ffmpeg), transcribe y entrega todo al contexto | Tercero (`bradautomates/claude-video`, MIT), marketplace propio `claude-video` con **`autoUpdate` desactivado** |
+
+`the-architect` se desinstaló y se quitó su marketplace (`soyenriquerocha`):
+se solapa con `superpowers` y la experiencia de uso fue mala. Sigue en las
+estrellas de GitHub (`Hainrixz/the-architect`).
 
 ### Notas sobre `watch` (claude-video)
 

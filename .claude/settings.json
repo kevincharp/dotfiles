@@ -9,25 +9,9 @@
     "command": "bash ~/.dotfiles/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": true,
-    "example-skills@anthropic-agent-skills": true,
-    "the-architect@soyenriquerocha": true,
-    "cyber-neo@kevincharp-dotfiles": true,
-    "security-audit-skill@kevincharp-dotfiles": true,
-    "all-deploy@kevincharp-dotfiles": true,
-    "ui-ux-pro-max@ui-ux-pro-max-skill": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "premium-website-generator@kevincharp-dotfiles": true,
     "superpowers@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
-    "landing-cro@kevincharp-dotfiles": true,
-    "landing-a-secciones@kevincharp-dotfiles": true,
-    "diagram-design@diagram-design": true,
-    "taste-skill@taste-skill": true,
     "mattpocock-skills@claude-plugins-official": true,
-    "thermos@kevincharp-dotfiles": true,
-    "landing-team@kevincharp-dotfiles": true,
-    "cloudflare@cloudflare": true,
     "security-guidance@claude-plugins-official": true,
     "claude-security@claude-plugins-official": true,
     "watch@claude-video": true
@@ -38,13 +22,6 @@
         "source": "git",
         "url": "https://github.com/anthropics/skills.git"
       }
-    },
-    "soyenriquerocha": {
-      "source": {
-        "source": "github",
-        "repo": "Hainrixz/the-architect"
-      },
-      "autoUpdate": true
     },
     "kevincharp-dotfiles": {
       "source": {

@@ -12,7 +12,7 @@ técnico profundo de lo que está **instalado hoy** (mecanismos de invocación,
 hooks, notas de solapamiento fino). Este archivo es más amplio pero más
 superficial: cubre también lo evaluado-y-descartado y lo pendiente de mirar.
 
-**Estado:** ✅ Instalada · 🔍 Evaluada, no instalada · 📋 Pendiente de investigar
+**Estado:** ✅ Global (activa en todo proyecto) · 📦 Biblioteca (se instala por proyecto) · 🔍 Evaluada, no instalada · 📋 Pendiente de investigar
 
 **Pendiente de resolver (flujo, no herramienta):** cómo relevar los propios
 repos de GitHub con ⭐ (starred) para volcarlos a esta tabla de forma
@@ -22,13 +22,13 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
-| `ui-ux-pro-max` | Tokens, paletas, componentes shadcn, banners, slides | Necesitás una base de datos de diseño buscable | ✅ | `github.com/nextlevelbuilder/ui-ux-pro-max-skill` |
-| `taste-skill` | Anti-genérico por estilo + genera `DESIGN.md` + image-to-code | Necesitás un `DESIGN.md` inventado a medida | ✅ | `github.com/Leonxlnx/taste-skill` |
+| `ui-ux-pro-max` | Tokens, paletas, componentes shadcn, banners, slides | Necesitás una base de datos de diseño buscable | 📦 | `github.com/nextlevelbuilder/ui-ux-pro-max-skill` |
+| `taste-skill` | Anti-genérico por estilo + genera `DESIGN.md` + image-to-code | Necesitás un `DESIGN.md` inventado a medida | 📦 | `github.com/Leonxlnx/taste-skill` |
 | `impeccable` | Auditor/pulidor de frontend, corre solo tras cada edición | Vigilar calidad de UI mientras se construye | ❌ desinstalado (su motor no baja detrás del proxy; ver `agent-skills-catalogo.md`) | `github.com/pbakaus/impeccable` |
-| `premium-website-generator` | Sitios estáticos premium genéricos (HTML/CSS/JS vanilla) | Sitio de propósito general sin build | ✅ | Propia (`claude-skills/`) |
-| `landing-cro` | Landing de venta directa desde URL de referencia/marketplace | Landing de conversión puntual | ✅ | Propia |
-| `landing-a-secciones` | HTML de landing → secciones `.liquid` de Shopify | Pasar una landing ya armada a una tienda Shopify | ✅ | Propia |
-| `landing-team` | 4 agentes (planner/builder/qa/security) del equipo de landing | Orquestar todo el pipeline de una landing sin microgestión manual | ✅ | Propia |
+| `premium-website-generator` | Sitios estáticos premium genéricos (HTML/CSS/JS vanilla) | Sitio de propósito general sin build | 📦 | Propia (`claude-skills/`) |
+| `landing-cro` | Landing de venta directa desde URL de referencia/marketplace | Landing de conversión puntual | 📦 | Propia |
+| `landing-a-secciones` | HTML de landing → secciones `.liquid` de Shopify | Pasar una landing ya armada a una tienda Shopify | 📦 | Propia |
+| `landing-team` | 4 agentes (planner/builder/qa/security) del equipo de landing | Orquestar todo el pipeline de una landing sin microgestión manual | 📦 | Propia |
 | `claude-webkit` | Plantilla clonable Next.js+Tailwind+shadcn con 21 skills | Ver nota abajo | 🔍 descartado | `github.com/hainrixz/claude-webkit` |
 | `refero_skill` | Skill+MCP para investigar 150K screens/flows reales antes de implementar | Ver nota abajo | 🔍 sin decidir | `github.com/referodesign/refero_skill` |
 | `google-labs-code/design.md` + `VoltAgent/awesome-design-md` | CLI+lint+export de tokens / galería de `DESIGN.md` reales | Validar/inspirar el `DESIGN.md` que ya generan `stitch-skill`/`impeccable` | 🔍 sin decidir | `github.com/google-labs-code/design.md`, `github.com/VoltAgent/awesome-design-md` |
@@ -37,14 +37,14 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
-| `diagram-design` | 40 tipos de diagramas técnicos HTML+SVG | Diagramas de arquitectura, ER, flowcharts | ✅ | `github.com/cathrynlavery/diagram-design` |
+| `diagram-design` | 40 tipos de diagramas técnicos HTML+SVG | Diagramas de arquitectura, ER, flowcharts | 📦 | `github.com/cathrynlavery/diagram-design` |
 
 ## Seguridad
 
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
-| `cyber-neo` | Auditoría read-only rápida (SAST/SCA/secretos) | Pasada de rutina antes de commitear | ✅ | `github.com/Hainrixz/cyber-neo` |
-| `security-audit-skill` | Auditoría adversarial en 6 fases, sub-agentes aislados | Auditoría seria antes de exponer algo a producción — ver [nota en agent-skills-catalogo.md](agent-skills-catalogo.md#notas-sobre-security-audit-skill-vs-cyber-neo) | ✅ | `github.com/cloudflare/security-audit-skill` |
+| `cyber-neo` | Auditoría read-only rápida (SAST/SCA/secretos) | Pasada de rutina antes de commitear | 📦 | `github.com/Hainrixz/cyber-neo` |
+| `security-audit-skill` | Auditoría adversarial en 6 fases, sub-agentes aislados | Auditoría seria antes de exponer algo a producción — ver [nota en agent-skills-catalogo.md](agent-skills-catalogo.md#notas-sobre-security-audit-skill-vs-cyber-neo) | 📦 | `github.com/cloudflare/security-audit-skill` |
 | `security-guidance` | Revisión de seguridad en hooks: edición, fin de turno y commit/push | Red de seguridad automática mientras trabajás, sin invocarla | ✅ | `github.com/anthropics/claude-plugins-official` |
 | `claude-security` | Escaneo multiagente de repo/diff/PR con parches sugeridos | Escaneo a pedido (`/claude-security`) de una rama antes de mergear | ✅ | `github.com/anthropics/claude-plugins-official` |
 | `context-mode` | MCP de ahorro de contexto (sandbox de tools, SQLite) | Ver nota abajo | 🔍 descartado | `github.com/mksglu/context-mode` |
@@ -53,14 +53,14 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
-| `all-deploy` | Deploy a Vercel/Railway/Docker+VPS/cloudflared con auditoría previa | Publicar un proyecto con flujo preview→prod | ✅ | `github.com/Hainrixz/all-deploy` |
-| `cloudflare` | Guía Workers/Durable Objects/Wrangler + MCP remoto | Construir/deployar en la plataforma Cloudflare específicamente | ✅ | `github.com/cloudflare/skills` |
+| `all-deploy` | Deploy a Vercel/Railway/Docker+VPS/cloudflared con auditoría previa | Publicar un proyecto con flujo preview→prod | 📦 | `github.com/Hainrixz/all-deploy` |
+| `cloudflare` | Guía Workers/Durable Objects/Wrangler + MCP remoto | Construir/deployar en la plataforma Cloudflare específicamente | 📦 | `github.com/cloudflare/skills` |
 
 ## Backend / Lenguajes
 
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
-| `rust-analyzer-lsp` | LSP de Rust (autocompletado/análisis en vivo) | Cualquier repo Rust | ✅ | Oficial |
+| `rust-analyzer-lsp` | LSP de Rust (autocompletado/análisis en vivo) | Cualquier repo Rust | 📦 | Oficial |
 | `dmmulroy/anti-slop` | Ruleset de Oxlint anti-patrones sloppy en TS/JS | Aplica el día que haya un proyecto TypeScript nuevo | 📋 | `github.com/dmmulroy/anti-slop` |
 
 ## Review / Calidad de código
@@ -68,7 +68,7 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
 | `code-review` | Revisión de PR genérica | Revisar un PR sin criterio propio definido | ✅ | Oficial |
-| `thermos` | Doble review en paralelo (bugs/seguridad + mantenibilidad) | Revisión de branch antes de mergear | ✅ | Adaptado de Cursor, propio |
+| `thermos` | Doble review en paralelo (bugs/seguridad + mantenibilidad) | Revisión de branch antes de mergear | 📦 | Adaptado de Cursor, propio |
 | `cursor/plugins` (resto, 17 skills) | `deslop`, `fix-merge-conflicts`, `weekly-review`, etc. | Sin explorar el contenido, solo el índice | 📋 | `github.com/cursor/plugins` |
 
 ## Metodología / Planificación / Productividad
@@ -77,8 +77,8 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 |---|---|---|---|---|
 | `superpowers` | Brainstorming + dev dirigido por subagentes | Arrancar una feature con proceso, no a ciegas | ✅ | Oficial |
 | `mattpocock-skills` | TDD, debugging, spec→tickets, review paralelo | Disciplina de ingeniería real en un repo de trabajo | ✅ | Oficial (Matt Pocock) |
-| `the-architect` | Entrevista + blueprints de construcción validados | Proyecto nuevo desde cero, con criterios de aceptación | ✅ | `github.com/Hainrixz/the-architect` |
-| `claude-code-setup` | Recomienda automatizaciones para un repo | Onboarding de Claude Code a un repo nuevo | ✅ | Oficial |
+| `the-architect` | Entrevista + blueprints de construcción validados | Proyecto nuevo desde cero, con criterios de aceptación | 🔍 desinstalada (2026-11-11): se solapa con `superpowers` y la experiencia de uso fue mala | `github.com/Hainrixz/the-architect` |
+| `claude-code-setup` | Recomienda automatizaciones para un repo | Onboarding de Claude Code a un repo nuevo | 📦 | Oficial |
 | `gstack` | 23 comandos (CEO/eng-manager/QA/security/release) | Ver nota abajo | 🔍 referencia, no instalado | `github.com/garrytan/gstack` |
 | `handshake` | Entrevista guiada de idea difusa → doc entregable | Ver nota abajo | 🔍 pausado | `flowstate.help` (sin repo público) |
 | DEF Starter Kit | `CLAUDE.md` de proyecto + `LOOP/`/`Planning/` estilo GTD | Ver nota abajo | 🔍 pausado | `flowstate.help` (sin repo público) |
@@ -99,7 +99,7 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
-| `example-skills` | 12 skills de ejemplo (arte, docs, MCP builder, Playwright...) | Casos puntuales (GIFs, co-escritura de docs, testing) | ✅ | Oficial (Anthropic) |
+| `example-skills` | 12 skills de ejemplo (arte, docs, MCP builder, Playwright...) | Casos puntuales (GIFs, co-escritura de docs, testing) | 📦 | Oficial (Anthropic) |
 
 ## Notas de las evaluadas (por qué quedaron así)
 

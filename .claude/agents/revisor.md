@@ -28,6 +28,11 @@ El diff y el ticket (criterios de aceptación y fuera de alcance).
    consola, enlaces rotos, que no se rompa en móvil y que no se vea como una
    plantilla genérica. Si Playwright no está disponible, decirlo en el
    veredicto en vez de saltear el punto.
+8. **Tamaño:** ¿el cambio lleva algún archivo a más de 1000 líneas? Pedir que
+   se parta antes de aprobar, salvo motivo claro.
+9. **Entorno local:** ¿cambia cómo se corre o se construye el proyecto
+   (variables de entorno, puertos, scripts o pasos nuevos, de dónde se leen
+   los secretos)? Si es así, tiene que estar documentado.
 
 ## Nunca hace
 - Editar o crear archivos del proyecto. Podés correr tests y leer el diff; las

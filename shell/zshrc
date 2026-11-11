@@ -894,8 +894,8 @@ gset-profile() {
 
 # Uso: ginit <perfil> [path]
 # Inicia un repo git nuevo, aplica el perfil de identidad indicado y deja un
-# .gitignore base (plantilla git/gitignore-proyecto del repo dotfiles).
-# --- [git] ginit: git init con perfil de identidad + .gitignore base | uso: ginit <perfil> [path] ---
+# .gitignore y AGENTS.md base (plantillas git/ del repo dotfiles).
+# --- [git] ginit: git init con perfil de identidad + .gitignore y AGENTS.md base | uso: ginit <perfil> [path] ---
 ginit() {
     local perfil="$1"
     # OJO: NO llamar 'path' a esta variable — en zsh 'path' esta ligado a $PATH
@@ -931,6 +931,12 @@ ginit() {
         if [[ ! -f .gitignore && -f "$_tpl" ]]; then
             cp "$_tpl" .gitignore
             echo ".gitignore base creado (plantilla de dotfiles — suma lo de tu stack)"
+        fi
+        # AGENTS.md base si falta.
+        local _agents="$HOME/.dotfiles/git/agents-proyecto.md"
+        if [[ ! -f AGENTS.md && -f "$_agents" ]]; then
+            cp "$_agents" AGENTS.md
+            echo "AGENTS.md base creado (plantilla de dotfiles — completalo con el agente)"
         fi
         exit 0
     )

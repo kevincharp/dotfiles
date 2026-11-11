@@ -61,20 +61,6 @@
       "category": "design"
     },
     {
-      "name": "landing-cro",
-      "source": "./claude-skills/landing-cro",
-      "description": "Genera una landing de venta directa (HTML autocontenido, CRO/conversion, mobile-first) a partir de una sola URL: web de marca de referencia o link de producto de marketplace (AliExpress/Amazon/Temu/Alibaba). Placeholders vacios, sin copiar fotos/texto real.",
-      "keywords": ["landing", "cro", "shopify", "ecommerce", "dropshipping", "conversion"],
-      "category": "design"
-    },
-    {
-      "name": "landing-a-secciones",
-      "source": "./claude-skills/landing-a-secciones",
-      "description": "Convierte un HTML de landing (por ejemplo el de landing-cro) en secciones .liquid independientes del tema Dawn de Shopify, una por bloque, con schema completo y settings duales escritorio/movil.",
-      "keywords": ["shopify", "liquid", "dawn", "ecommerce", "theme"],
-      "category": "design"
-    },
-    {
       "name": "thermos",
       "source": "./claude-skills/thermos",
       "description": "Doble revision de branch/PR en paralelo: thermo-nuclear-review (bugs, breaking changes, seguridad, devex, feature-flag leaks) + thermo-nuclear-code-quality-review (mantenibilidad/estructura, code-judo, regla de 1k lineas), sintetizadas por el orquestador thermos. Adaptado del plugin thermos de Cursor (MIT) a los subagentes de Claude Code.",
@@ -84,13 +70,6 @@
         "url": "https://github.com/cursor/plugins"
       },
       "license": "MIT",
-      "category": "development"
-    },
-    {
-      "name": "landing-team",
-      "source": "./claude-skills/landing-team",
-      "description": "4 agentes propios (planner, builder, qa, security) para el equipo de landing pages: planner/qa/security de solo lectura, builder con acceso completo -- mismo criterio de tools restringidos que un setup manual de sesiones nombradas. Usados por el workflow landing-pipeline y disponibles tambien via el Agent tool directo.",
-      "keywords": ["landing", "agents", "subagents", "planner", "qa", "security"],
       "category": "development"
     },
     {

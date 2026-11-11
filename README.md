@@ -104,7 +104,6 @@ La guía paso a paso (incluida la estructura exacta del vault):
 | [Idea: generador de dotfiles](docs/idea-generador-de-dotfiles.md) | *(pausada)* Convertir el repo en una herramienta que genere **tu** dotfiles y lo versione en tu cuenta |
 | [Catálogo de Agent Skills](docs/agent-skills-catalogo.md) | Qué plugins/skills de Claude Code tenemos habilitados, de dónde salen, y qué es Claude-específico vs. formato abierto |
 | [Radar de skills/plugins IA](docs/skills-radar.md) | Todo lo evaluado (instalado, descartado o pendiente) por categoría funcional — mirar antes de sumar una skill nueva |
-| [Guía: landing pages con agentes](docs/guia-landing-pages.md) | Equipo de agentes (planner/builder/QA/seguridad/deploy) y el Workflow que los orquesta para armar, revisar y deployar landings |
 | [Notas técnicas](docs/notas-tecnicas.md) | Bitácora de bugs reales y decisiones de diseño (el "por qué" detrás de las reglas de `AGENTS.md`) |
 
 ## Desinstalar

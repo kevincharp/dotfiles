@@ -57,13 +57,14 @@ instalan en el proyecto que los necesite con
 | `rust-analyzer-lsp` | *(LSP, no es skill con `/`)* | Autocompletado/análisis de código Rust en vivo | Oficial |
 | `premium-website-generator` | `premium-website-generator` | Genera sitios estáticos premium (HTML/CSS/JS vanilla) listos para Hostinger | Adaptada de terceros, origen sin registrar; la copia del repo es la fuente (`claude-skills/premium-website-generator`) |
 | `example-skills` | `algorithmic-art`, `brand-guidelines`, `canvas-design`, `doc-coauthoring`, `frontend-design`, `internal-comms`, `mcp-builder`, `skill-creator`, `slack-gif-creator`, `theme-factory`, `web-artifacts-builder`, `webapp-testing` | Bundle de 12 skills de ejemplo de Anthropic — diseño visual, arte generativo, co-escritura de docs, comms internas, builder de MCP, testing con Playwright, artifacts, temas, GIFs de Slack. Se listan con el prefijo `example-skills:<nombre>` | Oficial (`anthropic-agent-skills`) |
-| `landing-cro` | `landing-cro` | Genera una landing de venta directa (HTML autocontenido, CRO/conversión, mobile-first) a partir de una URL de referencia o de marketplace (AliExpress/Amazon/Temu/Alibaba) | Adaptada de terceros, origen sin registrar; la copia del repo es la fuente (`claude-skills/landing-cro`) |
-| `landing-a-secciones` | `landing-a-secciones` | Convierte un HTML de landing (p. ej. el de `landing-cro`) en secciones `.liquid` del tema Dawn de Shopify | Adaptada de terceros, origen sin registrar; la copia del repo es la fuente (`claude-skills/landing-a-secciones`) |
 | `diagram-design` | `diagram-design` | 40 tipos de diagramas técnicos (arquitectura, ER, UML, flowcharts, Gantt, Sankey…) como HTML+SVG autocontenido; redibuja `.drawio`/Mermaid/Excalidraw | Tercero (`diagram-design`, marketplace propio) |
 | `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
 | `thermos` | `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `thermos` (orquestador) | Doble revisión de branch/PR en paralelo: bugs/breaking changes/seguridad/devex/feature-gate leaks + mantenibilidad/estructura, sintetizadas. Ver nota de adaptación abajo | Tercero, adaptado de Cursor (`thermos`, marketplace propio) |
-| `landing-team` | *(sin skills — 4 agentes: `planner`, `builder`, `qa`, `security`)* | Agentes con `tools` restringidos para el [equipo de landing pages](guia-landing-pages.md); usados por el workflow `landing-pipeline` o sueltos vía el Agent tool | **Propia** (`claude-skills/landing-team`) |
 | `cloudflare` | `agents-sdk`, `cloudflare-email-service`, `cloudflare-one-migrations`, `cloudflare-one`, `cloudflare`, `durable-objects`, `nextjs-on-cloudflare`, `sandbox-migrate-to-next`, `sandbox-next`, `sandbox-stable`, `turnstile-spin`, `web-perf`, `workers-best-practices`, `wrangler` | Guía oficial de la plataforma Cloudflare (Workers, Durable Objects, Agents SDK, Wrangler, Cloudflare One, etc.). También registra el MCP server remoto `mcp.cloudflare.com/mcp` — la primera vez que se use pide conectar la cuenta real de Cloudflare | Tercero (`cloudflare`, marketplace propio) |
+
+`landing-team`, `landing-cro` y `landing-a-secciones` se eliminaron del repo
+(2026-11-11): el equipo de landing duplicaba a los agentes base, y las otras dos
+eran de dropshipping/Shopify, que ya no se hace. Quedan en el historial de git.
 
 `the-architect` se desinstaló y se quitó su marketplace (`soyenriquerocha`):
 se solapa con `superpowers` y la experiencia de uso fue mala. Sigue en las
@@ -141,7 +142,7 @@ repo), por eso está envuelto en el `marketplace.json` de este repo igual que
 de que `claude plugin install security-audit-skill@kevincharp-dotfiles -y` (o el
 `marketplace update`) resuelva**, porque lee el remoto, no el working tree.
 
-## Notas sobre `thermos` y `landing-team`
+## Notas sobre `thermos`
 
 `thermos` trae, además de las 2 skills de review, 2 agentes propios
 (`thermos:thermo-nuclear-review-subagent`,
@@ -157,13 +158,6 @@ orquestación funcione de verdad, no solo el contenido de las 2 skills base
 true` en el frontmatter (campo de Cursor, fuera del spec base de
 agentskills.io — no confirmado si Claude Code lo respeta), así que en teoría
 no se autodisparan por descripción, solo por invocación explícita.
-
-**`landing-team`** — 4 agentes propios (`planner`, `builder`, `qa`,
-`security`) para el [equipo de landing pages](guia-landing-pages.md), con
-`tools` restringidos (planner/qa/security de solo lectura, builder con
-acceso completo). Sin skills — son agentes puros, invocables vía el Agent
-tool (`landing-team:builder`, etc.) o desde el workflow `landing-pipeline`.
-100% propio, sin vendorizar nada de terceros.
 
 ## Mecanismos de invocación (no todas las skills se llaman igual)
 

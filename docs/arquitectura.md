@@ -112,8 +112,8 @@ modo (y cómo evitarlas) están documentadas en el `AGENTS.md` del repo.
 
 ## Decisiones no obvias (resumen)
 
-El detalle completo de cada una vive en [`AGENTS.md`](../AGENTS.md) — acá el
-mapa:
+El detalle completo de cada una vive en [`AGENTS.md`](../AGENTS.md) y sus
+reglas por área (`.claude/rules/`) — acá el mapa:
 
 - **Historial ↑ = lista fzf por prefijo**: réplica del ListView de PSReadLine.
   Se descartaron atuin (columnas no removibles) y zsh-autocomplete (completados,

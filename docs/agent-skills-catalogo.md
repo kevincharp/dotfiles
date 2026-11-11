@@ -21,8 +21,8 @@ agente, hay que apuntar directo al `SKILL.md`, no al mecanismo de `/plugin`.
 `settings.json` es symlink versionado (`.claude/settings.json` en este repo),
 así que `enabledPlugins` y `extraKnownMarketplaces` llegan solos con un
 `git pull`. El binario clona el contenido a `~/.claude/plugins/` solo, eso no
-se versiona. Detalle del mecanismo completo: sección "Claude Code (`.claude/`)"
-del [`AGENTS.md`](../AGENTS.md) de este repo.
+se versiona. Detalle del mecanismo completo:
+[`.claude/rules/claude-code.md`](../.claude/rules/claude-code.md).
 
 ## Habilitados hoy
 

@@ -34,6 +34,11 @@ proyecto no tiene backend.>
 
 <Lo que este proyecto NO va a hacer, para que nadie lo agregue.>
 
-## Estacionamiento
+## Dónde va cada cosa
 
-<Ideas y mejoras que aparecieron mientras se trabajaba y no entran ahora.>
+- `README.md`, `docs/` y este archivo: para quien lee el repo. Se publican.
+- `STATUS.local.md`: estado actual (Ahora, Próximo, Decisiones vigentes, Dudas,
+  Backlog). Leerlo entero al empezar la sesión y reescribirlo al cerrarla.
+- `CHANGELOG.local.md`: diario con fecha, lo nuevo arriba (qué se hizo, qué se
+  decidió y por qué, qué se descartó). Leer solo las últimas entradas.
+- Los archivos `*.local.md` no se commitean.

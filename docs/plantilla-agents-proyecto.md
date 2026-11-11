@@ -1,8 +1,9 @@
 # Plantilla de `AGENTS.md` de proyecto
 
 Base del `AGENTS.md` de cada proyecto nuevo. Lo leen Claude Code, Codex y
-opencode, así que no hay que mantener un archivo por herramienta. Las reglas generales (commits, comentarios, secretos) ya viven en
-el archivo global; este lleva solo lo propio del proyecto.
+opencode, así que no hay que mantener un archivo por herramienta. Las reglas
+generales (commits, comentarios, secretos) ya viven en el archivo global; este
+lleva solo lo propio del proyecto.
 
 Lo usan sobre todo el Builder y el Revisor ([`molde-agente.md`](molde-agente.md)):
 sin los comandos de test, el Builder adivina cómo probar el código.
@@ -25,3 +26,12 @@ proyectos nuevos; los ya creados no se tocan.
    lo que no se sabe se deja para cuando aparezca. La primera línea avisa que
    falta completarlo y se borra al terminar.
 3. Dejar el archivo corto: si una regla es general, va al archivo global.
+
+## Qué se publica y qué no
+
+El `AGENTS.md` se publica con el repo, así que lleva solo lo útil para quien lo
+lee. El estado de trabajo y el diario (`STATUS.local.md`, `CHANGELOG.local.md`,
+con el backlog adentro) son del agente y de quien trabaja con él: el
+`.gitignore` base ignora todo `*.local.md`. La sección "Dónde va cada cosa" de la
+plantilla se lo indica al agente. Nada de eso se crea solo: lo escribe el agente
+la primera vez que lo necesita.

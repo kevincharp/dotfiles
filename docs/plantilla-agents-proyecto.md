@@ -1,8 +1,7 @@
 # Plantilla de `AGENTS.md` de proyecto
 
-Se copia a la raíz de cada proyecto nuevo como `AGENTS.md` y se completa. Lo
-leen Claude Code, Codex y opencode, así que no hay que mantener un archivo por
-herramienta. Las reglas generales (commits, comentarios, secretos) ya viven en
+Base del `AGENTS.md` de cada proyecto nuevo. Lo leen Claude Code, Codex y
+opencode, así que no hay que mantener un archivo por herramienta. Las reglas generales (commits, comentarios, secretos) ya viven en
 el archivo global; este lleva solo lo propio del proyecto.
 
 Lo usan sobre todo el Builder y el Revisor ([`molde-agente.md`](molde-agente.md)):
@@ -14,49 +13,15 @@ hacerlo, el arreglo es un `CLAUDE.md` de una línea con `@AGENTS.md`.
 
 ## Plantilla
 
-```markdown
-# <Nombre del proyecto>
-
-<Qué es y para quién, en una o dos líneas.>
-
-## Cómo correr y probar
-
-- Correr: `<comando>`
-- Tests: `<comando>`
-- Linter o chequeos: `<comando>` (si hay)
-
-## Stack
-
-<Lenguaje, framework, base de datos, dónde se publica.>
-
-## Definición de hecho
-
-1. Cumple los criterios de aceptación del ticket.
-2. Los tests pasan.
-3. El cambio quedó simplificado.
-4. Está commiteado.
-
-## Frontend
-
-<Reglas propias: framework, estilos, componentes, accesibilidad. Borrar la
-sección si el proyecto no tiene frontend.>
-
-## Backend
-
-<Reglas propias: estructura, manejo de datos, errores. Borrar la sección si el
-proyecto no tiene backend.>
-
-## Fuera de alcance
-
-<Lo que este proyecto NO va a hacer, para que nadie lo agregue.>
-
-## Estacionamiento
-
-<Ideas y mejoras que aparecieron mientras se trabajaba y no entran ahora.>
-```
+Vive en [`git/agents-proyecto.md`](../git/agents-proyecto.md) (el archivo que
+copia `ginit`), junto a `git/gitignore-proyecto`. Editarla ahí cambia los
+proyectos nuevos; los ya creados no se tocan.
 
 ## Cómo usarla
 
-1. Al crear el proyecto con `ginit`, copiar la plantilla como `AGENTS.md`.
-2. Completar solo lo que se sabe; lo demás se agrega cuando aparece.
+1. `ginit` la copia como `AGENTS.md` al crear el proyecto (nunca pisa uno
+   existente).
+2. El agente la completa en la primera sesión, con lo que cuentes del proyecto;
+   lo que no se sabe se deja para cuando aparezca. La primera línea avisa que
+   falta completarlo y se borra al terminar.
 3. Dejar el archivo corto: si una regla es general, va al archivo global.

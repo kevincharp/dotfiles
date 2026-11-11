@@ -17,6 +17,7 @@ ulauncher/user-themes/*/generated.css
 # Configs propias (skills/agents/commands/hooks/estilos/workflows) — se versionan si existen
 !.claude/skills/
 !.claude/agents/
+!.claude/rules/
 !.claude/commands/
 !.claude/hooks/
 !.claude/output-styles/

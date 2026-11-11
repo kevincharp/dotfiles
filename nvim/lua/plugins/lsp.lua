@@ -159,7 +159,7 @@ return {
       -- Completa y valida los enlaces internos ([[wiki]] y [texto](./archivo.md)),
       -- avisa si apuntan a un archivo o a un encabezado que no existe, y da
       -- ir-a-la-definición sobre un enlace. Es justo lo que hace falta con los
-      -- CLAUDE.md, los README y los docs/ de este repo, que se referencian entre sí.
+      -- AGENTS.md, los README y los docs/ de este repo, que se referencian entre sí.
       marksman = {},
       -- SQL no lleva servidor a propósito: sqls necesita un config.yml con la cadena
       -- de conexión y este repo es público. Resaltado y formateo: treesitter.lua y

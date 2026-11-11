@@ -22,7 +22,7 @@ agente, hay que apuntar directo al `SKILL.md`, no al mecanismo de `/plugin`.
 así que `enabledPlugins` y `extraKnownMarketplaces` llegan solos con un
 `git pull`. El binario clona el contenido a `~/.claude/plugins/` solo, eso no
 se versiona. Detalle del mecanismo completo: sección "Claude Code (`.claude/`)"
-del [`CLAUDE.md`](../CLAUDE.md) de este repo.
+del [`AGENTS.md`](../AGENTS.md) de este repo.
 
 ## Habilitados hoy
 

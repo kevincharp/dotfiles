@@ -1,8 +1,8 @@
 # Notas técnicas (bitácora de decisiones y forense de bugs)
 
-Detalle completo de **por qué** las reglas de `CLAUDE.md` son como son: bugs
+Detalle completo de **por qué** las reglas de `AGENTS.md` son como son: bugs
 reales encontrados, alternativas evaluadas y descartadas, mecanismos
-internos verificados byte a byte. `CLAUDE.md` se quedó solo con la regla
+internos verificados byte a byte. `AGENTS.md` se quedó solo con la regla
 activa y corta ("qué hacer"); este archivo tiene el "por qué" — no hace
 falta leerlo en cada sesión, solo cuando se toca de nuevo esa parte del
 código y hace falta el contexto completo para no repetir un error ya

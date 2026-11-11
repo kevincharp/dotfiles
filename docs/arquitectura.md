@@ -108,11 +108,11 @@ passphrase). Es también el mecanismo de **actualización**: `update.sh` solo
 hace pull de ambos repos y re-corre el bootstrap.
 
 Los scripts bash corren con `set -euo pipefail`; las trampas conocidas de ese
-modo (y cómo evitarlas) están documentadas en el `CLAUDE.md` del repo.
+modo (y cómo evitarlas) están documentadas en el `AGENTS.md` del repo.
 
 ## Decisiones no obvias (resumen)
 
-El detalle completo de cada una vive en [`CLAUDE.md`](../CLAUDE.md) — acá el
+El detalle completo de cada una vive en [`AGENTS.md`](../AGENTS.md) — acá el
 mapa:
 
 - **Historial ↑ = lista fzf por prefijo**: réplica del ListView de PSReadLine.

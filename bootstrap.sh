@@ -1772,7 +1772,7 @@ fi
 if want_tool claude; then
     copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
     # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
-    # que sea portable en cada instalacion. El CLAUDE.md de la raiz es del repo dotfiles.
+    # que sea portable en cada instalacion. Las reglas del repo dotfiles viven en el AGENTS.md de la raiz.
     copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
     # Subagentes propios (equipo estandar): carpeta entera, para que agregar uno
     # sea crear un archivo en el repo.

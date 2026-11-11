@@ -443,7 +443,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
         }
         Write-Host ''
         # Sin '¿' a proposito: este texto lo imprime PowerShell 5.1, que lee el
-        # archivo como cp1252 y lo mostraria como mojibake (ver CLAUDE.md).
+        # archivo como cp1252 y lo mostraria como mojibake (ver AGENTS.md).
         $prompt = if ($needWinget) {
             '  Instalo winget + PowerShell 7 y sigo con la instalacion? [S/n]: '
         } else {

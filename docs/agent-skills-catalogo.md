@@ -58,7 +58,6 @@ instalan en el proyecto que los necesite con
 | `example-skills` | `algorithmic-art`, `brand-guidelines`, `canvas-design`, `doc-coauthoring`, `frontend-design`, `internal-comms`, `mcp-builder`, `skill-creator`, `slack-gif-creator`, `theme-factory`, `web-artifacts-builder`, `webapp-testing` | Bundle de 12 skills de ejemplo de Anthropic — diseño visual, arte generativo, co-escritura de docs, comms internas, builder de MCP, testing con Playwright, artifacts, temas, GIFs de Slack. Se listan con el prefijo `example-skills:<nombre>` | Oficial (`anthropic-agent-skills`) |
 | `diagram-design` | `diagram-design` | 40 tipos de diagramas técnicos (arquitectura, ER, UML, flowcharts, Gantt, Sankey…) como HTML+SVG autocontenido; redibuja `.drawio`/Mermaid/Excalidraw | Tercero (`diagram-design`, marketplace propio) |
 | `taste-skill` | `design-taste-frontend`, `redesign-existing-projects`, `image-to-code`, `brandkit`, `brutalist-skill`, `minimalist-skill`, `soft-skill`, `stitch-skill`, `gpt-tasteskill`, `imagegen-frontend-web/mobile`, `output-skill`, `taste-skill-v1` | Guía anti-genérico por variante de estilo + dos capacidades únicas: `image-to-code` (mockup→código) y `redesign-skill` (mejorar un proyecto ya existente sin romperlo) | Tercero (`taste-skill`, marketplace propio) |
-| `thermos` | `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `thermos` (orquestador) | Doble revisión de branch/PR en paralelo: bugs/breaking changes/seguridad/devex/feature-gate leaks + mantenibilidad/estructura, sintetizadas. Ver nota de adaptación abajo | Tercero, adaptado de Cursor (`thermos`, marketplace propio) |
 | `cloudflare` | `agents-sdk`, `cloudflare-email-service`, `cloudflare-one-migrations`, `cloudflare-one`, `cloudflare`, `durable-objects`, `nextjs-on-cloudflare`, `sandbox-migrate-to-next`, `sandbox-next`, `sandbox-stable`, `turnstile-spin`, `web-perf`, `workers-best-practices`, `wrangler` | Guía oficial de la plataforma Cloudflare (Workers, Durable Objects, Agents SDK, Wrangler, Cloudflare One, etc.). También registra el MCP server remoto `mcp.cloudflare.com/mcp` — la primera vez que se use pide conectar la cuenta real de Cloudflare | Tercero (`cloudflare`, marketplace propio) |
 
 `landing-team`, `landing-cro` y `landing-a-secciones` se eliminaron del repo
@@ -70,6 +69,11 @@ proceso (decisiones en silencio, Hostinger por FTP, librerías sin preguntar) y
 chocaba con el flujo de tickets. Para diseño web, instalar `taste-skill` o
 `example-skills` (`frontend-design`) en el proyecto. Sus reglas de robustez y su
 `verify_project.py` se pueden rescatar del historial si hacen falta.
+
+`thermos` también se eliminó (2026-11-11): su doble revisión ya la cubren
+`/code-review`, `/simplify` y los agentes `revisor` y `seguridad`; sus dos
+criterios propios (archivos de más de 1000 líneas, cambios del entorno local)
+pasaron al checklist del `revisor`. El original sigue en `cursor/plugins`.
 
 `the-architect` se desinstaló y se quitó su marketplace (`soyenriquerocha`):
 se solapa con `superpowers` y la experiencia de uso fue mala. Sigue en las
@@ -146,23 +150,6 @@ repo), por eso está envuelto en el `marketplace.json` de este repo igual que
 `cyber-neo`/`all-deploy` — mismo mecanismo, mismo costo: **hay que pushear antes
 de que `claude plugin install security-audit-skill@kevincharp-dotfiles -y` (o el
 `marketplace update`) resuelva**, porque lee el remoto, no el working tree.
-
-## Notas sobre `thermos`
-
-`thermos` trae, además de las 2 skills de review, 2 agentes propios
-(`thermos:thermo-nuclear-review-subagent`,
-`thermos:thermo-nuclear-code-quality-review-subagent`) para correr las dos
-revisiones en paralelo. **Adaptado, no vendorizado tal cual:** el original de
-Cursor (`github.com/cursor/plugins/tree/main/thermos`, MIT) orquesta con
-`subagent_type` propios de Cursor (`shell`, `explore`,
-`thermo-nuclear-*-subagent`) que no existen en Claude Code — se reescribió el
-`SKILL.md` de `thermos` y se convirtió el frontmatter de los 2 agentes al
-formato de Claude Code (`name`/`description`/`tools`/`model`) para que la
-orquestación funcione de verdad, no solo el contenido de las 2 skills base
-(esas sí son copia literal). Las 3 skills traen `disable-model-invocation:
-true` en el frontmatter (campo de Cursor, fuera del spec base de
-agentskills.io — no confirmado si Claude Code lo respeta), así que en teoría
-no se autodisparan por descripción, solo por invocación explícita.
 
 ## Mecanismos de invocación (no todas las skills se llaman igual)
 

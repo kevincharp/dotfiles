@@ -77,7 +77,7 @@ limpio, nunca en el que escribió el código.
 | El agente hace cosas que no pedí | Pararlo y repetir el límite: solo lo del ticket | `/simplify` |
 | La sesión se puso larga y confusa | Cerrar y abrir otra con un resumen corto | `/ask-matt` indica cuándo cortar |
 | Antes de cada commit | Simplificar el cambio | `/simplify` |
-| Antes de mergear una rama | Revisión en contexto limpio | `/code-review`, `thermos` |
+| Antes de mergear una rama | Revisión en contexto limpio | `/code-review`, agente `revisor` |
 | Cambio de riesgo (login, pagos, algo expuesto) | Auditoría de seguridad profunda | `claude-security`, `security-audit-skill` |
 | Antes de publicar | Tests en verde y deploy con revisión previa | `all-deploy` |
 | Siento que falta algo para que quede perfecto | Releer la definición de hecho; si se cumple, está terminado | — |

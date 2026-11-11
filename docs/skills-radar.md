@@ -64,7 +64,6 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
 | `code-review` | Revisión de PR genérica | Revisar un PR sin criterio propio definido | ✅ | Oficial |
-| `thermos` | Doble review en paralelo (bugs/seguridad + mantenibilidad) | Revisión de branch antes de mergear | 📦 | Adaptado de Cursor, propio |
 | `cursor/plugins` (resto, 17 skills) | `deslop`, `fix-merge-conflicts`, `weekly-review`, etc. | Sin explorar el contenido, solo el índice | 📋 | `github.com/cursor/plugins` |
 
 ## Metodología / Planificación / Productividad
@@ -149,7 +148,7 @@ o Chromium propio) para QA/design review, `/cso` pull de imágenes Docker +
 requiere toolchain nativo, y modo equipo que puede auto-commitear cambios a
 `CLAUDE.md`/`.claude/` de un repo compartido marcándose `required`. Mismo
 perfil de invasividad que `context-mode` (abajo). Además se superpone fuerte
-con `mattpocock-skills`/`thermos`/`cyber-neo` ya instalados — instalarlo sería
+con `mattpocock-skills`/`cyber-neo` ya disponibles — instalarlo sería
 más "cambiar de filosofía" que "sumar una pieza".
 
 ### `context-mode` — descartado

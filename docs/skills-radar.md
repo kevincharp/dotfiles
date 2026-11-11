@@ -25,9 +25,9 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 | `ui-ux-pro-max` | Tokens, paletas, componentes shadcn, banners, slides | Necesitás una base de datos de diseño buscable | 📦 | `github.com/nextlevelbuilder/ui-ux-pro-max-skill` |
 | `taste-skill` | Anti-genérico por estilo + genera `DESIGN.md` + image-to-code | Necesitás un `DESIGN.md` inventado a medida | 📦 | `github.com/Leonxlnx/taste-skill` |
 | `impeccable` | Auditor/pulidor de frontend, corre solo tras cada edición | Vigilar calidad de UI mientras se construye | ❌ desinstalado (su motor no baja detrás del proxy; ver `agent-skills-catalogo.md`) | `github.com/pbakaus/impeccable` |
-| `premium-website-generator` | Sitios estáticos premium genéricos (HTML/CSS/JS vanilla) | Sitio de propósito general sin build | 📦 | Propia (`claude-skills/`) |
-| `landing-cro` | Landing de venta directa desde URL de referencia/marketplace | Landing de conversión puntual | 📦 | Propia |
-| `landing-a-secciones` | HTML de landing → secciones `.liquid` de Shopify | Pasar una landing ya armada a una tienda Shopify | 📦 | Propia |
+| `premium-website-generator` | Sitios estáticos premium genéricos (HTML/CSS/JS vanilla) | Sitio de propósito general sin build | 📦 | Adaptada de terceros, origen sin registrar (`claude-skills/`) |
+| `landing-cro` | Landing de venta directa desde URL de referencia/marketplace | Landing de conversión puntual | 📦 | Adaptada de terceros, origen sin registrar |
+| `landing-a-secciones` | HTML de landing → secciones `.liquid` de Shopify | Pasar una landing ya armada a una tienda Shopify | 📦 | Adaptada de terceros, origen sin registrar |
 | `landing-team` | 4 agentes (planner/builder/qa/security) del equipo de landing | Orquestar todo el pipeline de una landing sin microgestión manual | 📦 | Propia |
 | `claude-webkit` | Plantilla clonable Next.js+Tailwind+shadcn con 21 skills | Ver nota abajo | 🔍 descartado | `github.com/hainrixz/claude-webkit` |
 | `refero_skill` | Skill+MCP para investigar 150K screens/flows reales antes de implementar | Ver nota abajo | 🔍 sin decidir | `github.com/referodesign/refero_skill` |

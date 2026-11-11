@@ -92,6 +92,13 @@
       "description": "4 agentes propios (planner, builder, qa, security) para el equipo de landing pages: planner/qa/security de solo lectura, builder con acceso completo -- mismo criterio de tools restringidos que un setup manual de sesiones nombradas. Usados por el workflow landing-pipeline y disponibles tambien via el Agent tool directo.",
       "keywords": ["landing", "agents", "subagents", "planner", "qa", "security"],
       "category": "development"
+    },
+    {
+      "name": "bibliotecario",
+      "source": "./claude-skills/bibliotecario",
+      "description": "Recomienda skills, plugins y repositorios con estrella para el proyecto actual y los instala por proyecto tras confirmacion.",
+      "keywords": ["harness", "plugins", "skills", "catalogo"],
+      "category": "development"
     }
   ]
 }

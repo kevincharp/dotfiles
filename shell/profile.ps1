@@ -1378,7 +1378,7 @@ function gset-profile {
 }
 
 <#
-.SYNOPSIS git init + perfil de identidad + .gitignore base
+.SYNOPSIS git init + perfil de identidad + .gitignore y AGENTS.md base
 .EXAMPLE ginit <perfil> [path]
 #>
 function ginit {
@@ -1406,6 +1406,12 @@ function ginit {
             if (-not (Test-Path (Join-Path $p '.gitignore')) -and (Test-Path $tpl)) {
                 Copy-Item -LiteralPath $tpl -Destination (Join-Path $p '.gitignore')
                 Write-Host ".gitignore base creado (plantilla de dotfiles — suma lo de tu stack)" -ForegroundColor DarkGray
+            }
+            # AGENTS.md base si falta.
+            $agentsTpl = Join-Path $HOME '.dotfiles\git\agents-proyecto.md'
+            if (-not (Test-Path (Join-Path $p 'AGENTS.md')) -and (Test-Path $agentsTpl)) {
+                Copy-Item -LiteralPath $agentsTpl -Destination (Join-Path $p 'AGENTS.md')
+                Write-Host "AGENTS.md base creado (plantilla de dotfiles — completalo con el agente)" -ForegroundColor DarkGray
             }
         } finally {
             Pop-Location

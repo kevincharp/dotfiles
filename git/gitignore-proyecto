@@ -46,4 +46,4 @@ Thumbs.db
 
 # Agentes de IA — estado local por-máquina
 .claude/settings.local.json
-CLAUDE.local.md
+*.local.md

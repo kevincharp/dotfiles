@@ -1088,19 +1088,50 @@ function killdev {
 # ==============================================================================
 
 <#
-.SYNOPSIS datos de un usuario de AD y todos sus grupos (requiere RSAT)
+.SYNOPSIS (interna) traduce logonHours de AD a franjas por día en hora local
+.EXAMPLE Format-ADLogonHours $u.logonHours
+#>
+function Format-ADLogonHours {
+    param([byte[]]$Bytes)
+    if (-not $Bytes -or -not ($Bytes -ne 255).Count) { return 'Sin restricción' }
+    # 168 bits, uno por hora de la semana desde el domingo 00:00 UTC (bit menos significativo primero)
+    $offset = [int][TimeZoneInfo]::Local.BaseUtcOffset.TotalHours
+    $dias = 'Dom','Lun','Mar','Mie','Jue','Vie','Sab'
+    $(foreach ($d in 0..6) {
+        # el día como cadena de 24 '1'/'0'; cada racha de '1' es una franja permitida
+        $horas = -join (0..23 | ForEach-Object {
+            $bit = (($d * 24 + $_ - $offset) % 168 + 168) % 168
+            [int][bool]($Bytes[$bit -shr 3] -band (1 -shl ($bit % 8)))
+        })
+        $franjas = [regex]::Matches($horas, '1+') | ForEach-Object { '{0:00}-{1:00}' -f $_.Index, ($_.Index + $_.Length) }
+        '{0} {1}' -f $dias[$d], ($franjas ? ($franjas -join ', ') : 'bloqueado')
+    }) -join "`n"
+}
+
+<#
+.SYNOPSIS datos de un usuario de AD y todos sus grupos (requiere RSAT); acepta usuario o email
 .EXAMPLE aduser jperez
+.EXAMPLE aduser jperez@empresa.com
 #>
 function aduser {
     param([Parameter(Mandatory=$true)][string]$Usuario)
-    Get-ADUser $Usuario -Properties DisplayName,Description,EmailAddress,LockedOut,AccountExpirationDate,
-        PasswordLastSet,PasswordNeverExpires,CannotChangePassword,'msDS-UserPasswordExpiryTimeComputed',
-        LastLogonDate,LogonWorkstations,ScriptPath,ProfilePath,HomeDirectory |
-      Select-Object SamAccountName,DisplayName,EmailAddress,Description,Enabled,LockedOut,AccountExpirationDate,
-        PasswordLastSet,
+    $props = 'DisplayName','Description','EmailAddress','Title','Department','Manager','whenCreated',
+        'LockedOut','AccountExpirationDate','PasswordLastSet','PasswordNeverExpires','CannotChangePassword',
+        'msDS-UserPasswordExpiryTimeComputed','badPwdCount','LastBadPasswordAttempt','LastLogonDate',
+        'LogonWorkstations','logonHours','ScriptPath','ProfilePath','HomeDirectory'
+    # proxyAddresses cubre los alias de correo, no solo el principal
+    $usuarios = Get-ADUser -Properties $props -Filter ("sAMAccountName -eq '$Usuario' -or mail -eq '$Usuario'" +
+        " -or UserPrincipalName -eq '$Usuario' -or proxyAddresses -eq 'smtp:$Usuario'")
+    if (-not $usuarios) { Write-Host "Ningún usuario con usuario o email $Usuario" -ForegroundColor DarkYellow; return }
+    $usuarios |
+      Select-Object SamAccountName,DisplayName,EmailAddress,Title,Department,
+        @{n='Manager'; e={ $_.Manager -replace '^CN=(.+?),(OU|CN|DC)=.*', '$1' }},
+        Description,whenCreated,Enabled,LockedOut,AccountExpirationDate,PasswordLastSet,
         @{n='PasswordExpires'; e={ if ($_.PasswordNeverExpires) { 'Nunca' } else { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') } }},
-        CannotChangePassword,LastLogonDate,LogonWorkstations,ScriptPath,ProfilePath,HomeDirectory,
-        @{n='Grupos'; e={ ((Get-ADPrincipalGroupMembership $Usuario).Name | Sort-Object) -join ', ' }} |
+        CannotChangePassword,badPwdCount,LastBadPasswordAttempt,LastLogonDate,LogonWorkstations,
+        @{n='LogonHours'; e={ Format-ADLogonHours $_.logonHours }},
+        ScriptPath,ProfilePath,HomeDirectory,
+        @{n='Grupos'; e={ ((Get-ADPrincipalGroupMembership $_).Name | Sort-Object) -join ', ' }} |
       Format-List
 }
 

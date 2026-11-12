@@ -1,6 +1,5 @@
 # ==============================================================================
 #   uninstall.ps1 — Desinstalar dotfiles (Windows)
-#   Autor: Kevin Charpentier
 #   Uso:   pwsh -File uninstall.ps1 [-RemovePackages] [-DryRun] [-Force]
 # ==============================================================================
 
@@ -33,19 +32,14 @@ $DOTFILES_TARGETS = @(
     "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
     "$HOME\.editorconfig"
     "$HOME\.claude\settings.json"
-    # settings.local.json NO va aca a proposito: bootstrap.ps1 nunca lo crea ni
-    # lo symlinkea (es per-maquina, el usuario lo edita a mano). Si estuviera
-    # en esta lista, el loop de abajo lo borraria como "archivo real" aunque
-    # nunca lo haya instalado este repo.
+    # settings.local.json no va: es per-maquina y el bootstrap no lo crea.
     "$HOME\.claude\CLAUDE.md"
     "$HOME\.claude\agents"
     "$HOME\.codex\AGENTS.md"
     "$HOME\.config\opencode\AGENTS.md"
     "$env:APPDATA\yazi\config\yazi.toml"
     "$env:APPDATA\FlowLauncher\Settings\Settings.json"
-    # Mismo condicional que bootstrap.ps1: si XDG_CONFIG_HOME esta seteada, el
-    # symlink real quedo ahi, no en LOCALAPPDATA. Sin este if, esa maquina se
-    # queda con el symlink de nvim huerfano tras desinstalar.
+    # Mismo condicional que bootstrap.ps1: con XDG_CONFIG_HOME el symlink quedo ahi.
     $(if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME 'nvim' } else { Join-Path $env:LOCALAPPDATA 'nvim' })
     "$HOME\.local\bin\lazyssh.exe"
     "$HOME\.local\bin\lazysql.exe"
@@ -210,10 +204,7 @@ if (-not $RemovePackages) {
     Write-Log 'winget no disponible, saltando desinstalacion de paquetes' 'WARN'
 } else {
     foreach ($pkg in $WINGET_PACKAGES) {
-        # Mismos flags que bootstrap.ps1: sin ellos msstore puede frenar pidiendo
-        # aceptar sus terminos con la salida redirigida (cuelgue silencioso).
-        # Exit 0 de 'winget list' = instalado (mismo criterio que bootstrap.ps1:
-        # el Id como texto puede venir recortado con '…' en la tabla).
+        # Mismos flags y criterio que bootstrap.ps1: exit 0 de 'winget list' = instalado.
         $global:LASTEXITCODE = 1
         $listOut = winget list --id $pkg.Id --exact --accept-source-agreements --disable-interactivity 2>$null
         $installed = ($LASTEXITCODE -eq 0) -or [bool]($listOut | Select-String -SimpleMatch $pkg.Id)

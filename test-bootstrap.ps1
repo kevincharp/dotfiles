@@ -125,10 +125,7 @@ foreach ($f in $DOTFILES) {
             if ($target -and -not [System.IO.Path]::IsPathRooted($target)) {
                 $target = Join-Path (Split-Path $f -Parent) $target
             }
-            # -Force es obligatorio: sin el, Get-Item NO encuentra archivos que
-            # empiezan con punto (los trata como ocultos) y el size quedaba en 0
-            # -> FAIL falso en todo dotfile symlinkeado (.editorconfig, .gitconfig,
-            # .bashrc...). Test-Path si los ve, por eso el bug pasaba desapercibido.
+            # -Force: sin el, Get-Item no encuentra archivos que empiezan con punto.
             $size = if ($target -and (Test-Path $target)) { (Get-Item -LiteralPath $target -Force).Length } else { 0 }
         } else {
             $size = $item.Length
@@ -477,17 +474,13 @@ if (-not (Test-CommandExists 'oh-my-posh')) {
 # ==============================================================================
 # 14. DRIFT ENTRE BOOTSTRAP.PS1 Y UNINSTALL.PS1
 # ------------------------------------------------------------------------------
-# uninstall.ps1 mantiene $DOTFILES_TARGETS a mano, sin derivarlo de
-# bootstrap.ps1 (espejo de la seccion 15 de test-bootstrap.sh, ver ahi el
-# razonamiento completo). Estatico: parsea el texto de los dos scripts, no
-# ejecuta ningun bootstrap real.
+# uninstall.ps1 mantiene $DOTFILES_TARGETS a mano: se compara contra bootstrap.ps1
+# parseando el texto de los dos scripts.
 # ==============================================================================
 
 Write-Section "14. Drift bootstrap <-> uninstall (Windows)"
 
-# $repoRoot de la seccion 13 es condicional (solo se define si oh-my-posh esta
-# instalado, bajo Set-StrictMode referenciarla sin eso tira error) — variable
-# propia, independiente.
+# Variable propia: $repoRoot de la seccion 13 solo existe si oh-my-posh esta instalado.
 $driftRepoRoot = $PSScriptRoot
 $bsContent = Get-Content -Raw (Join-Path $driftRepoRoot "bootstrap.ps1")
 $unContent = Get-Content -Raw (Join-Path $driftRepoRoot "uninstall.ps1")
@@ -500,16 +493,12 @@ foreach ($m in [regex]::Matches($bsContent, 'Dst="([^"]+)"')) {
 # que usan los dos scripts): AGENTS.md de Codex/opencode.
 $expectedDsts.Add('$HOME\.codex\AGENTS.md')
 $expectedDsts.Add('$HOME\.config\opencode\AGENTS.md')
-# nvim NO se chequea aca a proposito: bootstrap.ps1 y uninstall.ps1 lo resuelven
-# los dos con el mismo condicional XDG_CONFIG_HOME/LOCALAPPDATA (una expresion,
-# no un string literal), asi que no hay un unico string que matchear. Paridad
-# verificada a mano (2026-09-22): revisar ambos lados si se toca ese bloque.
+# nvim no se chequea: ambos scripts lo resuelven con una expresion
+# (XDG_CONFIG_HOME/LOCALAPPDATA), no con un string. Revisar los dos si se toca.
 
 foreach ($dst in $expectedDsts) {
-    # Dinamicos ($HOME\.gitconfig-$s por identidad) no van en $DOTFILES_TARGETS:
-    # uninstall.ps1 los cubre aparte, via el loop de sufijos del vault.
-    # Idem los Settings.json de plugins de Flow Launcher ($flowPlugin): uninstall
-    # los cubre aparte, recorriendo flowlauncher\Plugins del repo.
+    # Los dinamicos (gitconfig por identidad, Settings.json de plugins de Flow Launcher)
+    # no van en $DOTFILES_TARGETS: uninstall.ps1 los cubre aparte.
     if ($dst -match '\$(s|flowPlugin)\b') { continue }
     if ($unContent.Contains("`"$dst`"")) {
         Test-OK "uninstall.ps1 limpia $dst"

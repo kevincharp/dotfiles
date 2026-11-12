@@ -26,19 +26,12 @@ I_DIR="📁"; I_DRIFT="⚠️"; I_BRANCH="🌿"; I_MODEL="🤖"
 I_ANTHROPIC="✨"; I_BEDROCK="☁️"; I_CTX="📊"; I_STYLE="🎨"
 I_FAST="🚀"; I_THINKING="🧠"; I_COST="💰"
 
-# --- Lectura del JSON ---
-# Usa jq si esta disponible; si no (ej. Git Bash en Windows, donde jq no suele
-# estar), cae a un parser con grep/sed. Asi el statusline funciona en cualquier
-# maquina sin depender de jq.
-# Las claves se escriben estilo jq SIN el punto inicial ("model.display_name").
-# En el modo sin jq el parser recorta el JSON en cada padre antes de buscar la
-# hija: hace falta porque hay nombres repetidos (`name` esta en output_style,
-# agent y worktree; `used_percentage` tambien en rate_limits).
+# --- Lectura del JSON: jq si esta; si no (Git Bash), grep/sed ---
+# Las claves van estilo jq sin el punto inicial. Sin jq el parser recorta el JSON en cada
+# padre antes de buscar la hija, porque hay nombres repetidos (name, used_percentage).
 _json_get() {
-    # $1 = str|num|bool, $2 = json, $3... = claves candidatas (por preferencia)
-    # bool: fast_mode/thinking.enabled llegan como true/false SIN comillas (no
-    # son strings) - el regex de "str" nunca los matchea y el campo queda
-    # vacio en el modo sin jq, sin importar el valor real (visto en Windows).
+    # $1 = str|num|bool, $2 = json, $3... = claves candidatas (por preferencia).
+    # bool: true/false llegan sin comillas y el regex de "str" no los matchea.
     local kind="$1" json="$2"; shift 2
     local key val frag part re
     if command -v jq &>/dev/null; then
@@ -82,11 +75,8 @@ lines_removed="$(_json_get num "$input" 'cost.total_lines_removed')"
 [[ -z "$model" ]] && model="?"
 [[ -z "$cwd" ]] && cwd="$PWD"
 
-# --- Carpeta ---
-# El JSON trae el cwd (workspace.current_dir, que /cd mueve) y el proyecto
-# (workspace.project_dir, fijo: de ahi salen memoria, historial y CLAUDE.md). Se muestran
-# los dos cuando difieren: iguales -> proyecto; cwd bajo proyecto -> proyecto/relativa;
-# cwd afuera -> proyecto ⚠️ cwd (cwd en amarillo). Sin project_dir cae a solo cwd.
+# --- Carpeta: proyecto (workspace.project_dir) y cwd (workspace.current_dir) ---
+# Iguales -> proyecto; cwd adentro -> proyecto/relativa; cwd afuera -> proyecto ⚠️ cwd.
 _norm_path() {  # backslashes de Windows a /, sin barras repetidas ni barra final
     # Sin jq los backslashes llegan escapados (C:\\Users), asi que la conversion
     # deja // y hay que colapsarlas para que la comparacion de prefijo funcione.
@@ -131,12 +121,8 @@ else
 fi
 
 # --- Contexto usado (context_window.used_percentage + total_*_tokens) ---
-# Redondeo con LC_ALL=C: el locale es_AR usa coma decimal y rompe el %.0f de un
-# valor como 12.3456.
-# Los tokens son los del CONTEXTO ACTUAL (lo que se reenvia cada turno), no un
-# acumulado historico de toda la sesion - ese campo no existe en el payload
-# (cost.* solo trae USD/duracion/lineas, sin tokens). Es el numero honesto
-# disponible: coincide con el % de arriba, en unidades absolutas.
+# LC_ALL=C: el locale es_AR usa coma decimal y rompe el %.0f.
+# Los tokens son los del contexto actual; el payload no trae un acumulado de la sesion.
 _fmt_tokens() {  # entero -> "577k" / "1.2M" (aritmetica entera, sin awk/bc)
     local n="$1"
     if   (( n >= 1000000 )); then printf '%d.%dM' $((n / 1000000)) $(( (n % 1000000) / 100000 ))
@@ -162,11 +148,8 @@ if [[ "$ctx" =~ ^[0-9] ]]; then
     fi
 fi
 
-# --- Construir la linea ---
-# Cada dato es un segmento; se empaquetan de a uno por linea (word-wrap): el que no entra
-# en $COLUMNS arranca linea nueva y Claude Code hace crecer el panel (la doc oficial
-# soporta multi-linea partiendo por "\n"). $COLUMNS ya viene seteado; "tput cols" NO
-# sirve: Claude Code captura el stdout, no lo conecta al tty.
+# --- Construir la linea: un segmento por dato, con word-wrap segun $COLUMNS ---
+# "tput cols" no sirve: Claude Code captura el stdout.
 declare -a segs=()
 segs+=("${I_DIR} ${dir}")
 [[ -n "$branch" ]] && segs+=("${I_BRANCH} $(c "$GREEN")${branch}${RESET}")
@@ -194,9 +177,7 @@ diff_seg=""
 [[ "$lines_removed" =~ ^[0-9]+$ ]] && (( lines_removed > 0 )) && diff_seg+="${diff_seg:+ }$(c "$RED")-${lines_removed}${RESET}"
 [[ -n "$diff_seg" ]] && segs+=("$diff_seg")
 
-# Ancho visible sin ANSI. Los emoji ocupan 2 columnas en la terminal pero
-# bash los cuenta como 1 caracter, de ahi el margen fijo por linea en vez de
-# un conteo exacto (cada segmento trae a lo sumo 1-2 emoji).
+# Ancho visible sin ANSI. Los emoji ocupan 2 columnas y bash cuenta 1: margen fijo por linea.
 _visible_width() {
     local esc=$'\033' s
     s="$(printf '%s' "$1" | sed -E "s/${esc}\[[0-9;]*m//g")"

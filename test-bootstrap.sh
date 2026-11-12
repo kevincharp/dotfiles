@@ -457,9 +457,8 @@ fi
 # ==============================================================================
 # 13. GATE DE CONFIGS POR HERRAMIENTA
 # ------------------------------------------------------------------------------
-# Ninguna config se aplica solo por estar en el repo: pasa por want_tool (bash) /
-# Test-ToolWanted (pwsh). Se verifica ESTATICAMENTE (grep): correr el bootstrap real
-# desde el test cambiaria la maquina.
+# Las configs pasan por want_tool / Test-ToolWanted. Se verifica con grep: correr el
+# bootstrap real desde el test cambiaria la maquina.
 # ==============================================================================
 
 section "13. Gate de configs por herramienta"
@@ -524,10 +523,8 @@ for _entry in 'yazi\yazi.toml|yazi' '.claude\CLAUDE.md|claude' '.claude\settings
     fi
 done
 
-# Trampa de set -e (cuarta variante): una funcion cuyo ultimo comando es
-# '(( flag )) && cmd' devuelve 1 si flag vale 0 y aborta el script (paso con gb_note:
-# sin TTY el bootstrap moria en [2/7] sin mensaje). Se chequea ESTATICAMENTE: una
-# corrida real solo llega a gb_note con una herramienta nueva por instalar.
+# Una funcion cuyo ultimo comando es '(( flag )) && cmd' devuelve 1 con flag en 0 y
+# set -e aborta. Se chequea con grep.
 for _bs in "$_bs_sh" "$_repo_root/install.sh" "$_repo_root/uninstall.sh"; do
     [[ -f "$_bs" ]] || continue
     _bad=$(awk '/^[[:space:]]*\(\(.*\)\)[[:space:]]*&&/ { prev=NR; line=$0; next }
@@ -545,19 +542,16 @@ unset _bs_sh _bs_ps _gated_sh _entry _pat _tool _ln
 # ==============================================================================
 # 14. STATUSLINE DE CLAUDE CODE
 # ==============================================================================
-# Se ejercita de verdad (JSON por stdin) porque tiene dos caminos: con jq y el fallback
-# grep/sed de Git Bash. Protege que la linea muestre el PROYECTO y el cwd cuando /cd los
-# separa (docs/notas-tecnicas.md).
+# Se ejercita con JSON por stdin: tiene dos caminos (jq y el fallback grep/sed) y debe
+# mostrar proyecto y cwd cuando /cd los separa.
 # ==============================================================================
 
 section "14. Statusline de Claude Code"
 
 _sl="$_repo_root/.claude/statusline.sh"
 
-# PATH reducido para forzar el fallback: un dir con solo los binarios que el
-# statusline usa, sin jq. Hace falta un dir aparte porque jq vive en /usr/bin
-# junto a grep/sed. OJO: 'PATH=... bash' busca bash EN ese PATH, por eso se
-# invoca "$BASH" con ruta absoluta.
+# PATH reducido a un dir sin jq para forzar el fallback. "$BASH" va con ruta absoluta
+# porque 'PATH=... bash' lo buscaria en ese PATH.
 _sl_nojq="$(mktemp -d)"
 for _b in grep sed head tr cat git; do
     _p="$(command -v "$_b" 2>/dev/null)" && ln -sf "$_p" "$_sl_nojq/$_b"
@@ -631,10 +625,8 @@ unset -f _sl_run
 # ==============================================================================
 # 15. DRIFT ENTRE BOOTSTRAP.SH Y UNINSTALL.SH
 # ------------------------------------------------------------------------------
-# uninstall.sh mantiene DOTFILES_TARGETS a mano, sin derivarlo de bootstrap.sh:
-# si se agrega un copy_dotfile/link_dir nuevo y no se refleja ahi, uninstall.sh
-# deja ese archivo huerfano tras desinstalar, en silencio. Se verifica ESTATICO
-# (grep sobre los dos scripts), no ejecutando ningun bootstrap real.
+# uninstall.sh mantiene DOTFILES_TARGETS a mano: un copy_dotfile/link_dir nuevo que no
+# se refleje ahi queda huerfano al desinstalar. Se verifica con grep.
 # ==============================================================================
 
 section "15. Drift bootstrap <-> uninstall (Linux)"
@@ -645,9 +637,7 @@ while IFS= read -r _dest; do
     [[ -z "$_dest" ]] && continue
     # ${XDG_CONFIG_HOME:-$HOME/.config}/... (opencode) normaliza a $HOME/.config/...
     _norm="${_dest/\$\{XDG_CONFIG_HOME:-\$HOME\/.config\}/\$HOME/.config}"
-    # Variables dinamicas (ej. $HOME/.gitconfig-$_s, por identidad) no van en
-    # DOTFILES_TARGETS: uninstall.sh las cubre aparte, via el loop de sufijos
-    # del vault. Si despues de sacar $HOME queda otro '$', es dinamico: se salta.
+    # Los destinos dinamicos (otro '$' ademas de $HOME) se saltan: uninstall.sh los cubre aparte.
     _check="${_norm/\$HOME/}"
     if [[ "$_check" == *'$'* ]]; then
         continue

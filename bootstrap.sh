@@ -317,6 +317,7 @@ TOOLS_CATALOG=(
     "codex|dev|Codex CLI (OpenAI)"
     "claude|dev|Claude Code CLI"
     "opencode|dev|opencode (SST)"
+    "gitleaks|dev|Detector de secretos (pre-commit que activa ginit)"
     "aws|cloud|AWS CLI (Bedrock)"
     "lazyssh|shell|TUI para gestionar conexiones SSH (estilo lazygit)"
     "lazysql|shell|TUI para administrar bases de datos (MySQL/PostgreSQL/MSSQL/SQLite)"
@@ -362,6 +363,7 @@ tool_installed() {
         codex)           has_cmd codex ;;
         claude)          has_cmd claude ;;
         opencode)        has_cmd opencode ;;
+        gitleaks)        has_cmd gitleaks ;;
         aws)             has_cmd aws ;;
         gh)              has_cmd gh ;;
         glab)            has_cmd glab ;;
@@ -399,7 +401,7 @@ want_tool() {
 # install_tool <id> — instala la herramienta (logica por distro preservada)
 install_tool() {
     case "$1" in
-        neovim|ripgrep|tree-sitter-cli|fzf|bash-completion|zsh|flameshot)
+        neovim|ripgrep|tree-sitter-cli|fzf|bash-completion|zsh|flameshot|gitleaks)
             run_step "Instalar $1" $PKG_INSTALL "$1"
             ;;
         zsh-autosuggestions)

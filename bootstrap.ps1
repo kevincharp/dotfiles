@@ -122,6 +122,7 @@ $WINGET_PACKAGES = @(
        Override='/quiet InstallAllUsers=0 PrependPath=1 Include_launcher=0' }
     @{ Id='Microsoft.VisualStudioCode';     Name='Visual Studio Code';      Optional=$true ; Key='vscode';           Group='dev'    }
     @{ Id='SST.opencode';                   Name='opencode';                Optional=$true ; Key='opencode';         Group='dev'    }
+    @{ Id='Gitleaks.Gitleaks';              Name='gitleaks (secretos)';     Optional=$true ; Key='gitleaks';         Group='dev'    }
     @{ Id='Amazon.AWSCLI';                  Name='AWS CLI';                 Optional=$true ; Key='aws';              Group='cloud'  }
     @{ Id='GitHub.cli';                     Name='GitHub CLI (gh)';         Optional=$true ; Key='gh';               Group='cloud'  }
     @{ Id='GLab.GLab';                      Name='GitLab CLI (glab)';       Optional=$true ; Key='glab';             Group='cloud'  }

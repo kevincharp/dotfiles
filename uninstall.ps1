@@ -85,6 +85,7 @@ $WINGET_PACKAGES = @(
     @{ Id='GLab.GLab';               Name='GitLab CLI (glab)' }
     @{ Id='FiloSottile.age';         Name='age' }
     @{ Id='SST.opencode';            Name='opencode' }
+    @{ Id='Gitleaks.Gitleaks';       Name='gitleaks' }
     @{ Id='sxyazi.yazi';             Name='yazi' }
     @{ Id='GitHub.cli';              Name='GitHub CLI (gh)' }
     @{ Id='Amazon.AWSCLI';           Name='AWS CLI' }

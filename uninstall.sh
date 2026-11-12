@@ -114,6 +114,7 @@ PACKAGES=(
     gh
     glab
     opencode
+    gitleaks
     aws
     claude
     ulauncher

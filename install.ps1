@@ -1,16 +1,8 @@
 # ==============================================================================
-#   install.ps1 — Instalacion/actualizacion de dotfiles (modelo 2 repos)
-#   Autor: Kevin Charpentier
+#   install.ps1 - Instala o actualiza los dotfiles (repo publico + vault privado)
 #
-#   Arquitectura:
-#     - dotfiles        (PUBLICO)  -> scripts + configs no sensibles  [este repo]
-#     - dotfiles-vault  (PRIVADO)  -> ssh keys, identidades git, bookmarks
-#
-#   Instalacion inicial (git se auto-instala por winget si falta):
-#     irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
-#
-#   Actualizacion (con el repo ya clonado):
-#     pwsh -File ~/.dotfiles/install.ps1
+#   irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
+#   pwsh -File ~/.dotfiles/install.ps1
 #
 #   Opciones:
 #     -WithAws        Incluir configuracion AWS
@@ -39,21 +31,16 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
-# Inicializacion obligatoria: con StrictMode, LEER una variable no establecida
-# lanza error. Stop-Install consulta esta bandera, asi que tiene que existir
-# desde el arranque. $true = corriendo en la sesion del usuario (via iex), donde
-# un 'exit' cerraria la terminal; $false = corriendo como archivo (exit seguro).
+# Tiene que existir desde el arranque (StrictMode). $true = corriendo via iex, donde
+# un 'exit' cerraria la terminal; $false = corriendo como archivo.
 $script:DOTFILES_INLINE_MODE = $false
 $script:DOTFILES_EXIT_CODE   = 0
 
 # ==============================================================================
 # RE-EJECUCION COMO ARCHIVO (imprescindible bajo 'irm | iex')
 # ------------------------------------------------------------------------------
-# Bajo iex el script corre dentro de la sesion interactiva: 'exit' termina LA SESION
-# (cierra la ventana) y el usuario no llega a leer el error. Por eso, si venimos por
-# iex, se baja el script a un archivo temporal y se re-ejecuta con -File. Se BAJA de
-# nuevo y no se usa $MyInvocation, que bajo iex devuelve el script contenedor, no este.
-# Detalle: docs/notas-tecnicas.md.
+# Bajo iex un 'exit' cierra la ventana del usuario: el script se baja a un temporal y
+# se re-ejecuta con -File. Se baja de nuevo porque $MyInvocation, bajo iex, no es este script.
 # ==============================================================================
 
 # DOTFILES_INSTALL_REEXEC es la guarda anti-recursion (el hijo no vuelve a entrar).
@@ -106,9 +93,7 @@ $GH_USER      = 'kevincharp'
 $PUBLIC_HTTPS = "https://github.com/$GH_USER/dotfiles.git"
 $PUBLIC_SSH   = "git@github.com:$GH_USER/dotfiles.git"
 $VAULT_SSH    = "git@github.com:$GH_USER/dotfiles-vault.git"
-# Host alias del ssh/config (engancha la clave kevincharp-github con
-# IdentitiesOnly). Se usa como remote del vault tras clonar con gh, asi el
-# proximo 'git pull' usa la clave SSH sin pedir credenciales (paridad install.sh).
+# Con el host alias del ssh/config, 'git pull' del vault no pide credenciales.
 $VAULT_SSH_ALIAS = "git@github.com-${GH_USER}:$GH_USER/dotfiles-vault.git"
 
 $DOTFILES_DIR = if ($env:DOTFILES_DIR) { $env:DOTFILES_DIR } else { Join-Path $HOME '.dotfiles' }
@@ -121,10 +106,8 @@ $BRANCH       = if ($env:DOTFILES_BRANCH) { $env:DOTFILES_BRANCH } else { 'main'
 
 # Forzar UTF-8 en la consola para que los iconos se vean (no rompe si ya lo esta)
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
-# Iconos: UTF-8 si la consola lo soporta, si no ASCII.
-# Se construyen por CODIGO de caracter, no como literales del archivo: PowerShell
-# 5.1 lee este .ps1 como ANSI (cp1252) y los literales multibyte saldrian como
-# mojibake justo en el mensaje del gate de pwsh 7, que es lo unico que ve 5.1.
+# Iconos por codigo de caracter, no como literales: PowerShell 5.1 lee este archivo
+# como ANSI y los multibyte saldrian como mojibake.
 $script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001 -and $PSVersionTable.PSVersion.Major -ge 7) {
     @{ Section=[char]0x25B6; Ok=[char]0x2713; Warn=[char]0x26A0; Err=[char]0x2717; Skip=[char]0x2298 }
 } else {
@@ -154,12 +137,8 @@ function Test-CommandAvailable {
 }
 
 function Stop-Install {
-    # Termina el instalador SIN cerrarle la terminal al usuario.
-    # Bajo 'irm | iex' un 'exit' pelado mata la sesion (cierra la ventana). Lo
-    # normal es que la re-ejecucion como archivo ya nos haya puesto a salvo; si
-    # no se pudo (DOTFILES_INLINE_MODE), se corta con 'break' sobre la etiqueta
-    # del bloque principal: termina el script y deja la consola viva, SIN el
-    # volcado rojo de excepcion que ensuciaba la pantalla.
+    # Termina el instalador sin cerrar la terminal: si no se pudo re-ejecutar como archivo,
+    # corta con 'break' sobre la etiqueta del bloque principal en vez de 'exit'.
     param([int]$Code = 1)
     if ($script:DOTFILES_INLINE_MODE) {
         Write-Host ''
@@ -170,13 +149,8 @@ function Stop-Install {
     exit $Code
 }
 
-# Acceso a la consola fisica (CONIN$) — el equivalente a /dev/tty en Linux.
-# OJO: [System.IO.File]::Open('CONIN$') NO SIRVE. FileStream rechaza abrir
-# dispositivos de consola ("se solicito a FileStream que abriera un dispositivo
-# que no era un archivo"), asi que fallaba SIEMPRE y Read-ConsoleLine devolvia
-# $null: el instalador creia que no habia humano, se iba por la rama "sin consola"
-# y hacia exit -> bajo 'irm | iex' eso CIERRA LA TERMINAL sin dejar contestar.
-# La forma que si funciona es pedir el handle por CreateFileW y envolverlo.
+# Consola fisica (CONIN$), el /dev/tty de Windows. File.Open('CONIN$') no sirve en 5.1
+# (FileStream rechaza dispositivos de consola): se pide el handle por CreateFileW.
 Add-Type -Namespace Win32 -Name InstallConsole -MemberDefinition @'
     [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
     public static extern System.IntPtr CreateFileW(
@@ -197,9 +171,8 @@ function Test-ConsolePresent {
 }
 
 function Read-ConsoleLine {
-    # Lee una linea del teclado REAL, no de stdin. Imprescindible bajo
-    # 'irm | iex': ahi stdin es el pipe con el texto del script y Read-Host no
-    # ve al usuario. Devuelve $null solo si de verdad no hay consola (CI).
+    # Lee una linea del teclado real: bajo 'irm | iex' stdin es el pipe con el script.
+    # Devuelve $null solo si no hay consola.
     try {
         $h = [Win32.InstallConsole]::CreateFileW('CONIN$', ([uint32]'0x80000000'), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
         if ($h -eq [IntPtr]::Zero -or $h.ToInt64() -eq -1) { return $null }
@@ -208,9 +181,7 @@ function Read-ConsoleLine {
         $sr   = New-Object System.IO.StreamReader($fs)
         try { return $sr.ReadLine() } finally { $sr.Dispose() }
     } catch {
-        # Si hay consola pero la lectura fallo, NO se puede asumir "no hay
-        # humano": se cae a Read-Host, que al menos funciona cuando el script
-        # corre como archivo (que es el caso tras la re-ejecucion).
+        # Con consola pero lectura fallida no se asume "sin humano": se cae a Read-Host.
         try { return Read-Host } catch { return $null }
     }
 }
@@ -231,10 +202,8 @@ function Find-Pwsh7 {
 }
 
 function Install-Winget {
-    # Instala winget (App Installer) descargando el paquete oficial de GitHub: falta en
-    # LTSC/Server, imagenes corporativas sin Store y Windows Sandbox, y sin el no se instala
-    # NADA mas. Devuelve $true si al terminar winget esta disponible. Va por usuario
-    # (Add-AppxPackage, sin admin); si VCLibs/UI.Xaml ya estan, el fallo se ignora.
+    # Instala winget (App Installer) desde GitHub, por usuario: falta en LTSC/Server, imagenes
+    # sin Store y Sandbox. Devuelve $true si al terminar winget esta disponible.
     Write-Log 'Instalando winget (App Installer)...' 'INFO'
     Write-Log 'Son 4 descargas (~80 MB en total): 3 dependencias y el bundle.' 'INFO'
 
@@ -244,22 +213,15 @@ function Install-Winget {
             [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     } catch {}
 
-    # Silenciar las barras de progreso de Invoke-WebRequest y Add-AppxPackage:
-    # en 5.1 se dibujan sobre la pantalla y pisan el texto ya impreso (queda todo
-    # desordenado), y ademas hacen la descarga MUCHO mas lenta. Se restaura al
-    # salir de la funcion.
+    # Sin barras de progreso: en 5.1 pisan el texto impreso y hacen la descarga mas lenta.
     $prevProgress = $ProgressPreference
     $ProgressPreference = 'SilentlyContinue'
 
     $tmp = Join-Path $env:TEMP "winget-setup-$PID"
     New-Item -ItemType Directory -Path $tmp -Force -ErrorAction SilentlyContinue | Out-Null
 
-    # El orden importa: las dependencias van antes del bundle.
-    #
-    # WindowsAppRuntime: las versiones NUEVAS del App Installer (1.29+) dependen
-    # de Microsoft.WindowsAppRuntime.1.8, que NO viene en una imagen limpia de
-    # Windows (ni en Sandbox). Sin el, Add-AppxPackage falla con 0x80073CF3
-    # ("depende de un marco que no se encontro"). Se instala antes.
+    # Las dependencias van antes del bundle. El App Installer 1.29+ necesita
+    # WindowsAppRuntime 1.8, que no viene en una imagen limpia (0x80073CF3).
     $pkgs = @(
         @{ Name = 'VCLibs';  File = 'VCLibs.appx'
            Url  = 'https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx'; Required = $false }
@@ -305,9 +267,8 @@ function Install-Winget {
                 Write-Log "$($p.Name): no se instalo, sigo ($($msg.Split([char]10)[0]))" 'WARN'
                 continue
             }
-            # El bundle es el que importa. Si fallo por dependencia faltante
-            # (0x80073CF3), se reintenta con una version ANTERIOR del App
-            # Installer, que no necesita WindowsAppRuntime.
+            # Si el bundle falla por dependencia (0x80073CF3) se reintenta con una version anterior,
+            # que no necesita WindowsAppRuntime.
             Write-Log "No se pudo instalar $($p.Name)." 'WARN'
             Write-Log $msg.Split([char]10)[0] 'INFO'
             if ($msg -match '0x80073CF3|marco que no se encontro|framework') {
@@ -338,9 +299,7 @@ function Install-Winget {
         return $true
     }
 
-    # Recien instalado por Appx, a veces no aparece en el PATH heredado: se
-    # agrega WindowsApps a mano (ahi vive el alias de ejecucion de winget) para
-    # no obligar al usuario a reabrir la terminal.
+    # Recien instalado puede no estar en el PATH heredado: se agrega WindowsApps a mano.
     $wa = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
     if (Test-Path (Join-Path $wa 'winget.exe')) {
         $env:Path = "$env:Path;$wa"
@@ -357,11 +316,8 @@ function Install-Winget {
 }
 
 function Install-Pwsh7Msi {
-    # Instala PowerShell 7 desde su MSI oficial, SIN winget. Es el plan B cuando
-    # winget no se puede instalar (p.ej. imagenes limpias donde el App Installer
-    # nuevo pide WindowsAppRuntime y falla): pwsh 7 no necesita nada de eso, y con
-    # pwsh 7 el bootstrap ya puede seguir. El MSI se instala por maquina, asi que
-    # puede pedir elevacion (UAC).
+    # Instala PowerShell 7 desde su MSI oficial, sin winget: plan B cuando winget no se
+    # puede instalar. El MSI va por maquina y puede pedir elevacion.
     param([string]$Version = '7.4.6')
 
     $arch = if ([Environment]::Is64BitOperatingSystem) { 'x64' } else { 'x86' }
@@ -410,17 +366,15 @@ function Install-Pwsh7Msi {
     return $false
 }
 
-# Bloque etiquetado que envuelve todo el cuerpo: permite a Stop-Install cortar
-# con 'break dotfilesInstall' cuando no se pudo re-ejecutar como archivo (ahi un
-# 'exit' cerraria la terminal del usuario). Se cierra al final del archivo.
+# Bloque etiquetado que envuelve todo el cuerpo, para que Stop-Install pueda cortar
+# con 'break dotfilesInstall'. Se cierra al final del archivo.
 :dotfilesInstall do {
 
 # ==============================================================================
 # 0. VERIFICAR (Y OFRECER INSTALAR) POWERSHELL 7 — antes de tocar NADA
 # ------------------------------------------------------------------------------
-# 'irm | iex' arranca en PowerShell 5.1 y el bootstrap exige pwsh 7: si el chequeo
-# llegara al final, el usuario ya habria instalado git y clonado el repo para nada. Se
-# ofrece instalar pwsh 7 y el script se relanza solo en pwsh (sigue siendo un unico paso).
+# 'irm | iex' arranca en PowerShell 5.1 y el bootstrap exige pwsh 7: se ofrece
+# instalarlo y el script se relanza solo en pwsh.
 # ==============================================================================
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -470,9 +424,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             Stop-Install 1
         }
 
-        # Si winget no se pudo instalar NO se aborta: pwsh 7 tiene un MSI oficial
-        # que no depende de winget, y con pwsh 7 el bootstrap ya puede correr
-        # (el propio bootstrap reinstalara/usara winget cuando este disponible).
+        # Sin winget no se aborta: pwsh 7 tiene un MSI que no depende de el.
         $wingetOk = $true
         if ($needWinget) { $wingetOk = Install-Winget }
 
@@ -481,10 +433,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             # La primera corrida de winget ademas sincroniza sus indices de fuentes,
             # lo que suma bastante: se avisa para que no parezca colgado.
             if ($needWinget) { Write-Log 'winget recien instalado: la primera vez sincroniza sus fuentes.' 'INFO' }
-            # --source winget es OBLIGATORIO: si la fuente 'msstore' falla (en
-            # Sandbox y detras de proxies corporativos da error de certificado),
-            # winget encuentra el paquete en 2 fuentes, no elige ninguna y sale
-            # sin instalar nada pidiendo --source. Fijandola, msstore no importa.
+            # --source winget: si 'msstore' falla (Sandbox, proxy), winget ve dos fuentes y no elige.
             winget install --id Microsoft.PowerShell -e --source winget --accept-package-agreements --accept-source-agreements
             # Refrescar el PATH del proceso: winget deja pwsh en Program Files pero
             # esta sesion no lo ve hasta recargar el PATH de Machine + User.
@@ -538,9 +487,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 # ==============================================================================
 # 1. VERIFICAR GIT (bootstrap del bootstrap)
 # ------------------------------------------------------------------------------
-# Git hace falta antes que nada (este script clona el repo). Se auto-instala por winget
-# si falta y, si winget tampoco esta, se ofrece instalarlo. Tambien cubre a quien ya
-# tenia pwsh 7 pero no winget: el gate de arriba no corrio y es la primera vez que se lo necesita.
+# Git hace falta para clonar el repo: se instala por winget y, si winget falta, se ofrece instalarlo.
 # ==============================================================================
 
 Write-Log 'Verificando requisitos...' 'SECTION'
@@ -574,9 +521,7 @@ if (-not (Test-CommandAvailable 'git')) {
     $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
                 [Environment]::GetEnvironmentVariable('Path', 'User')
     if (-not (Test-CommandAvailable 'git')) {
-        # El PATH de Machine tarda en propagarse (o winget lo dejo solo en el
-        # registro): se buscan las rutas fijas de Git for Windows y se agregan a
-        # mano, para no obligar al usuario a reabrir la terminal.
+        # El PATH de Machine tarda en propagarse: se agregan a mano las rutas fijas de Git for Windows.
         foreach ($gitDir in @(
             "$env:ProgramFiles\Git\cmd",
             "${env:ProgramFiles(x86)}\Git\cmd",
@@ -608,9 +553,6 @@ if (Test-Path (Join-Path $DOTFILES_DIR '.git')) {
     Write-Log "Ya existe en $DOTFILES_DIR - actualizando" 'OK'
     Push-Location $DOTFILES_DIR
     try {
-        # Los cambios locales los maneja --autostash (stashea y REAPLICA al
-        # terminar el rebase). No stashear a mano ademas: ese stash quedaba
-        # huerfano y los cambios "desaparecian" del working tree sin aviso.
         git diff-index --quiet HEAD -- 2>$null
         if ($LASTEXITCODE -ne 0) {
             Write-Log 'Cambios locales detectados - autostash durante el pull' 'WARN'
@@ -621,11 +563,8 @@ if (Test-Path (Join-Path $DOTFILES_DIR '.git')) {
         Pop-Location
     }
 } else {
-    # Repo PUBLICO: HTTPS funciona sin credenciales. SSH si esta disponible.
-    # BatchMode=yes es imprescindible: en una maquina nueva sin known_hosts, ssh
-    # pregunta por la huella del host y espera respuesta — con stderr redirigido
-    # a $null esa pregunta es INVISIBLE y el instalador parece colgado. Con
-    # BatchMode falla al instante y cae a HTTPS.
+    # BatchMode: sin known_hosts ssh pregunta por la huella y, con stderr descartado,
+    # el instalador parece colgado. Asi falla y cae a HTTPS.
     $prevSshCmd = $env:GIT_SSH_COMMAND
     $env:GIT_SSH_COMMAND = 'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new'
     try {
@@ -691,10 +630,8 @@ function Invoke-CloneVault {
             Write-Log 'Error clonando vault con gh' 'ERROR'
             return $false
         }
-        # gh clona via HTTPS: en la 2da corrida 'git pull' pediria credenciales
-        # (GitHub ya no acepta password). Lo dejamos en el host alias SSH para
-        # que las actualizaciones futuras usen la clave sin pedir nada. El
-        # alias existe tras aplicar el ssh/config del vault (bootstrap).
+        # gh clona por HTTPS; el remote pasa al host alias SSH, el unico que el ssh/config
+        # del vault asocia a la clave.
         git -C $VAULT_DIR remote set-url origin $VAULT_SSH_ALIAS
         return $true
     }
@@ -713,9 +650,7 @@ $VAULT_OK = $false
 if ($SkipVault) {
     Write-Log '-SkipVault: omitiendo vault privado' 'WARN'
 } elseif (Test-Path (Join-Path $VAULT_DIR '.git')) {
-    # El vault ya esta clonado: su contenido ya esta disponible para el
-    # bootstrap, haya o no conexion. Un pull fallido NO invalida el vault —
-    # solo significa que se usa la version local (paridad con install.sh).
+    # Un pull fallido no invalida el vault: se usa la copia local.
     Write-Log "Vault ya existe en $VAULT_DIR - actualizando" 'OK'
     $VAULT_OK = $true
     Push-Location $VAULT_DIR

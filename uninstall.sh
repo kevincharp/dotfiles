@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
 #   uninstall.sh — Desinstalar dotfiles
-#   Autor: Kevin Charpentier
 #   Uso:   bash uninstall.sh [--remove-packages] [--dry-run] [--force]
 # ==============================================================================
 
@@ -54,10 +53,7 @@ DOTFILES_TARGETS=(
     "$HOME/.claude/settings.json"
     "$HOME/.claude/CLAUDE.md"
     "$HOME/.claude/agents"
-    # settings.local.json NO va aca a proposito: bootstrap.sh nunca lo crea ni
-    # lo symlinkea (es per-maquina, el usuario lo edita a mano). Si estuviera
-    # en esta lista, el loop de abajo lo borraria como "archivo real" aunque
-    # nunca lo haya instalado este repo.
+    # settings.local.json no va: es per-maquina y el bootstrap no lo crea.
     "$HOME/.config/oh-my-posh/themes/claude-code.omp.json"
     "$HOME/.config/ulauncher/settings.json"
     "$HOME/.config/ulauncher/shortcuts.json"
@@ -71,8 +67,7 @@ DOTFILES_TARGETS=(
     "$HOME/.config/nvim"
     "$HOME/.codex/AGENTS.md"
     "$HOME/.config/opencode/AGENTS.md"
-    # Copia del vault con el token de iCloud: es un secreto, no debe quedar
-    # huerfano tras desinstalar.
+    # Copia del vault con el token de iCloud: no debe quedar huerfana.
     "$HOME/.config/rclone/rclone.conf"
 )
 
@@ -152,9 +147,7 @@ has_cmd() {
     command -v "$1" &>/dev/null
 }
 
-# pkg_cmd <paquete> — comando real que provee el paquete (cuando difiere del nombre).
-# Sin esto, has_cmd neovim/ripgrep da false (los binarios son nvim/rg) y nunca se
-# desinstalan aunque esten presentes.
+# pkg_cmd <paquete> — comando que provee el paquete cuando difiere del nombre.
 pkg_cmd() {
     case "$1" in
         neovim)  echo "nvim" ;;
@@ -257,7 +250,6 @@ log "--- [2/3] Desinstalando paquetes ---" "SECTION"
 if [[ "$REMOVE_PACKAGES" != true ]]; then
     log "Saltando desinstalación de paquetes (usa --remove-packages)" "SKIP"
 else
-    # Detectar package manager
     if has_cmd dnf; then
         PKG_MANAGER="dnf"
         PKG_REMOVE="sudo dnf remove -y"
@@ -274,7 +266,6 @@ else
 
     if [[ "$PKG_MANAGER" != "none" ]]; then
         for pkg in "${PACKAGES[@]}"; do
-            # Saltar paquetes que son scripts (no paquetes del sistema)
             case "$pkg" in
                 oh-my-posh|zoxide|opencode|claude)
                     log "Saltando $pkg (instalado como binario, no paquete)" "SKIP"

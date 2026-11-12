@@ -3,10 +3,9 @@
 Dotfiles multiplataforma (Linux/Fedora + Windows). Configs de shell, terminal,
 git y Claude Code, reproducibles en cualquier máquina vía `bootstrap`.
 
-Este archivo tiene solo **reglas activas** (qué hacer). El "por qué" —bugs
-reales, alternativas evaluadas y descartadas, forense byte a byte— vive en
-[`docs/notas-tecnicas.md`](docs/notas-tecnicas.md); lo enlazo puntualmente
-donde aplica.
+Este archivo tiene solo **reglas activas** (qué hacer). El porqué largo de las
+que costó diagnosticar vive en [`docs/notas-tecnicas.md`](docs/notas-tecnicas.md),
+enlazado donde aplica.
 
 ## Reglas del repo
 

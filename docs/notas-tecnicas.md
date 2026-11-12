@@ -1,12 +1,7 @@
-# Notas técnicas (bitácora de decisiones y forense de bugs)
+# Notas técnicas
 
-Detalle completo de **por qué** las reglas de `AGENTS.md` son como son: bugs
-reales encontrados, alternativas evaluadas y descartadas, mecanismos
-internos verificados byte a byte. `AGENTS.md` se quedó solo con la regla
-activa y corta ("qué hacer"); este archivo tiene el "por qué" — no hace
-falta leerlo en cada sesión, solo cuando se toca de nuevo esa parte del
-código y hace falta el contexto completo para no repetir un error ya
-resuelto.
+El porqué largo de las reglas de `AGENTS.md` y `.claude/rules/`: mecanismos que
+costó diagnosticar. Se lee solo al tocar esa parte.
 
 ## `install.ps1`: el problema de fondo (`irm | iex`)
 
@@ -82,10 +77,6 @@ atajo/lanzador no hace nada. Verificado en Fedora.
   Ulauncher no funciona**, así que lo dispara un atajo de GNOME.
 - **Autostart** (`ulauncher/autostart.desktop`) es **copia**, no symlink, a
   `~/.config/autostart/`: GNOME reescribe ese `.desktop` desde su GUI.
-- Se evaluó **Smile** (Flatpak, alternativa a GNOME Characters para emojis) y
-  se descartó: bajo Wayland tiene el mismo comportamiento (app en dock,
-  `Ctrl+V` porque su auto-paste vía xdotool no inyecta en apps Wayland
-  nativas). Solo sumaba favoritos/tags a cambio de una dependencia extra.
 - **Fedora 45 (Python 3.15) lo rompe:** `ulauncher 5.15.15-5.fc45` crashea al
   importar, `ssl.PROTOCOL_TLSv1` ya no existe (lo usa su servidor websocket
   embebido en `utils/SimpleWebSocketServer.py`). Parche local de una línea,
@@ -140,14 +131,9 @@ instalada** → con versiones distintas en Linux y Windows los archivos
 divergen y parece config propia. Versionar el dump es peor que no tenerlo:
 congela los defaults de hoy y tapa los que agreguen versiones futuras.
 
-- **Quién lo crea:** el comando **`/keybindings`**. Su mensaje dice *"Created
-  ... with template"*, pero el "template" **es el dump completo de los
-  defaults** — así que el archivo **reaparece** cada vez que se abre el
-  comando y hay que volver a borrarlo si se lo quiere sin archivo. Al
-  recrearlo en Windows quedó `"alt+v": "chat:imagePaste"` donde Fedora tenía
-  `"ctrl+v"`: misma acción, tecla distinta según la versión instalada. Esa es
-  la prueba de que el archivo refleja el CLI, no las preferencias del
-  usuario.
+- **Quién lo crea:** el comando **`/keybindings`**. Su "template" es el dump
+  completo de los defaults, así que el archivo reaparece cada vez que se abre
+  el comando.
 - **`shift+enter` no lo necesita en Windows:** lo resuelve el terminal —
   `terminal/settings.json` mapea `shift+enter` a un `sendInput` con ESC+CR
   (bytes `0x1b 0x0d`), que Claude lee como salto de línea. Un `chat:newline`
@@ -167,9 +153,6 @@ congela los defaults de hoy y tapa los que agreguen versiones futuras.
   mandar bytes** — su lista de atajos es un enum fijo de acciones de UI, sin
   análogo al `sendInput` de Windows Terminal (lo único cercano son
   `backspace-binding`/`delete-binding`, y solo para esas dos teclas).
-  Ghostty/Kitty/WezTerm sí lo soportan sin setup: si algún día se evalúa
-  reemplazar Ptyxis, esto suma al argumento del preview de imágenes de yazi,
-  que falla por la misma pobreza de protocolos de Ptyxis.
 
 ## Claude Code: mecanismos internos verificados
 
@@ -290,14 +273,6 @@ obligatorio y el arranque subió de ~19 ms a ~30 ms, a cambio. Su instalador
 de parsers además dependía de tarballs que ya dan 404 (el parser 'jsonc', que
 en 'main' ni existe aparte: el filetype 'jsonc' resuelve al parser 'json').
 
-- **Filetypes compuestos:** los compose se detectan como
-  `yaml.docker-compose` (ver `lua/tipos-archivo.lua`) para que les enganchen
-  **los dos** servidores (yamlls con su esquema + docker_compose_language_service).
-  conform resuelve por el filetype **entero**, así que hay que nombrarlo tal
-  cual en `formatters_by_ft`. Para treesitter,
-  `vim.treesitter.language.get_lang()` traduce
-  (`yaml.docker-compose`→`yaml`, `sh`→`bash`, `jsonc`→`json`).
-
 ### Compilador C en Windows: por qué zig + shim, no MSVC
 
 `tree-sitter-cli` invoca literalmente un programa llamado `cc`. No entiende
@@ -318,105 +293,6 @@ embebidos, sin depender de Visual Studio.
 otra herramienta en la máquina que lea `CC` (make, cargo build scripts,
 node-gyp…) va a compilar vía zig-como-gnu en vez de cl.exe/MSVC. Aceptado a
 propósito: la alternativa es no tener resaltado de sintaxis en Windows.
-
-### Plugins de nvim: decisiones movidas desde los comentarios
-
-Los archivos de `nvim/lua/plugins/` llevan una cabecera corta; el porqué largo
-vive acá.
-
-- **lsp.lua:** el "framework" viejo `require('lspconfig')` está deprecado, pero
-  el plugin no: sigue aportando los `lsp/*.lua` (cómo invocar cada servidor y
-  detectar la raíz). La config usa la API nueva y no lo requiere. Antes se
-  mapeaban `gr`, `gI`, `<leader>rn`, `<leader>ca` y `<leader>d`, duplicados de
-  los nativos; mapear `gr` a secas lo vuelve prefijo ambiguo y nvim espera los
-  400 ms de `timeoutlen` para saber si venía `grn/gra/grr`: lag en los seis
-  nativos. `gd` nativo es la declaración local, no la del LSP, por eso se mapea.
-- **pestanas.lua:** bufferline y no barbar, porque replica el look de VSCode
-  (separadores finos, diagnósticos en el tab, offset del explorador); su repo
-  tiene poco movimiento porque está terminado, no abandonado (sin avisos en
-  0.12). `]b`/`[b` son nativos (`:bnext`) pero van por número de buffer: se
-  redefinen para seguir el orden visual. `Alt+1..9` no se puede: Ptyxis y
-  Windows Terminal lo toman para sus pestañas. Shift+H/L pisarían los nativos
-  de tope/pie de pantalla; Ctrl+PageUp/Down los toma la terminal. La lista
-  completa de buffers está en `<leader>fb`.
-- **sesiones.lua:** una sesión por directorio (la clave es desde dónde
-  arrancaste nvim). El flujo del repo es abrir cinco o seis archivos que se
-  referencian; sin sesiones cada `nvim` empieza de cero. La restauración es
-  manual para que `nvim archivo.lua` no arrastre diez buffers viejos. Atajos
-  `<leader>p`: `s` este directorio, `l` la última, `p` elegir, `d` no guardar.
-  El README sugiere `<leader>q`, pero ya es "cerrar ventana" y un atajo suelto
-  bloquea su prefijo (mismo motivo por el que el formateo pasó de `<leader>f` a
-  `<leader>cf`). `<leader>p` se verificó libre sobre los mapeos reales.
-- **pares.lua:** autopairs salta sobre el cierre existente (`f(a|)` + `)` queda
-  `f(a)`), no cierra si lo que sigue es letra o dígito, y `check_ts` solo
-  discrimina las comillas: un `(` sí se cierra dentro de un string o comentario.
-  `fast_wrap` en `<M-e>`: Alt+e no lo toma ni Ptyxis ni Windows Terminal.
-- **todo-comments.lua:** `<leader>st`/`<leader>sT` van al grep del picker de
-  snacks con el patrón que arma el propio plugin, no a `:TodoTelescope`
-  (Telescope no está instalado y snacks no trae fuente `todo_comments`). No se
-  mapean `]t`/`[t`: son nativos (tag list).
-- **snacks.lua:** antes se llamaba `explorador.lua`; se renombró al cubrir más
-  módulos (un archivo por plugin). `image` queda apagado porque Ptyxis no
-  soporta el protocolo gráfico de kitty.
-- **breadcrumbs.lua:** dropbar y no nvim-navic: navic usa la statusline, que es
-  minimalista a propósito; dropbar usa la winbar, por ventana. Cae en cascada de
-  LSP a treesitter a indentación.
-- **buscar-reemplazar.lua:** grug-far es un buffer normal de nvim (usa el
-  ripgrep del bootstrap). Dentro manda el líder local `\`: con
-  `maplocalleader = ' '`, `\s` sería `<space>s`, el prefijo del grupo "buscar".
-- **esquema.lua:** aerial convive con `gO` (consulta puntual, sin jerarquía) y
-  `<leader>ss` (buscar por nombre): son tres usos distintos.
-- **markdown.lua:** render-markdown y no markview por el anti-conceal: muestra el
-  markdown crudo en la línea del cursor, así se lee renderizado y se edita sin
-  apagar nada.
-- **autocompletado.lua:** blink.cmp es el motor moderno de nvim 0.12 (rápido, en
-  Rust). Se eligió el preset `default` (aceptar con `<C-y>`) y no el
-  `<Enter>`/`<Tab>` de VSCode para no pisar reflejos de vim mientras se aprende
-  lo nativo. En Linux `<C-space>` lo captura GNOME antes (Ulauncher).
-- **contexto.lua:** el README del plugin propone `[c` para saltar al contexto,
-  pero `[c` es nativo de vim (cambio anterior en modo diff, `:h [c`). Se mapea
-  solo el toggle en el grupo de alternar. dropbar responde "dónde estoy" (ruta
-  en la winbar); esto muestra "qué dice la firma que ya no veo".
-- **formateo.lua:** conform y no el formateo del LSP, para que el formato sea
-  idéntico dentro y fuera del editor. Antes el atajo era `<leader>f`; se mudó a
-  `<leader>cf` porque un atajo suelto bloquea el prefijo (no podría existir
-  `<leader>ff` ni `<leader>fg`).
-- **lazydev.lua:** declarar `vim` como global (como estaba en lsp.lua) solo
-  callaba el aviso, sin completado ni hover. Cargar todo el runtimepath como
-  librería de lua_ls es mucho más lento y da problemas editando la propia
-  config (nvim-lspconfig#3189). lazydev carga los tipos on demand, solo en
-  `.lua`, y es de folke como snacks y which-key.
-- **init.lua / gestor.lua:** config portable Linux + Windows con el modelo de
-  kickstart.nvim. Los plugins se instalan en el data-dir (`~/.local/share/nvim`),
-  fuera del repo.
-- **lsp.lua (servidores):** el `require('blink.cmp').get_lsp_capabilities()` era
-  redundante (desde nvim 0.11 blink registra sus capabilities solo, en su
-  `plugin/`) y además forzaba a lazy.nvim a cargar blink, saltándose su evento.
-  SQL no lleva servidor: el único maduro (sqls) es inútil sin un `config.yml` con
-  la cadena de conexión, que no puede vivir en este repo público (iría al vault);
-  sin eso solo completa palabras clave, lo que ya hace la fuente `buffer` de
-  blink. Docker usa dos servidores (`dockerls` para Dockerfile,
-  `docker_compose_language_service` para compose) y el compose recibe además
-  yamlls con su esquema por el filetype compuesto `yaml.docker-compose`.
-- **sesiones.lua (`sessionoptions`):** se hace en el plugin y no en opciones.lua
-  porque sin él no hace nada. `blank` no tiene sentido restaurarlo; `terminal`
-  deja un shell muerto (el proceso no sobrevive a la salida; las terminales se
-  abren con `<leader>tf`/`<leader>th`); `globals` guarda variables `g:` que
-  algunos plugins usan; `skiprtp` evita volcar el runtimepath.
-- **todo-comments.lua:** la búsqueda usa `config.search_regex()` del propio plugin
-  (el mismo que resalta), así `WARN(x):` y `WARN:` no se contradicen entre la
-  lista y el color. El `vim.schedule` no es decorativo: `search_regex` es `nil`
-  en el mismo tick en que lazy.nvim carga el plugin y aparece en el siguiente.
-- **atajos.lua (mover líneas):** antes era `J`/`K` en visual, que pisaba el `J`
-  nativo (unir líneas). Alt+flechas llega a nvim: Ptyxis codifica Alt como
-  prefijo ESC (`CSI 1;3A/B`) y solo usa Alt+1..9 para pestañas; los 5 atajos
-  custom de GNOME (Ctrl+Alt+T, Ctrl+Space, Ctrl+Shift+Esc, Super+Shift+S,
-  Super+.) no chocan; Windows Terminal se queda alt+minus/period/w y
-  alt+shift+d/±, pero Ctrl+flechas sí las toma para mover paneles.
-- **statusline.lua:** antes era una barra "cargada" (git, diff, nombre,
-  diagnósticos, tipo); se simplificó a pedido: preferencia por lo prolijo.
-- **tema.lua:** vscode.nvim reproduce Dark Modern pixel por pixel; tokyonight y
-  catppuccin se descartaron porque el objetivo es paridad visual con VSCode.
 
 ## Chrome duplicado en "Aplicaciones predeterminadas → Web"
 
@@ -479,30 +355,10 @@ GNOME asocia mal algunos `.desktop`.
   dominio de Microsoft en la lista.
 - `privacy.clearOnShutdown_v2.siteSettings = false` es lo que evita que el
   borrado se lleve las propias excepciones.
-- Las URLs de las PWA cambiaron (`teams.microsoft.com` → `teams.cloud.microsoft`,
-  `outlook.office.com` → `outlook.cloud.microsoft`); la lista usa las nuevas.
-- **Las excepciones NO protegieron en `Aplicaciones` (2026-10-02):** tras cerrar
-  Firefox el borrado dejó **0 cookies** (venían 34, con `ESTSAUTHPERSISTENT`) y sin
-  storage de `teams.cloud.microsoft`, pese a que `login.microsoftonline.com`,
-  `teams.cloud.microsoft` y `outlook.cloud.microsoft` seguían en `moz_perms` con
-  Permitir. Un día antes las sesiones sí sobrevivieron; **no se encontró qué
-  cambió** (la lista de conveniencia de ETP se probó y no era). Cookies que mandan
-  Teams/Skype desde hosts sin excepción (`skype.com`, `teams.microsoft.com`,
-  `microsoft.com`, algunas particionadas) también se borran. Decisión:
-  `Aplicaciones` **no borra cookies ni storage** al cerrar
-  (`privacy.clearOnShutdown_v2.cookiesAndStorage = false` en `user-aplicaciones.js`);
-  historial y caché siguen borrándose. Verificado: la sesión sobrevive al cierre.
-  En `Personal` las excepciones **sí funcionan** (verificado a mano el 2026-10-02:
-  las sesiones de GitHub y MercadoLibre sobreviven al cierre), así que el fallo es
-  específico de `Aplicaciones` (ventanas Taskbar Tabs, o filas insertadas por
-  `aplicar-perfiles.sh` en vez de por la UI; **sin discriminar**). Las filas de
-  Microsoft, WhatsApp y X en `Personal` también las insertó el script y no se
-  probaron.
-- **Causa probable (2026-10-23):** el borrado al cerrar solo respeta excepciones de
-  tipo `persist-data-on-shutdown` (leído en `Sanitizer.sys.mjs`: `maybeSanitizeSessionPrincipals`),
-  no las `cookie` que insertaba el script. `Personal` tenía 9 filas de ese tipo
-  (cargadas desde la interfaz); `Aplicaciones` tenía 0. El script ahora inserta
-  ambos tipos. Se quitó el override `cookiesAndStorage=false` de `user-aplicaciones.js`: `Aplicaciones` vuelve a borrar al cerrar con excepciones. Pendiente verificar cerrando Firefox.
+- **El borrado al cerrar solo respeta excepciones de tipo
+  `persist-data-on-shutdown`** (`Sanitizer.sys.mjs`,
+  `maybeSanitizeSessionPrincipals`), no las `cookie`; por eso el script inserta
+  los dos tipos. Falta verificarlo en `Aplicaciones` cerrando Firefox.
 - Diagnóstico que sirvió: copiar `cookies.sqlite*` a un tmp y listar
   `host, name, expiry` (sin valores) antes y después de cerrar. `expiry` está en ms.
 
@@ -526,15 +382,6 @@ El 90 % es una preferencia **de contenido**, no de `prefs.js`: fila global
 (`groupID IS NULL`) de `browser.content.full-zoom` en `content-prefs.sqlite`.
 Un zoom por sitio (p. ej. Teams en 100 %) la pisa.
 
-### Marcadores con nombre vacío
-
-Chrome permite marcadores sin nombre (solo icono); Firefox, con el título vacío
-muestra la **URL** en los menús. Se resolvió con un espacio como título
-(`UPDATE moz_bookmarks SET title=' ' WHERE type=1 AND title IS NULL` en
-`places.sqlite`, con Firefox cerrado). Editar el JSON de marcadores de Chrome a
-mano **no se sincroniza** con la cuenta de Google (la sync observa cambios desde
-la interfaz, no el archivo): se replicó a mano en el otro equipo.
-
 ### Firefox Sync
 
 Se dejó activo (sincroniza, entre otras cosas, tarjetas aunque el autocompletado
@@ -543,99 +390,41 @@ config.
 
 ## Windows Terminal: pwsh sin ruta fija
 
-El perfil "PowerShell" de `terminal/settings.json` tenía
-`C:\Program Files\PowerShell\7\pwsh.exe`, la ruta de la instalación **MSI**
-(winget). En una PC donde pwsh vino de la **Microsoft Store** el ejecutable vive
-en `%LOCALAPPDATA%\Microsoft\WindowsApps\…` y Windows Terminal fallaba con
-`0x80070002` (archivo no encontrado). Ahora es `pwsh.exe -nologo`: las dos
-instalaciones dejan `pwsh.exe` en el PATH.
+El perfil "PowerShell" de `terminal/settings.json` usa `pwsh.exe -nologo` y no
+una ruta fija: la instalación MSI (winget) y la de la Microsoft Store dejan el
+ejecutable en lugares distintos, pero las dos lo ponen en el PATH.
 
 - **No "reiniciar" el valor desde la GUI** de Windows Terminal: el archivo es un
   symlink al repo, así que la GUI escribiría la ruta de *esa* máquina en el repo.
 - **Límite conocido:** el perfil tiene `"elevate": true`. Si la elevación (UAC)
   pide credenciales de **otra cuenta**, la terminal corre como ese usuario y su
   PATH no tiene el `WindowsApps` propio: con pwsh de la Store, no lo encuentra.
-  Con tu cuenta siendo admin (UAC solo pide "Sí") no pasa.
 
-**Perfiles sin generador automático.** Git Bash y Linux eran perfiles
-*dinámicos* (`"source": "Git"`, `Windows.Terminal.Wsl`, la app de Ubuntu de la
-Store): el GUID sale de cómo se instaló cada cosa en *una* máquina, así que en
-otra aparecían con ⚠ (huérfanos), y Windows Terminal además escribía los perfiles
-que sí detectaba **dentro del repo** (vía symlink), generando conflictos en el
-`git pull`. Ahora son estáticos: Git Bash con su ruta estándar y Linux con
-`wsl.exe ~` (la distro por defecto de cada máquina, se llame como se llame), y
-`disabledProfileSources` apaga esos generadores. Costo: una distro nueva no
-aparece sola — se agrega a mano.
+**Perfiles estáticos.** Git Bash y Linux no usan los generadores dinámicos
+(`"source": "Git"`, `Windows.Terminal.Wsl`): el GUID depende de cómo se instaló
+cada cosa en una máquina, en otra aparecen huérfanos, y Windows Terminal escribe
+los perfiles que detecta dentro del repo (vía symlink). Son estáticos (Git Bash
+con su ruta estándar, Linux con `wsl.exe ~`) y `disabledProfileSources` apaga
+los generadores. Costo: una distro nueva se agrega a mano.
 
-## Shell: decisiones movidas desde los comentarios
+## Shell y bootstrap
 
-- **ble.sh (bash):** se sourcea con el attach por defecto (`=prompt`), que lo
-  adjunta en el primer prompt vía `PROMPT_COMMAND`. Con `--noattach` +
-  `ble-attach` manual el redibujado del prompt empeora al adjuntarse. El prompt
-  duplicado se resolvió quitando el newline inicial del tema
-  (`claude-code.omp.json`) más `bleopt prompt_command_changes_layout`. La paleta
-  de faces espeja los `-Colors` de PSReadLine: Command `#C79BFF`, Parameter
-  `#7AB8FF`, String `#86E89A`, Variable `#FFDF61`, Operator `#56B6C2`, Error
-  `#FF7A7A`, Comment e InlinePrediction `#6B5448`, directorios `#D4874E`
-  (`LS_COLORS di=172`).
-- **`_infer_git_profile`:** dos señales por orden de confianza. 1) host del
-  remoto contra `GIT_PROFILE_REMOTES` del vault (exacto: el alias SSH ya
-  identifica la clave). 2) carpeta `~/repositorios/<ctx>/`: el `ctx` puede ser el
-  perfil, una clave de `GIT_IDENTITY_FILES` o, si no, se lee el email de
-  `~/.gitconfig-<ctx>` y se busca qué perfil lo tiene. Así funciona con vaults
-  donde el sufijo no es el perfil (el propio mapea `personal` a `kevincharp`) sin
-  hardcodear nombres.
-- **dothelp, el menú inserta solo el nombre:** la plantilla de uso lleva `<arg>`
-  y `[opcional]`, que no son ejecutables; pegada tal cual, zsh muere en el glob
-  (`bad pattern: [-p`) y bash en la redirección (`url: No existe el fichero`),
-  con un error que no dice nada del comando. Insertando solo el nombre, el Enter
-  llega a la función y es ella la que imprime su uso: una sola fuente de verdad.
+- **dothelp inserta solo el nombre del comando:** la plantilla de uso lleva
+  `<arg>` y `[opcional]`, que no son ejecutables; pegada tal cual, zsh muere en
+  el glob (`bad pattern: [-p`) y bash en la redirección. Con solo el nombre, el
+  Enter llega a la función y ella imprime su uso.
 - **GNOME (dconf):** `dconf load` es aditivo (solo escribe las claves del
   archivo), por eso `shell.dconf` trae solo `enabled-extensions` sin pisar el
   resto de `/org/gnome/shell/`. Las apps pineadas (`favorite-apps`) no se
   versionan: son estado personal y `gnome-load` las pisaría.
-- **`claude-smg`, modelos:** Bedrock lista muchos modelos (Opus, Fable, GPT…) pero
-  la empresa los bloquea, y en `/model` son ruido que falla al invocarse. Los
-  defaults viven en el repo (son IDs públicos, no secretos) porque antes vivían
-  solo en `~/.env` y, en una PC nueva sin el `.env` migrado, el picker volvía a
-  mostrar todo.
-
-## Bootstrap: decisiones movidas desde los comentarios
-
-- **`want_tool` gatea las configs:** sin ese gate se symlinkeaban configs de
-  herramientas que el tercero nunca pidió (un `~/.config/nvim` apuntando a esta
-  config aunque no tenga nvim y, peor, el `CLAUDE.md` con reglas personales del
-  autor). Cuenta "ya instalada" a propósito: si la máquina ya tenía nvim de antes
-  y no se marcó, igual quiere su config (el caso normal al re-correr).
 - **VS Code no se symlinkea** (`~/.config/Code/User/settings.json`): con Settings
   Sync activo, la primera sincronización en una máquina nueva pisa el archivo
-  completo con el perfil synced, de-symlinkea el destino sin avisar y mete datos
-  privados que el perfil traiga (pasó: trajo credenciales de un server interno).
-  Las 2 claves de telemetría se setean a mano una vez y Settings Sync las propaga;
-  no van a `settingsSync.ignoredSettings` porque eso las excluiría del sync en los
-  dos sentidos y quedarían prendidas en las demás máquinas.
-- **Windows, VS Code y Python por winget:** antes eran manuales por miedo a que
-  winget no pusiera `code`/`python` en el PATH o dejara solo el launcher `py.exe`.
-  Ninguna se sostuvo: `nvim/` no usa `python3_host_prog` y el instalador de
-  python.org acepta `PrependPath=1` por `--override`. El PATH de usuario va antes
-  que `WindowsApps` (atajos de la Store que "tapan" python). Verificado en una
-  máquina sin VS Code: el User Installer (`%LOCALAPPDATA%\Programs\Microsoft VS Code`)
-  deja `code` en el PATH de usuario sin override; una terminal ya abierta no lo ve. Git for Windows
-  también va por winget: editor y line endings los fija el `.gitconfig` del vault
-  (`core.editor=nvim`, `core.autocrlf=input`).
-- **Módulos de PowerShell:** se instalaban los tres siempre; ahora los gatea el
-  catálogo. `posh-git` salió: `profile.ps1` no lo usa (el estado de git del prompt
-  lo da oh-my-posh).
-- **`winget list`:** sin `--source` consulta también msstore, que la primera vez
-  frena pidiendo aceptar términos; con la salida redirigida el bootstrap quedaba
+  con el perfil synced, de-symlinkea el destino sin avisar y trae los datos
+  privados que tenga el perfil. Las 2 claves de telemetría se setean a mano una
+  vez y Settings Sync las propaga; no van a `settingsSync.ignoredSettings`
+  porque quedarían excluidas del sync en los dos sentidos.
+- **`winget list` sin `--source`:** consulta también msstore, que la primera vez
+  frena pidiendo aceptar términos; con la salida redirigida el bootstrap queda
   colgado. No se fuerza `--source winget` para seguir detectando lo de la Store
-  (p. ej. pwsh). "Ya instalado" es exit 0: la búsqueda por texto fallaba porque
-  winget recorta los Id con `…` (sospecha, no confirmada, con Logi Options+).
-- **Neovim en Windows con `XDG_CONFIG_HOME`:** si está seteada, Neovim resuelve
-  `stdpath('config')` ahí y no en `%LOCALAPPDATA%\nvim`; symlinkear solo el
-  segundo lo deja con defaults.
-- **`winget install` en segundo plano:** zig y OnlyOffice tardan minutos detrás de
-  un antivirus/proxy; con la barra quieta parecía colgado. Antes, un proceso que
-  ni arrancaba no sumaba a `$ERRORS` (el resumen decía "1 error" con 25 paquetes
-  sin instalar); ahora devuelve `ExitCode = -1`.
-
+  (p. ej. pwsh). "Ya instalado" es exit 0, no una búsqueda por texto: winget
+  recorta los Id con `…`.

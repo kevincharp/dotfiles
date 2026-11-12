@@ -1123,10 +1123,17 @@ function aduser {
     $usuarios = Get-ADUser -Properties $props -Filter ("sAMAccountName -eq '$Usuario' -or mail -eq '$Usuario'" +
         " -or UserPrincipalName -eq '$Usuario' -or proxyAddresses -eq 'smtp:$Usuario'")
     if (-not $usuarios) { Write-Host "Ningún usuario con usuario o email $Usuario" -ForegroundColor DarkYellow; return }
+    # los metadatos de replicación se piden a un DC concreto, no al nombre del dominio
+    $dc = (Get-ADDomainController -Discover).HostName[0]
     $usuarios |
       Select-Object SamAccountName,DisplayName,EmailAddress,Title,Department,
         @{n='Manager'; e={ $_.Manager -replace '^CN=(.+?),(OU|CN|DC)=.*', '$1' }},
-        Description,whenCreated,Enabled,LockedOut,AccountExpirationDate,PasswordLastSet,
+        Description,whenCreated,Enabled,
+        # AD no guarda historial de inhabilitaciones: solo cuándo cambió userAccountControl y cuántas veces
+        @{n='UltimoCambioEstado'; e={
+            $meta = Get-ADReplicationAttributeMetadata $_ -Server $dc -Properties userAccountControl
+            '{0} (versión {1})' -f $meta.LastOriginatingChangeTime, $meta.Version }},
+        LockedOut,AccountExpirationDate,PasswordLastSet,
         @{n='PasswordExpires'; e={ if ($_.PasswordNeverExpires) { 'Nunca' } else { [datetime]::FromFileTime($_.'msDS-UserPasswordExpiryTimeComputed') } }},
         CannotChangePassword,badPwdCount,LastBadPasswordAttempt,LastLogonDate,LogonWorkstations,
         @{n='LogonHours'; e={ Format-ADLogonHours $_.logonHours }},

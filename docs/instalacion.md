@@ -2,7 +2,7 @@
 
 Guía completa del instalador: requisitos, qué hace cada paso, todos los flags,
 modo no interactivo, secretos y solución de problemas. Para la versión corta,
-volvé al [README](../README.md#instalación-rápida).
+volvé al [README](../README.md#instalar-o-actualizar).
 
 ---
 
@@ -132,9 +132,9 @@ GITLAB_TOKEN_MIUSUARIO=glpat-xxxxxxxxxxxx
 
 ## AWS SSO / Bedrock (opcional)
 
-Solo relevante si usás Claude Code contra **AWS Bedrock** con SSO corporativo
-(el comando `claude-smg`). Si no, respondé «no» cuando el instalador pregunte y
-listo.
+Para usar Claude Code contra **AWS Bedrock** con SSO corporativo (el comando
+`claude-smg`). En una máquina que no lo necesita, responder «no» cuando el
+instalador pregunte.
 
 Dos formas de configurarlo:
 
@@ -153,9 +153,7 @@ AWS_SSO_PROFILE=<tu-usuario>     # opcional (default: default)
 ```
 
 - **`AWS_SSO_PROFILE`** es el nombre del perfil (y de la `sso-session`) que se
-  escribe en `~/.aws/config`, el mismo que usa `claude-smg`. Si varias personas
-  comparten la org, cada una pone solo su usuario y el resto del `.env` es
-  idéntico.
+  escribe en `~/.aws/config`, el mismo que usa `claude-smg`.
 - **`AWS_EXTRA_PROFILES`** agrega perfiles extra bajo la misma sesión SSO
   (mismo login), formato `perfil:cuenta:rol[:region]` separados por `;`:
 
@@ -191,7 +189,6 @@ confirmación antes de tocar nada.
 |---|---|
 | *PowerShell bloquea el script* | Execution Policy: `powershell -ExecutionPolicy Bypass -Command "irm …/install.ps1 \| iex"` |
 | *«el instalador necesita PowerShell 7+»* | Estás en la consola por defecto (5.1). Respondé `S` y lo instala solo, relanzándose en pwsh 7. Si además falta winget, lo ofrece instalar en la misma pregunta. Sin consola interactiva (CI) no instala nada por su cuenta y te deja los comandos. |
-| *La terminal se cierra sola al correr el one-liner* | Bug ya corregido (dos causas: `exit` bajo `irm \| iex` mataba la sesión, y en PowerShell 5.1 no se podía leer el teclado, así que el instalador creía que no había nadie y abortaba antes de dejarte contestar). Si te sigue pasando, estás corriendo una versión vieja. |
 | *Descargas de «App Installer» bloqueadas* | Proxy corporativo: instalá winget desde la Microsoft Store a mano ([aka.ms/getwinget](https://aka.ms/getwinget)) y reintentá. |
 | *`0x80073CF3` al instalar winget («depende de un marco que no se encontró»)* | El App Installer nuevo exige `Microsoft.WindowsAppRuntime`, ausente en imágenes limpias. El instalador ya lo instala antes y, si aun así falla, reintenta con winget 1.9 (que no lo necesita) y luego instala PowerShell 7 por MSI, que no depende de winget. |
 | *«Modo de desarrollador desactivado»* | Activalo en Configuración → Sistema → Para desarrolladores (o corré la consola como admin) y re-corré el bootstrap. Sin eso, los symlinks de configs no se crean. |

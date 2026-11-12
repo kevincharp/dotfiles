@@ -148,7 +148,7 @@ reglas por área (`.claude/rules/`) — acá el mapa:
 ├── terminal/                     # Windows Terminal (symlink) · Ptyxis (dconf)
 ├── gnome/*.dconf                 # Atajos, dock, extensiones (dumps dconf)
 ├── ulauncher/                    # Launcher + temas Liquid Glass (Linux)
-├── git/                          # gitignore global + plantilla para proyectos (ginit)
+├── git/                          # gitignore global + plantillas y hook pre-commit para proyectos (ginit)
 ├── yazi/ · fontconfig/ · openlogi/          # Configs puntuales
 ├── .claude/                      # Config de Claude Code + reglas de agentes IA
 │                                 #   (CLAUDE.md → symlink también como AGENTS.md

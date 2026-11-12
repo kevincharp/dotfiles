@@ -1,0 +1,10 @@
+#!/bin/sh
+# Sensor de secretos: frena el commit si lo stageado trae un token o una clave.
+# Lo activa ginit (core.hooksPath). Sin gitleaks avisa y deja pasar, para no
+# trabar los commits en una maquina que todavia no lo tiene.
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "aviso: gitleaks no esta instalado; este commit no se reviso por secretos" >&2
+    exit 0
+fi
+# --redact: el secreto no se imprime en la salida.
+exec gitleaks git --pre-commit --staged --redact --verbose --no-banner --log-level warn

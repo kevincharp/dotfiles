@@ -1413,6 +1413,12 @@ function ginit {
                 Copy-Item -LiteralPath $agentsTpl -Destination (Join-Path $p 'AGENTS.md')
                 Write-Host "AGENTS.md base creado (plantilla de dotfiles — completalo con el agente)" -ForegroundColor DarkGray
             }
+            # Sensor de secretos (pre-commit con gitleaks) si el repo no trae hooks propios.
+            $hook = Join-Path $HOME '.dotfiles\git\hooks\pre-commit'
+            if ((Test-Path $hook) -and -not (git config --local --get core.hooksPath)) {
+                git config --local core.hooksPath '~/.dotfiles/git/hooks'
+                Write-Host "Sensor de secretos activado (pre-commit de dotfiles)" -ForegroundColor DarkGray
+            }
         } finally {
             Pop-Location
         }

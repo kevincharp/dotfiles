@@ -1008,6 +1008,11 @@ ginit() {
             cp "$_agents" AGENTS.md
             echo "AGENTS.md base creado (plantilla de dotfiles — completalo con el agente)"
         fi
+        # Sensor de secretos (pre-commit con gitleaks) si el repo no trae hooks propios.
+        if [[ -x "$HOME/.dotfiles/git/hooks/pre-commit" ]] && ! git config --local --get core.hooksPath >/dev/null; then
+            git config --local core.hooksPath '~/.dotfiles/git/hooks'
+            echo "Sensor de secretos activado (pre-commit de dotfiles)"
+        fi
         exit 0
     )
 }

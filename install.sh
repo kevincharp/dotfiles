@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#   install.sh — Instalacion/actualizacion de dotfiles (modelo 2 repos)
-#   Autor: Kevin Charpentier
+#   install.sh — Instala o actualiza los dotfiles (repo publico + vault privado)
 #
-#   Arquitectura:
-#     - dotfiles        (PUBLICO)  → scripts + configs no sensibles  [este repo]
-#     - dotfiles-vault  (PRIVADO)  → ssh keys, identidades git, bookmarks
-#
-#   Instalacion inicial (sin SSH, repo publico via curl):
-#     curl -fsSL https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.sh | bash
-#
-#   Actualizacion (con el repo ya clonado):
-#     bash ~/.dotfiles/install.sh
+#   curl -fsSL https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.sh | bash
+#   bash ~/.dotfiles/install.sh
 #
 #   Opciones:
 #     --with-aws       Incluir configuracion AWS
@@ -35,8 +27,7 @@ PUBLIC_HTTPS="https://github.com/${GH_USER}/dotfiles.git"
 PUBLIC_SSH="git@github.com:${GH_USER}/dotfiles.git"
 VAULT_HTTPS="https://github.com/${GH_USER}/dotfiles-vault.git"
 VAULT_SSH="git@github.com:${GH_USER}/dotfiles-vault.git"
-# Host alias del ssh/config (engancha la clave kevincharp-github con IdentitiesOnly).
-# Es el que se usa para el remote del vault tras clonar, asi 'git pull' no pide credenciales.
+# Con el host alias del ssh/config, 'git pull' del vault no pide credenciales.
 VAULT_SSH_ALIAS="git@github.com-${GH_USER}:${GH_USER}/dotfiles-vault.git"
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
@@ -103,8 +94,7 @@ log() {
 
 has_cmd() { command -v "$1" &>/dev/null; }
 
-# Lee input del usuario incluso bajo 'curl | bash' (stdin = pipe).
-# Usa /dev/tty si esta disponible; si no, devuelve el default.
+# Lee de /dev/tty porque bajo 'curl | bash' stdin es el pipe.
 ask() {
     local prompt="$1" default="${2:-}" reply
     if [[ -r /dev/tty ]]; then
@@ -141,19 +131,13 @@ log "Repositorio publico (dotfiles)..." "SECTION"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
     log "Ya existe en $DOTFILES_DIR — actualizando" "OK"
     cd "$DOTFILES_DIR"
-    # Los cambios locales los maneja --autostash (stashea y REAPLICA al
-    # terminar el rebase). No stashear a mano ademas: ese stash quedaba
-    # huerfano y los cambios "desaparecian" del working tree sin aviso.
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
         log "Cambios locales detectados — autostash durante el pull" "WARN"
     fi
     git pull --rebase --autostash origin "$BRANCH" || { log "Error al actualizar publico" "ERROR"; exit 1; }
 else
-    # Repo PUBLICO: HTTPS funciona sin credenciales. SSH si esta disponible.
-    # BatchMode=yes es imprescindible: en una maquina nueva sin known_hosts, ssh
-    # pregunta por la huella del host y espera respuesta — con stderr a /dev/null
-    # esa pregunta es INVISIBLE y el instalador parece colgado. Con BatchMode
-    # falla al instante y cae a HTTPS.
+    # BatchMode: sin known_hosts ssh pregunta por la huella y, con stderr
+    # descartado, el instalador parece colgado. Asi falla y cae a HTTPS.
     if GIT_SSH_COMMAND='ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new' \
         git clone "$PUBLIC_SSH" "$DOTFILES_DIR" 2>/dev/null; then
         log "Clonado publico via SSH" "OK"
@@ -169,7 +153,6 @@ fi
 # ==============================================================================
 
 clone_vault() {
-    # Decide metodo de auth: flag, o pregunta interactiva.
     local method="$VAULT_AUTH"
     if [[ -z "$method" ]]; then
         log "Vault privado (dotfiles-vault): claves SSH e identidades git." "INFO"
@@ -203,14 +186,8 @@ clone_vault() {
             gh auth login < /dev/tty || { log "Login con gh fallo" "ERROR"; return 1; }
         fi
         if gh repo clone "${GH_USER}/dotfiles-vault" "$VAULT_DIR"; then
-            # gh clona via HTTPS: en la 2da corrida 'git pull' pediria credenciales
-            # (GitHub ya no acepta password). Lo dejamos en SSH para que las
-            # actualizaciones futuras usen la clave sin pedir nada.
-            #
-            # OJO: usamos el host alias 'github.com-kevincharp' (no github.com a
-            # secas). El ssh/config solo engancha la clave kevincharp-github a ese
-            # alias con IdentitiesOnly; github.com plano caeria a las id_* default
-            # y fallaria. El alias existe tras aplicar el ssh/config del vault.
+            # gh clona por HTTPS; el remote pasa al host alias SSH, el unico
+            # que el ssh/config del vault asocia a la clave.
             ( cd "$VAULT_DIR" && git remote set-url origin "$VAULT_SSH_ALIAS" )
             return 0
         fi
@@ -229,9 +206,7 @@ VAULT_OK=false
 if [[ "$SKIP_VAULT" == true ]]; then
     log "--skip-vault: omitiendo vault privado" "WARN"
 elif [[ -d "$VAULT_DIR/.git" ]]; then
-    # El vault ya esta clonado: su contenido ya esta disponible para el bootstrap,
-    # haya o no conexion. Intentamos actualizar, pero un pull fallido NO invalida
-    # el vault — solo significa que se usa la version local ya presente.
+    # Un pull fallido no invalida el vault: se usa la copia local.
     log "Vault ya existe en $VAULT_DIR — actualizando" "OK"
     VAULT_OK=true
     ( cd "$VAULT_DIR" && git pull --rebase --autostash origin "$BRANCH" ) \
@@ -260,17 +235,13 @@ BOOTSTRAP_ARGS=()
 [[ -n "$TOOLS_ARG" ]]           && BOOTSTRAP_ARGS+=("--tools=$TOOLS_ARG")
 
 if [[ -f "$DOTFILES_DIR/bootstrap.sh" ]]; then
-    # Exporto VAULT_DIR para que bootstrap.sh encuentre lo sensible.
-    # El exit se captura (no aborta por set -e) para poder distinguir el resumen
-    # de exito del de instalacion incompleta.
+    # El exit se captura para que set -e no corte antes del resumen.
     BOOTSTRAP_RC=0
     VAULT_DIR="$VAULT_DIR" bash "$DOTFILES_DIR/bootstrap.sh" "${BOOTSTRAP_ARGS[@]}" || BOOTSTRAP_RC=$?
 else
     log "bootstrap.sh no encontrado en $DOTFILES_DIR" "ERROR"; exit 1
 fi
 
-# Si el bootstrap aborto, NO imprimir el resumen de exito: decia "Instalacion
-# completada" sobre una instalacion que no paso (paridad con install.ps1).
 if [[ "$BOOTSTRAP_RC" -ne 0 ]]; then
     log "Instalacion incompleta" "SECTION"
     log "El bootstrap termino con error (codigo $BOOTSTRAP_RC) — no se aplico todo." "ERROR"

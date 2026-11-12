@@ -44,13 +44,7 @@ return {
       plsql = { 'sql_formatter' },
     },
 
-    format_on_save = function(bufnr)
-      local sin_autoformat = {}
-      if sin_autoformat[vim.bo[bufnr].filetype] then
-        return
-      end
-      return { timeout_ms = 500, lsp_format = 'fallback' }
-    end,
+    format_on_save = { timeout_ms = 500, lsp_format = 'fallback' },
   },
   init = function()
     -- gq formatea con conform.

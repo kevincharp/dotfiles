@@ -1,18 +1,8 @@
 # ==============================================================================
 #   zshrc — Perfil de shell unificado (zsh)
-#   Espejo idiomatico de bashrc. Solo Linux/macOS (zsh no corre en Git Bash;
-#   en Windows el shell unificado es PowerShell + PSReadLine, ver profile.ps1).
-#
-#   PARIDAD: cualquier funcion/alias que se toque aca debe replicarse en bashrc
-#   (y en profile.ps1 cuando aplique). test-bootstrap.sh verifica la paridad.
-#
-#   Diferencias bash→zsh documentadas:
-#     - HISTTIMEFORMAT no existe; el equivalente es 'setopt EXTENDED_HISTORY'
-#       (se ve con 'history -i').
-#     - 'shopt checkwinsize' no tiene equivalente: zsh recalcula LINES/COLUMNS solo.
-#     - 'shopt cdspell' ≈ 'setopt CORRECT' (aproximado, no 1:1).
-#     - ~/.zshrc lo carga zsh solo en shells interactivos; ~/.zprofile NO lo sourcea
-#       (a diferencia de bash_profile, que sourcea bashrc a mano).
+#   Espejo de bashrc; solo Linux/macOS.
+#   Diferencias: EXTENDED_HISTORY en vez de HISTTIMEFORMAT; CORRECT aproxima a cdspell;
+#   ~/.zprofile no sourcea ~/.zshrc.
 # ==============================================================================
 
 # ==============================================================================
@@ -37,8 +27,7 @@ if [[ -d "$HOME/.opencode/bin" ]]; then
     export PATH="$HOME/.opencode/bin:$PATH"
 fi
 
-# Rust/cargo (rustup deja el env en ~/.cargo/env). Espejo del bloque en bashrc:
-# fuente unica versionada para tener cargo/rustc en el PATH.
+# Rust/cargo: la carga vive aca y no en ~/.profile.
 [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 
 # ==============================================================================
@@ -93,10 +82,7 @@ setopt SHARE_HISTORY            # historial compartido entre terminales
 # checkwinsize: sin equivalente; zsh recalcula LINES/COLUMNS solo en cada prompt.
 setopt EXTENDED_GLOB            # glob avanzado (** recursivo ya es nativo en zsh)
 setopt CORRECT                  # ≈ shopt cdspell (corrige comandos; aproximado)
-# Sin control de flujo: Ctrl+S (XOFF) congela la pantalla y parece que la terminal
-# no responde (hay que apretar Ctrl+Q). Pasaba al pegar comandos. Espejo del bashrc.
-# Se usa 'stty -ixon' y no solo 'unsetopt FLOW_CONTROL': esa opcion solo actua
-# dentro del editor de linea, y asi tambien queda libre mientras corre un programa.
+# Sin control de flujo: Ctrl+S congela la pantalla. Solo con terminal: sin tty stty falla.
 if [[ -t 0 ]]; then
     stty -ixon 2>/dev/null
 fi
@@ -121,9 +107,7 @@ alias vi='nvim'
 alias vim='nvim'
 alias nano='nvim'
 
-# $BROWSER: abre las URLs de la terminal (aws sso login, gh auth login...) en
-# Firefox/Personal sin heredar su salida (ruido de Safe Browsing). El symlink
-# lo crea firefox/aplicar-perfiles.sh; solo Linux, en Windows no hace falta.
+# $BROWSER: las URLs de la terminal abren en Firefox/Personal (symlink de firefox/aplicar-perfiles.sh).
 if command -v firefox-personal &>/dev/null; then
     export BROWSER=firefox-personal
 fi
@@ -132,8 +116,7 @@ fi
 # RUTAS BASE
 # ==============================================================================
 
-# Atajos a las carpetas de contexto (las que definen la identidad git). Si tu
-# vault usa otros nombres, agregalos aca igual: son solo variables para 'cd'.
+# Atajos a las carpetas de contexto.
 repos="$HOME/repositorios"
 personal="$repos/personal"
 work="$repos/work"
@@ -155,8 +138,6 @@ open() {
 }
 
 # --- [nav] edit: abrir archivo en el editor (VSCode si está, si no nvim) | uso: edit <archivo> ---
-# Paridad con la funcion 'edit' de profile.ps1. En Linux preferimos nvim, pero
-# si tenes 'code' instalado lo usamos (util cuando si lo instalaste a mano).
 edit() {
     local target="${1:?Uso: edit <archivo>}"
     if command -v code &>/dev/null; then
@@ -167,10 +148,7 @@ edit() {
 }
 
 # --- [nav] y: yazi con cd-on-exit (queda en el último dir navegado) | uso: y [ruta] ---
-# Wrapper oficial de yazi (paridad con profile.ps1 y bashrc). Lanza yazi y, al
-# salir con 'q', deja el shell parado en el ultimo directorio navegado (yazi
-# escribe el cwd en un archivo temporal via --cwd-file). Solo se define si yazi
-# esta instalado.
+# Al salir deja el shell en el ultimo directorio navegado (--cwd-file).
 if command -v yazi &>/dev/null; then
     y() {
         local tmp cwd
@@ -223,9 +201,7 @@ fi
 # ==============================================================================
 # ZSH-AUTOSUGGESTIONS (sugerencia inline desde el historial)
 # ------------------------------------------------------------------------------
-# Equivalente al auto_complete de ble.sh y a InlinePrediction de PSReadLine:
-# sugiere en gris mientras escribis. Flecha derecha acepta toda la sugerencia;
-# Ctrl+Right acepta palabra a palabra (ver keybindings de fzf mas abajo).
+# Sugiere en gris mientras se escribe. → acepta todo; Ctrl+→ acepta una palabra.
 # ==============================================================================
 
 if [[ -f "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
@@ -239,8 +215,7 @@ fi
 # ==============================================================================
 
 if command -v fzf &>/dev/null; then
-    # Cargar keybindings (Ctrl+R historial, Ctrl+T, Alt+C) + completions.
-    # fzf >= 0.48 expone todo via 'fzf --zsh' (portable, sin adivinar rutas).
+    # fzf >= 0.48 expone keybindings y completions via 'fzf --bash'.
     if fzf --zsh &>/dev/null; then
         eval "$(fzf --zsh)"
     # Fallback para versiones viejas: las rutas varian por distro.
@@ -262,16 +237,13 @@ if command -v fzf &>/dev/null; then
     export FZF_CTRL_R_OPTS='--prompt " historial> "'
 fi
 
-# Ctrl+Right: aceptar la siguiente palabra de la sugerencia (paridad PSReadLine
-# AcceptNextSuggestionWord). zsh-autosuggestions intercepta forward-word.
+# Ctrl+Right acepta la siguiente palabra de la sugerencia.
 bindkey '^[[1;5C' forward-word
 
 # ==============================================================================
 # FLECHA ARRIBA → lista de historial estilo PSReadLine ListView
 # ------------------------------------------------------------------------------
-# ↑ abre fzf con el historial en lista vertical, solo el comando, filtrado por
-# PREFIJO con lo ya tipeado. Ctrl+R sigue siendo la búsqueda difusa (bloque FZF).
-# Espejo en bashrc via ble.sh. 'path' está ligado a $PATH en zsh: no usarla de variable.
+# ↑ abre fzf con el historial filtrado por prefijo; Ctrl+R sigue siendo la busqueda difusa.
 # ==============================================================================
 if command -v fzf &>/dev/null; then
     _fzf_history_widget() {
@@ -463,11 +435,7 @@ killdev() {
     done
 }
 
-# _reload_history: deja la lista en memoria igual al archivo ($HISTFILE).
-# NO usar 'fc -p': apila una historia nueva y, llamado DENTRO de una funcion, zsh
-# la descarta al volver — la sesion se queda con la lista vieja, asi que las
-# lineas borradas siguen apareciendo con ↑ y se reescriben al archivo al salir.
-# El idioma que si funciona: HISTSIZE=0 trunca la memoria y 'fc -R' relee el archivo.
+# Deja la lista en memoria igual al archivo de historial.
 # --- [dotfiles] _reload_history: (interna) recarga el historial de la sesion desde el archivo | uso: _reload_history ---
 _reload_history() {
     local _hs=$HISTSIZE
@@ -477,32 +445,23 @@ _reload_history() {
     return 0            # el archivo vacio no es un error
 }
 
-# clear-history: vacia el historial (archivo + memoria de la sesion actual).
-# Sin args borra TODO; con un patron borra solo las lineas que matcheen
-# (util para sacar un comando con token/password). Pide confirmacion al vaciar todo.
+# Sin args vacia todo (con confirmacion); con un texto borra solo las lineas que lo contengan.
 # --- [dotfiles] clear-history: vacía el historial completo, o borra las líneas que contengan un texto | uso: clear-history [texto] ---
 clear-history() {
-    # Salvaguarda: distinguir "sin args" de "un arg vacio". Si se paso un patron
-    # pero quedo vacio (ej: 'clear-history "$home"' con $home sin definir), NO vaciar
-    # todo — abortar. Solo el 'sin args' explicito borra el historial completo.
+    # Un argumento vacio (variable sin definir) no es 'sin args': abortar en vez de vaciar todo.
     if (( $# > 0 )) && [[ -z "$1" ]]; then
         echo "clear-history: el patron esta vacio (variable sin definir?). Abortado." >&2
         echo "  Para vaciar TODO el historial, corre 'clear-history' sin argumentos." >&2
         return 1
     fi
-    # Salvaguarda 2: el placeholder del formato sin editar. 'clear-history [patron]'
-    # pegado tal cual BORRABA toda linea con una p/a/t/r/o/n: grep lo tomaba como
-    # clase de caracteres de regex. Ahora el patron es literal (-F) y encima se
-    # rechaza cualquier cosa con forma de placeholder.
+    # Rechaza el placeholder del uso pegado tal cual ([texto], <texto>).
     if [[ "$1" == \[*\] || "$1" == \<*\> ]]; then
         echo "clear-history: '$1' parece el placeholder del formato, no un texto real." >&2
         echo "  Uso: clear-history [texto]   (ej: clear-history TOKEN)" >&2
         return 1
     fi
     if [[ -n "$1" ]]; then
-        # Borrado selectivo: quita del archivo las lineas que CONTENGAN el texto.
-        # -F: patron LITERAL. Como regex, un token con . * [ ] matchea de mas y se
-        # borran lineas que nadie pidio borrar.
+        # -F: patron literal; como regex un token con . * [ ] borraria de mas.
         local borradas
         borradas=$(grep -cF -- "$1" "$HISTFILE" 2>/dev/null) || borradas=0
         if (( borradas == 0 )); then
@@ -510,8 +469,7 @@ clear-history() {
             return 0
         fi
         grep -vF -- "$1" "$HISTFILE" > "${HISTFILE}.tmp"
-        # OJO: grep devuelve 1 cuando no selecciona NINGUNA linea (matchearon todas).
-        # Para nosotros es exito; el error real es rc > 1.
+        # grep devuelve 1 si no selecciona ninguna linea: el error real es rc > 1.
         local rc=$?
         if (( rc > 1 )); then
             rm -f "${HISTFILE}.tmp"
@@ -534,28 +492,20 @@ clear-history() {
     fi
 }
 
-# edit-history: abre el archivo de historial en el editor (reusa 'edit').
-# Espejo del bashrc/profile.ps1; cada shell guarda el historial en su propio
-# archivo (zsh: $HISTFILE). Ojo: la sesion actual reescribe el archivo al salir,
-# asi que editarlo en vivo puede pisarse con lo que tipees despues.
+# La sesion actual reescribe el archivo al salir: editarlo en vivo puede pisarse.
 # --- [dotfiles] edit-history: abre el archivo de historial en el editor | uso: edit-history ---
 edit-history() {
     edit "$HISTFILE"
 }
 
-# reload: reinicia el shell actual con 'exec zsh' (reemplaza el proceso, no anida
-# otro shell adentro; relee el rc completo). Espejo del bashrc/zshrc/profile.ps1.
+# exec reemplaza el proceso: no anida otro shell.
 # --- [dotfiles] reload: reinicia el shell (relee la config, sin anidar shells) | uso: reload ---
 reload() {
     exec zsh
 }
 
-# claude-clean: limpia la basura regenerable de ~/.claude (historial, file-history,
-# caches, snapshots, sesiones huerfanas, backups viejos). Muestra que borraria y
-# cuanto libera, y pide confirmacion. NUNCA toca CLAUDE.md, settings*, keybindings,
-# .credentials.json, skills/, plugins/ ni la memoria (projects/*/memory/).
-# Las conversaciones (projects/*/*.jsonl) solo se tocan con --days N.
-# Espejo del zshrc/profile.ps1 (en PowerShell: -DryRun -Yes -Days N).
+# Borra lo regenerable de ~/.claude con preview y confirmacion. No toca CLAUDE.md, settings,
+# credenciales, skills, plugins ni la memoria. Las conversaciones, solo con --days N.
 # --- [dotfiles] claude-clean: limpia historial, caches y sesiones viejas de ~/.claude | uso: claude-clean [-n] [-y] [--days N] ---
 claude-clean() {
     local dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
@@ -646,25 +596,18 @@ claude-clean() {
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================
 
-# Identidades (nombre/email por perfil) viven en el vault privado.
-# El bootstrap las copia a ~/.config/git-identities.sh. Si no estan, las
-# funciones gclone/gset-profile/ginit avisan que falta el vault.
+# Las identidades viven en el vault; el bootstrap las copia a ~/.config/git-identities.sh.
 _GIT_IDENTITIES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
-# Hay que declarar TODOS los arrays asociativos que el vault pueda asignar, no
-# solo los que se usan aca. Si falta uno, 'MAPA[clave]=x' se toma como array
-# indexado y la clave se evalua como aritmetica: con claves no numericas
-# ('personal') el source CORTA ahi mismo y las identidades quedan sin cargar
-# (gclone/ginit rotos).
+# Declarar todos los arrays asociativos que el vault asigna: sin declarar, la clave se
+# evalua como aritmetica y el source aborta.
 typeset -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
-# GIT_PROFILE_REMOTES (indexado, "url|perfil|label") tambien se declara: si el
-# vault no esta, _infer_git_profile lo consulta y sin declarar reventaria.
+# Declarado para que _infer_git_profile no falle sin vault.
 typeset -ga GIT_PROFILE_REMOTES
 if [[ -f "$_GIT_IDENTITIES_FILE" ]]; then
     . "$_GIT_IDENTITIES_FILE"
 fi
 
-# Resuelve nombre/email de un perfil en las vars _gi_name/_gi_email.
-# Devuelve 1 si el perfil no existe o el vault no esta cargado.
+# Deja nombre/email en _gi_name/_gi_email; 1 si el perfil no existe o falta el vault.
 # --- [git] _resolve_identity: (interna) resuelve nombre/email de un perfil git | uso: _resolve_identity <perfil> ---
 _resolve_identity() {
     local perfil="$1"
@@ -682,8 +625,7 @@ _resolve_identity() {
     return 0
 }
 
-# Extrae el host de una URL de git (scp-like 'git@host:ns/repo' o con esquema).
-# Imprime vacio si la URL no tiene forma reconocible.
+# Acepta 'git@host:ns/repo' o URL con esquema; vacio si no la reconoce.
 # --- [git] _git_url_host: (interna) extrae el host de una URL de git | uso: _git_url_host <url> ---
 _git_url_host() {
     local url="$1" host=""
@@ -694,10 +636,8 @@ _git_url_host() {
     printf '%s' "$host"
 }
 
-# Infiere el perfil de identidad git cuando no se paso -p; deja el resultado en
-# _gi_profile y su origen en _gi_profile_src (devuelve 1 si no pudo). Orden: host
-# del remoto vs. GIT_PROFILE_REMOTES, luego la carpeta ~/repositorios/<ctx> (nombre
-# de perfil o el perfil dueño del email de ~/.gitconfig-<ctx>).
+# Deja el perfil en _gi_profile y su origen en _gi_profile_src. Orden: host del remoto
+# contra GIT_PROFILE_REMOTES, luego la carpeta ~/repositorios/<ctx>.
 # --- [git] _infer_git_profile: (interna) deduce el perfil git de un remoto/carpeta | uso: _infer_git_profile <url> <dir> ---
 _infer_git_profile() {
     local url="$1" dir="$2"
@@ -743,8 +683,7 @@ _infer_git_profile() {
 }
 
 _gclone_usage() {
-    # Paridad con bash, donde '${!ARR[*]:-default}' se lee como indireccion y
-    # revienta; aca se expande a una variable aparte por el mismo motivo.
+    # Variable aparte, por paridad con bash (ver bashrc).
     local perfiles="${(k)GIT_IDENTITIES_EMAIL}"
     echo "Uso: gclone <url> [dir] [-p <perfil>]"
     echo "  dir  si existe, se clona DENTRO (dir/<repo>); si no, es el destino exacto."
@@ -753,16 +692,12 @@ _gclone_usage() {
     echo "Perfiles: ${perfiles:-(vault no cargado)}"
 }
 
-# Clonar repo y configurar identidad local automaticamente.
-# Uso: gclone <url> [dir] [-p <perfil>]   (tambien acepta -u/--url y -d/--dir)
-# Los perfiles disponibles son los que define tu vault (ver: gset-profile sin args).
-# Ejemplo: gclone git@gitlab.com-xxx:grupo/repo.git ~/repositorios/work
+# Tambien acepta -u/--url y -d/--dir.
 # --- [git] gclone: clona un repo aplicando un perfil de identidad git | uso: gclone <url> [dir] [-p perfil] ---
 gclone() {
     local perfil="" remote_url="" target_dir=""
 
-    # Parsear argumentos: flags en cualquier orden + hasta dos posicionales
-    # (url, dir). Los flags -u/-d se mantienen por compatibilidad.
+    # Flags en cualquier orden y hasta dos posicionales (url, dir).
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -p|--perfil)  perfil="$2";     shift 2 ;;
@@ -787,15 +722,13 @@ gclone() {
         esac
     done
 
-    # Validar parametros
     if [[ -z "$remote_url" ]]; then
         echo "Error: falta la URL del repo" >&2
         _gclone_usage
         return 1
     fi
 
-    # Determinar directorio destino: un dir EXISTENTE es el padre (se clona
-    # dentro), como hace 'git clone' con un path que ya es carpeta poblada.
+    # Un dir existente es el padre: se clona adentro.
     local repo_name
     repo_name="$(basename "$remote_url" .git)"
     local clone_dir
@@ -828,7 +761,6 @@ gclone() {
         echo "Aviso: '$url_host' no es un host-alias del vault; conviene usar el alias SSH del perfil." >&2
     fi
 
-    # Identidades (desde el vault via _resolve_identity)
     local name="" email=""
     _resolve_identity "$perfil" || return 1
     name="$_gi_name"; email="$_gi_email"
@@ -838,14 +770,12 @@ gclone() {
         return 1
     fi
 
-    # Clonar
     echo "Clonando $remote_url en $clone_dir ..."
     if ! git clone "$remote_url" "$clone_dir"; then
         echo "Error: fallo el clone"
         return 1
     fi
 
-    # Configurar identidad local
     (
         cd "$clone_dir" || return 1
         git config --local user.useConfigOnly true
@@ -865,7 +795,6 @@ gclone() {
 }
 
 # --- [git] gset-profile: aplica un perfil de identidad git a un repo existente | uso: gset-profile <perfil> ---
-# Uso: gset-profile <perfil>
 gset-profile() {
     local perfil="$1"
     if [[ -z "$perfil" ]]; then
@@ -890,14 +819,10 @@ gset-profile() {
     echo "Perfil '$perfil' aplicado: $name <$email>"
 }
 
-# Uso: ginit <perfil> [path]
-# Inicia un repo git nuevo, aplica el perfil de identidad indicado y deja un
-# .gitignore y AGENTS.md base (plantillas git/ del repo dotfiles).
 # --- [git] ginit: git init con perfil de identidad + .gitignore y AGENTS.md base | uso: ginit <perfil> [path] ---
 ginit() {
     local perfil="$1"
-    # OJO: NO llamar 'path' a esta variable — en zsh 'path' esta ligado a $PATH
-    # y pisarlo deja al shell sin comandos (git incluido) dentro de la funcion.
+    # No llamarla 'path': en zsh esta ligada a $PATH.
     local dir="${2:-$PWD}"
 
     if [[ -z "$perfil" ]]; then
@@ -923,8 +848,7 @@ ginit() {
         git config --local --unset-all init.defaultbranch 2>/dev/null
         git config --local --unset-all core.autocrlf      2>/dev/null
         git config --local --unset-all core.editor        2>/dev/null
-        # .gitignore base desde la plantilla versionada. Solo si el repo aun no
-        # tiene uno (nunca pisar el existente).
+        # .gitignore base si el repo no tiene uno.
         local _tpl="$HOME/.dotfiles/git/gitignore-proyecto"
         if [[ ! -f .gitignore && -f "$_tpl" ]]; then
             cp "$_tpl" .gitignore
@@ -945,9 +869,7 @@ ginit() {
     )
 }
 
-# Uso: gremote <alias-ssh> <namespace/repo> [nombre-remote]
-# Agrega o actualiza un remote usando un host alias SSH.
-# Ejemplo: gremote gitlab.com-<mi-alias> mi-grupo/proyecto origin
+# Ejemplo: gremote gitlab.com-<alias> grupo/proyecto origin
 # --- [git] gremote: agrega un remote usando un alias SSH | uso: gremote <alias-ssh> <namespace/repo> [nombre-remote] ---
 gremote() {
     local alias_host="$1"
@@ -972,16 +894,13 @@ gremote() {
 # ==============================================================================
 # SSH KEYS — dar de alta y sincronizar claves del vault (paridad bash/ps1)
 # ------------------------------------------------------------------------------
-# El vault privado versiona las claves SSH encriptadas con age (.age) + su .pub,
-# y un ssh/config con los Host. ssh-newkey da de alta una clave nueva (genera,
-# encripta, la mete al vault); vault-sync trae los cambios a esta maquina (pull,
-# aplica config, desencripta lo que falte). Misma logica que bootstrap.sh.
+# El vault versiona las claves SSH cifradas con age, su .pub y el ssh/config.
+# ssh-newkey da de alta una clave; vault-sync trae los cambios a esta maquina.
 # ==============================================================================
 
 VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
 
-# ssh-newkey <nombre> — genera una clave nueva y la deja lista en el vault.
-# Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+# Deja el 'git add' hecho; el commit y el push son manuales.
 # --- [ssh] ssh-newkey: genera un par de claves SSH nuevo (cifra con age) | uso: ssh-newkey <nombre> ---
 ssh-newkey() {
     local name="$1"
@@ -1046,9 +965,7 @@ ssh-newkey() {
     echo "  git -C \"$VAULT_DIR\" commit -m \"feat(ssh): agrego clave $name\" && git -C \"$VAULT_DIR\" push"
 }
 
-# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves
-# + ~/.env (si falta).
-# Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
+# Pull del vault, aplica ssh/config, desencripta las .age que falten y restaura ~/.env si falta.
 # --- [dotfiles] vault-sync: sincroniza (pull+push) el repo privado del vault | uso: vault-sync ---
 vault-sync() {
     [[ -d "$VAULT_DIR/.git" ]] || { echo "No hay repo git en $VAULT_DIR (falta el vault?)" >&2; return 1; }
@@ -1077,9 +994,7 @@ vault-sync() {
     if [[ "$missing" -eq 0 ]]; then
         echo "Todas las claves ya estan en ~/.ssh, nada que desencriptar."
     else
-        # age NO lee la passphrase de stdin: la pide SIEMPRE de /dev/tty. Por eso
-        # NO se puede cachear con un solo 'read' y pasarla por pipe (age lo ignora
-        # y se cuelga esperando el tty). Se deja que age pregunte por cada clave.
+        # age lee la passphrase de /dev/tty, no de stdin: pregunta por cada clave.
         echo "age pedira la passphrase por cada clave nueva ($missing):"
         for age_file in "$VAULT_DIR"/ssh/keys/*.age(N); do
             name="$(basename "$age_file" .age)"; dst="$HOME/.ssh/$name"
@@ -1117,10 +1032,7 @@ vault-sync() {
     echo "vault-sync completo."
 }
 
-# env-save — cifra ~/.env con age y lo guarda en el vault (env/env.age). Correrlo
-# cada vez que agregues o rotes un token: vault-sync y el bootstrap lo restauran
-# en las otras maquinas (solo si alli falta, nunca pisan uno existente).
-# Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+# Correrlo al agregar o rotar un token. Deja el 'git add' hecho; commit y push manuales.
 # --- [dotfiles] env-save: cifra ~/.env con age y lo guarda en el vault | uso: env-save ---
 env-save() {
     [[ -f "$HOME/.env" ]] || { echo "No existe ~/.env, nada que guardar." >&2; return 1; }
@@ -1179,9 +1091,7 @@ _load_dotenv() {
 
 _load_dotenv
 
-# _load_dotenv ya exporta TODO lo que haya en ~/.env, tokens incluidos: no hace
-# falta declararlos aca. Convencion sugerida: GITLAB_TOKEN_<perfil> /
-# GITHUB_TOKEN_<perfil>, uno por identidad del vault.
+# _load_dotenv exporta todo ~/.env. Convencion: GITLAB_TOKEN_<perfil> / GITHUB_TOKEN_<perfil>.
 
 # ==============================================================================
 # AWS / CLAUDE CODE SMG
@@ -1189,40 +1099,27 @@ _load_dotenv
 
 # --- [tools] claude-smg: lanza Claude Code con el perfil Bedrock de SMG | uso: claude-smg ---
 claude-smg() {
-    # Todo corre en un SUBSHELL: las variables exportadas mueren con el al salir,
-    # asi no hace falta unset y NO se pisan valores preexistentes del entorno
-    # (antes un AWS_PROFILE propio quedaba borrado despues de usar claude-smg).
+    # En un subshell: las variables exportadas no pisan las del entorno.
     (
-        # El perfil AWS se toma de $AWS_SSO_PROFILE (defini en ~/.env); el mismo que
-        # usa el bootstrap al escribir ~/.aws/config. Fallback a CLAUDE_SMG_AWS_PROFILE
-        # (nombre viejo, compat) y luego 'default'.
+        # El perfil sale de $AWS_SSO_PROFILE (~/.env), el mismo que escribe el bootstrap.
         export CLAUDE_CODE_USE_BEDROCK="1"
         export AWS_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
         export AWS_REGION="${CLAUDE_SMG_AWS_REGION:-us-east-1}"
-        # La cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5 en Bedrock: el picker se
-        # restringe a esa lista con --settings availableModels y el primero es el default
-        # (ANTHROPIC_MODEL). Los defaults están en el repo (IDs públicos) para funcionar sin
-        # ~/.env; se pisan con CLAUDE_SMG_MODELS (lista separada por comas) o CLAUDE_SMG_MODEL
-        # (nombre viejo, lista de uno).
+        # La cuenta solo habilita esos modelos en Bedrock: el picker se restringe con
+        # availableModels y el primero es el default. Se pisan con CLAUDE_SMG_MODELS.
         _smg_models="${CLAUDE_SMG_MODELS:-${CLAUDE_SMG_MODEL:-us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5}}"
         _smg_models="${_smg_models// /}"
         export ANTHROPIC_MODEL="${_smg_models%%,*}"
-        # Cada familia del picker (Sonnet/Haiku/Opus) apunta al de la lista: el
-        # picker tiene entradas FIJAS por familia y availableModels solo las
-        # filtra. Sin este mapeo la entrada Haiku resolvia al Haiku por defecto
-        # de Claude Code en Bedrock (4.5, no habilitado) y el filtro la ocultaba,
-        # y "Default" seguia diciendo Sonnet 4.5.
+        # El picker tiene entradas fijas por familia: cada una se apunta al modelo de la lista.
         _smg_pick() { printf '%s\n' "$_smg_models" | tr ',' '\n' | grep -m1 -i "$1"; }
         _smg_sonnet="$(_smg_pick sonnet)"; _smg_haiku="$(_smg_pick haiku)"; _smg_opus="$(_smg_pick opus)"
         [[ -n "$_smg_sonnet" ]] && export ANTHROPIC_DEFAULT_SONNET_MODEL="$_smg_sonnet"
         [[ -n "$_smg_opus" ]]   && export ANTHROPIC_DEFAULT_OPUS_MODEL="$_smg_opus"
-        # Haiku hace ademas las tareas de fondo (antes Haiku 4.5: fallaban en silencio).
+        # Haiku hace ademas las tareas de fondo.
         _smg_haiku="${CLAUDE_SMG_SMALL_MODEL:-${_smg_haiku:-us.anthropic.claude-haiku-5-5}}"
         export ANTHROPIC_DEFAULT_HAIKU_MODEL="$_smg_haiku"
         export ANTHROPIC_SMALL_FAST_MODEL="$_smg_haiku"   # nombre viejo, por compat
-        # security-guidance (plugin) revisa con Opus por defecto, bloqueado en la
-        # cuenta de SMG: la revision fallaba en silencio. Se fija al Sonnet de la
-        # lista (a proposito pisa un SECURITY_REVIEW_MODEL del entorno normal).
+        # security-guidance revisa con Opus, bloqueado en esta cuenta: se fija al Sonnet de la lista.
         if [[ -n "$_smg_sonnet" ]]; then
             export SECURITY_REVIEW_MODEL="$_smg_sonnet"
             export SG_AGENTIC_MODEL="$_smg_sonnet"
@@ -1236,9 +1133,7 @@ claude-smg() {
                 echo "Fallo el login SSO, abortando." >&2
                 exit 1
             }
-            # Revalidar (paridad con profile.ps1): si el perfil esta incompleto
-            # (falta sso_account_id/sso_role_name), el login anda pero no hay
-            # credenciales y claude arrancaria roto.
+            # Con el perfil incompleto el login anda pero no hay credenciales.
             if ! aws sts get-caller-identity --profile "$AWS_PROFILE" >/dev/null 2>&1; then
                 echo "El login SSO funciono pero el perfil '$AWS_PROFILE' no obtiene credenciales (revisa sso_account_id / sso_role_name con: aws configure sso)." >&2
                 exit 1
@@ -1252,11 +1147,8 @@ claude-smg() {
 # ==============================================================================
 # ICLOUD DRIVE — montar/desmontar via rclone (backend iclouddrive)
 # ------------------------------------------------------------------------------
-# rclone expone iCloud Drive como una carpeta local (equivalente Linux al cliente
-# iCloud de Windows). El remote 'icloud' se configura UNA sola vez con
-# 'rclone config' (pide Apple ID + codigo 2FA del iPhone). El token resultante
-# queda en ~/.config/rclone/rclone.conf y NO se versiona por ser sensible.
-# Solo Linux (usa FUSE/fusermount3). Overridables: $ICLOUD_REMOTE, $ICLOUD_MOUNT.
+# rclone monta iCloud Drive como carpeta local. El remote 'icloud' se configura una vez
+# con 'rclone config'. Solo Linux (FUSE). Variables: $ICLOUD_REMOTE, $ICLOUD_MOUNT.
 # ==============================================================================
 
 ICLOUD_REMOTE="${ICLOUD_REMOTE:-icloud}"
@@ -1264,10 +1156,8 @@ ICLOUD_MOUNT="${ICLOUD_MOUNT:-$HOME/icloud}"
 export ICLOUD_REMOTE ICLOUD_MOUNT
 
 # --- [nube] icloud-relink: reautentica el remote cuando caduco la sesion | uso: icloud-relink ---
-# Apple invalida el trust_token cada tanto (y siempre que cambia el 2FA): ahi
-# rclone tira "421 Misdirected Request / Invalid global session". Pide el codigo
-# de 6 digitos del iPhone. Requiere la password real del Apple ID (las
-# app-specific no sirven: el backend hace el flujo de 2FA completo).
+# Apple invalida el trust_token cada tanto ("421 Misdirected Request"). Pide el codigo
+# del iPhone y la password real del Apple ID (las app-specific no sirven).
 icloud-relink() {
     if ! command -v rclone &>/dev/null; then
         echo "rclone no esta instalado (bootstrap: bash install.sh --tools=rclone)" >&2
@@ -1281,8 +1171,7 @@ icloud-relink() {
     echo "Sesion de iCloud renovada."
 }
 
-# Prueba que la sesion siga viva con un listado de la raiz (no baja archivos).
-# Devuelve 0 = OK, 2 = sesion caducada (reautenticable), 1 = otro fallo.
+# 0 = OK, 2 = sesion caducada, 1 = otro fallo.
 # --- [nube] _icloud_probe: (interna) verifica que la sesion de iCloud siga viva | uso: _icloud_probe ---
 _icloud_probe() {
     local out rc=0
@@ -1295,7 +1184,6 @@ _icloud_probe() {
     return 1
 }
 
-# Verifica rclone, el remote y que la sesion sirva. Devuelve 1 si no.
 # --- [nube] _icloud_check: (interna) verifica rclone, el remote y la sesion | uso: _icloud_check ---
 _icloud_check() {
     if ! command -v rclone &>/dev/null; then
@@ -1352,15 +1240,12 @@ icloud-umount() {
 }
 
 # --- [nube] icloud-ls: lista una carpeta de iCloud sin descargar nada | uso: icloud-ls [carpeta] ---
-# Uso: icloud-ls [carpeta]   (sin argumento lista la raiz)
 icloud-ls() {
     _icloud_check || return 1
     rclone lsf "${ICLOUD_REMOTE}:${1:-}"
 }
 
 # --- [nube] icloud-pull: copia una carpeta de iCloud al destino (incremental) | uso: icloud-pull <carpeta-remota> <destino-local> ---
-# Mas rapido que el explorador: descarga en paralelo y sin generar miniaturas.
-# Uso: icloud-pull <carpeta-remota> <destino-local>
 # Ej:  icloud-pull images /run/media/$USER/disco-externo/Fotos
 icloud-pull() {
     local src="${1:?Uso: icloud-pull <carpeta-remota> <destino-local>}"
@@ -1370,11 +1255,7 @@ icloud-pull() {
 }
 
 # --- [nube] icloud-move: mueve una carpeta de iCloud al destino (libera espacio) | uso: icloud-move <carpeta-remota> <destino-local> ---
-# Como icloud-pull, pero BORRA de iCloud cada archivo tras copiarlo con exito.
-# Util cuando iCloud avisa que se quedo sin espacio. Muestra primero un dry-run
-# y pide confirmacion antes de tocar nada (es destructivo del lado de iCloud).
-# Uso: icloud-move <carpeta-remota> <destino-local>
-# Ej:  icloud-move images /run/media/$USER/disco-externo/Fotos
+# Borra de iCloud cada archivo copiado; muestra un dry-run y pide confirmacion.
 icloud-move() {
     local src="${1:?Uso: icloud-move <carpeta-remota> <destino-local>}"
     local dst="${2:?Uso: icloud-move <carpeta-remota> <destino-local>}"
@@ -1415,8 +1296,7 @@ _dothelp_emit() {
     while IFS= read -r line; do
         [[ "$line" =~ '^#\ ---\ \[([a-zA-Z]+)\]\ ([a-zA-Z_][a-zA-Z0-9_-]*):\ (.*)\ ---$' ]] || continue
         cat="${match[1]}"; name="${match[2]}"; rest="${match[3]}"
-        # Las internas (_nombre) se documentan en el codigo pero NO van al menu:
-        # el menu es para ejecutar, y elegir un helper interno no sirve de nada.
+        # Las internas (_nombre) no van al menu.
         [[ "$name" == _* ]] && continue
         if [[ "$rest" =~ '^(.*)\ \|\ uso:\ (.*)$' ]]; then
             desc="${match[1]}"; uso="${match[2]}"
@@ -1463,11 +1343,8 @@ _dothelp_static() {
     printf '\n'
 }
 
-# Menú interactivo (fzf) en dos pasos: categoría → comando, con preview de
-# descripción y uso; deja el comando escrito en la línea (print -z). Se inserta solo
-# el NOMBRE, no la plantilla de uso: <arg> y [opcional] no son ejecutables (zsh falla
-# en el glob, bash en la redirección). Con solo el nombre, es la propia función la
-# que imprime su uso.
+# Menú en dos pasos: categoría → comando. Se copia solo el nombre: la plantilla de uso
+# no es ejecutable.
 _dothelp_menu() {
     local data="$1"
     local -a cats=(git nav sistema ssh nube tools dotfiles)
@@ -1537,9 +1414,7 @@ dothelp() {
 # ==============================================================================
 # PTYXIS — sincronizar config de la terminal (dconf <-> repo)
 # ==============================================================================
-# Ptyxis guarda su config en dconf (no en un archivo), por eso no se puede
-# symlinkear como Windows Terminal. Estos helpers vuelcan/restauran el dump
-# versionado en ~/.dotfiles/terminal/ptyxis.dconf.
+# Ptyxis guarda su config en dconf: estos helpers vuelcan y restauran terminal/ptyxis.dconf.
 
 # --- [dotfiles] ptyxis-save: vuelca la config de Ptyxis (dconf) al repo | uso: ptyxis-save ---
 ptyxis-save() {
@@ -1589,8 +1464,7 @@ gnome-save() {
         echo "dconf no esta disponible"
         return 1
     fi
-    # OJO (zsh): no usar 'path' como local; zsh lo liga a $PATH y romperia el
-    # entorno dentro del loop. Por eso 'branch' (a diferencia de bashrc).
+    # No usar 'path' como local: zsh la liga a $PATH.
     local entry branch file
     for entry in "${_GNOME_DCONF_MAP[@]}"; do
         branch="${entry%%:*}"
@@ -1611,8 +1485,7 @@ gnome-load() {
         echo "dconf no esta disponible"
         return 1
     fi
-    # OJO (zsh): no usar 'path' como local; zsh lo liga a $PATH y romperia el
-    # entorno dentro del loop. Por eso 'branch' (a diferencia de bashrc).
+    # No usar 'path' como local: zsh la liga a $PATH.
     local entry branch file
     for entry in "${_GNOME_DCONF_MAP[@]}"; do
         branch="${entry%%:*}"
@@ -1628,14 +1501,10 @@ gnome-load() {
 # ==============================================================================
 # BATERIA — limite de carga (Lenovo conservation mode)
 # ==============================================================================
-# Espejo del de bashrc (paridad). El ThinkBook usa el "conservation mode" del EC
-# (driver ideapad_laptop): on/off que topa la carga en ~80%. Es el MISMO ajuste
-# que Lenovo Vantage en Windows (vive en el firmware, persiste entre SO). No es un
-# porcentaje configurable. La ruta sysfs cuelga de VPC2004 (no de BAT0) y la
-# numeracion PCI puede variar, por eso se resuelve con 'find'.
+# Conservation mode del EC (driver ideapad_laptop): on topa la carga en ~80%, off carga
+# al 100%. La ruta sysfs se resuelve con find porque la numeracion PCI varia.
 
 # --- [sistema] battery-limit: ver/activar/desactivar el tope de carga (Lenovo) | uso: battery-limit [status|on|off] ---
-# Uso: battery-limit [status|on|off]  (sin args -> status). on=~80%, off=100%.
 battery-limit() {
     local cm
     cm=$(find /sys/devices -name conservation_mode 2>/dev/null | head -1)
@@ -1668,8 +1537,7 @@ battery-limit() {
 }
 
 # --- [sistema] _aviso_fedora_nueva: avisa (sin actualizar) si ya salio la proxima Fedora ---
-# Solo informa: cambiar de version lo decide el usuario. La proxima version esta
-# publicada cuando su repo de releases responde 200 (antes responde 403).
+# La proxima version esta publicada cuando su repo de releases responde 200.
 _aviso_fedora_nueva() {
     local _ver_actual _ver_nueva _gnome _azul _violeta _gris _reset _ico_fedora _ico_gnome
     _ver_actual=$(. /etc/os-release 2>/dev/null && [[ "$ID" == fedora ]] && echo "$VERSION_ID")
@@ -1694,9 +1562,7 @@ _aviso_fedora_nueva() {
 }
 
 # --- [sistema] update-all: actualiza todo lo que dnf no cubre | uso: update-all ---
-# Espejo del de bashrc (paridad). dnf solo actualiza sus propios paquetes; esta
-# funcion recorre los demas gestores presentes (Flatpak, npm, Claude Code) ademas
-# de dnf. Lo instalado por curl (oh-my-posh, zoxide, opencode) se autoactualiza aparte.
+# Recorre los gestores que dnf no cubre: Flatpak, npm, Claude Code y OpenLogi.
 update-all() {
     if command -v dnf &>/dev/null; then
         echo "==> dnf (paquetes del sistema)"
@@ -1710,18 +1576,12 @@ update-all() {
         echo "==> npm (paquetes globales, p.ej. codex)"
         npm update -g
     fi
-    # Claude Code (instalador oficial nativo, igual en Linux y Windows): trae su
-    # propio auto-update, pero si esta deshabilitado o la sesion vieja nunca se
-    # cerro, queda atrasado sin avisar (caso real: una version vieja no reconocia
-    # Haiku 5.5 en el /model de claude-smg). 'claude update' es el comando oficial
-    # y no hace nada si ya esta al dia.
+    # 'claude update' no hace nada si ya esta al dia.
     if command -v claude &>/dev/null; then
         echo "==> claude (Claude Code)"
         claude update
     fi
-    # OpenLogi se instala con 'rpm -i' desde un release de GitHub, no desde un
-    # repo de dnf, asi que 'dnf upgrade' no lo ve. Comparamos la version instalada
-    # contra el ultimo release y actualizamos solo si hay una nueva.
+    # OpenLogi se instala con rpm desde un release de GitHub: dnf no lo ve.
     if command -v openlogi &>/dev/null && command -v rpm &>/dev/null; then
         echo "==> openlogi (mouse MX, release de GitHub)"
         local _ol_cur _ol_new _ol_url _ol_tmp
@@ -1744,11 +1604,8 @@ update-all() {
             rm -rf "$_ol_tmp"
         fi
     fi
-    # Aviso de reinicio: si se actualizo kernel/glibc/systemd, los procesos ya
-    # corriendo (gnome-shell, DBus, stack grafico) siguen con las libs viejas en
-    # memoria y aparecen comportamientos erraticos (apps que abren proceso sin
-    # ventana, etc.). needs-restarting -r devuelve 1 cuando hace falta reboot;
-    # si no esta, se compara el kernel corriendo contra el ultimo instalado.
+    # Tras actualizar kernel/glibc/systemd los procesos siguen con las libs viejas.
+    # needs-restarting -r devuelve 1 si hace falta reiniciar; si no esta, se compara el kernel.
     echo "==> chequeo de reinicio"
     if command -v needs-restarting &>/dev/null; then
         if ! needs-restarting -r &>/dev/null; then
@@ -1774,9 +1631,7 @@ update-all() {
 # ==============================================================================
 # ZSH-SYNTAX-HIGHLIGHTING — paleta de colores
 # ------------------------------------------------------------------------------
-# DEBE IR ULTIMO en el archivo (igual que el highlighter de ble.sh): se engancha
-# sobre todos los aliases/funciones ya definidos arriba. Colores espejo de los
-# ble-face del bashrc y de los -Colors de PSReadLine (profile.ps1):
+# Va ultimo: se engancha sobre los aliases y funciones ya definidos.
 #   Command/Keyword #C79BFF · Parameter #7AB8FF · String #86E89A · Variable #FFDF61
 #   Operator #56B6C2 · Error #FF7A7A · Comment #6B5448 · Path/Emphasis #D4874E
 # ==============================================================================

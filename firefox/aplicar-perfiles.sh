@@ -1,25 +1,18 @@
 #!/usr/bin/env bash
-# aplicar-perfiles.sh - aplica la config de Firefox versionada en firefox/ a los
-# perfiles "Personal" (navegador diario) y "Aplicaciones" (solo PWA). Solo Linux.
+# aplicar-perfiles.sh - aplica la config de firefox/ a los perfiles "Personal"
+# (navegador diario) y "Aplicaciones" (solo PWA). Solo Linux, idempotente.
 #
-# Que hace, de forma idempotente:
-#   1. user.js en cada perfil (Personal = user.js; Aplicaciones = user.js + el
-#      espejo de interfaz de user-aplicaciones.js).
+#   1. user.js en cada perfil (Aplicaciones suma user-aplicaciones.js).
 #   2. Excepciones de cookies (excepciones-cookies.txt) en permissions.sqlite.
 #   3. Zoom por defecto en content-prefs.sqlite.
-#   4. Override del .desktop de Firefox con -profile fijo al perfil Personal
-#      (sin esto, Firefox abre el ULTIMO perfil usado y GNOME agrupa el
-#      navegador con las PWA; ver docs/notas-tecnicas.md).
-#   5. Symlink ~/.local/bin/firefox-personal -> abrir-personal.sh (el shell lo
-#      usa como $BROWSER: abre en Personal y sin ensuciar la terminal).
+#   4. Override del .desktop de Firefox con -profile fijo al perfil Personal.
+#   5. Symlink ~/.local/bin/firefox-personal -> abrir-personal.sh ($BROWSER).
 #
-# Los perfiles se buscan por NOMBRE en "Profile Groups/*.sqlite" (las carpetas
-# tienen sufijos aleatorios). Si no existen hay que crearlos UNA vez desde el
-# selector de Firefox, con esos nombres exactos.
+# Los perfiles se buscan por nombre en "Profile Groups/*.sqlite"; si no existen
+# hay que crearlos una vez desde el selector de Firefox, con esos nombres.
 #
 # Uso: aplicar-perfiles.sh [--dry-run] [--quitar]
-# Salida: 0 todo aplicado | 3 algo quedo sin aplicar (perfil inexistente, Firefox
-# abierto...) | 2 uso incorrecto.
+# Salida: 0 todo aplicado | 3 algo quedo sin aplicar | 2 uso incorrecto.
 set -euo pipefail
 
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,7 +35,7 @@ for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
         --quitar)  MODO=quitar ;;
-        -h|--help) sed -n '2,26p' "${BASH_SOURCE[0]}"; exit 0 ;;
+        -h|--help) sed -n '2,15p' "${BASH_SOURCE[0]}"; exit 0 ;;
         *) echo "[firefox] argumento desconocido: $arg" >&2; exit 2 ;;
     esac
 done

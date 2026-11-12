@@ -155,10 +155,15 @@ fi
 
 section "3. Comandos en PATH"
 
-# Solo git es requisito duro (el bootstrap no corre sin el). El resto del
-# catalogo es OPT-IN en el selector: no haberlo marcado no es un fallo.
+# Solo git es requisito duro. El resto sale del catalogo y es opt-in en el
+# selector: no haberlo marcado no es un fallo.
 REQUIRED_CMDS=(git)
-OPTIONAL_CMDS=(nvim node oh-my-posh zoxide fzf rg lazygit eza age zsh gitleaks)
+source "$(dirname "${BASH_SOURCE[0]}")/catalogo.sh"
+OPTIONAL_CMDS=()
+for _entry in "${TOOLS_CATALOG[@]}"; do
+    _cmd="$(cut -d'|' -f3 <<< "$_entry")"
+    [[ -n "$_cmd" ]] && OPTIONAL_CMDS+=("$_cmd")
+done
 
 for cmd in "${REQUIRED_CMDS[@]}"; do
     if has_cmd "$cmd"; then

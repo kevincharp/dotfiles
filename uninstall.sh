@@ -74,36 +74,8 @@ DOTFILES_TARGETS=(
 for _s in personal work cei_walle; do DOTFILES_TARGETS+=("$HOME/.gitconfig-$_s"); done
 unset _s
 
-# Lista de paquetes instalados (solo si --remove-packages)
-PACKAGES=(
-    neovim
-    ripgrep
-    fzf
-    oh-my-posh
-    zoxide
-    lazygit
-    zsh
-    eza
-    age
-    gh
-    glab
-    opencode
-    gitleaks
-    aws
-    claude
-    ulauncher
-    samba
-    google-chrome-stable
-    onlyoffice-desktopeditors
-    openlogi
-    flameshot
-    yazi
-    remmina
-    rclone
-    lazyssh
-    lazysql
-    obsidian
-)
+# Catalogo de herramientas (TOOLS_CATALOG): de ahi salen los paquetes a quitar.
+source "$(dirname "${BASH_SOURCE[0]}")/catalogo.sh"
 
 # ==============================================================================
 # HELPERS
@@ -147,13 +119,15 @@ has_cmd() {
     command -v "$1" &>/dev/null
 }
 
-# pkg_cmd <paquete> — comando que provee el paquete cuando difiere del nombre.
-pkg_cmd() {
+# pkg_presente <id> <comando> <paquete> - 0 si --remove-packages tiene algo que quitar.
+pkg_presente() {
     case "$1" in
-        neovim)  echo "nvim" ;;
-        ripgrep) echo "rg" ;;
-        samba)   echo "smbd" ;;
-        *)       echo "$1" ;;
+        lazyssh|lazysql) [[ -f "$HOME/.local/bin/$1" ]] ;;
+        samba)           has_cmd smbd ;;
+        openlogi)        rpm -q openlogi &>/dev/null ;;
+        chrome)          rpm -q google-chrome-stable &>/dev/null ;;
+        obsidian)        has_cmd flatpak && flatpak info md.obsidian.Obsidian &>/dev/null ;;
+        *)               [[ -n "$3" ]] && has_cmd "$2" ;;
     esac
 }
 
@@ -198,9 +172,10 @@ log "Repositorios a borrar:" "INFO"
 
 if [[ "$REMOVE_PACKAGES" == true ]]; then
     log "Paquetes a desinstalar (--remove-packages):" "INFO"
-    for pkg in "${PACKAGES[@]}"; do
-        if has_cmd "$(pkg_cmd "$pkg")"; then
-            prev "$pkg"
+    for entry in "${TOOLS_CATALOG[@]}"; do
+        IFS='|' read -r id _ cmd pkg _ <<< "$entry"
+        if pkg_presente "$id" "$cmd" "$pkg"; then
+            prev "$id"
         fi
     done
 fi
@@ -265,71 +240,41 @@ else
     fi
 
     if [[ "$PKG_MANAGER" != "none" ]]; then
-        for pkg in "${PACKAGES[@]}"; do
-            case "$pkg" in
-                oh-my-posh|zoxide|opencode|claude)
-                    log "Saltando $pkg (instalado como binario, no paquete)" "SKIP"
-                    ;;
-                aws)
-                    log "Saltando aws (instalador custom, desinstalar manualmente)" "SKIP"
-                    ;;
-                lazyssh)
-                    # Binario bajado del release de GitHub a ~/.local/bin (no es
-                    # paquete del gestor): se borra directo.
-                    if [[ -f "$HOME/.local/bin/lazyssh" ]]; then
-                        rm -f "$HOME/.local/bin/lazyssh" && log "Removido: lazyssh (~/.local/bin)" "OK"
-                    fi
-                    ;;
-                lazysql)
-                    # Binario bajado del release de GitHub a ~/.local/bin (no es
-                    # paquete del gestor): se borra directo.
-                    if [[ -f "$HOME/.local/bin/lazysql" ]]; then
-                        rm -f "$HOME/.local/bin/lazysql" && log "Removido: lazysql (~/.local/bin)" "OK"
-                    fi
+        for entry in "${TOOLS_CATALOG[@]}"; do
+            IFS='|' read -r id _ cmd pkg _ <<< "$entry"
+            # Override local de Chrome que genera el bootstrap: se quita aunque no este el paquete.
+            [[ "$id" == chrome ]] && rm -f "$HOME/.local/share/applications/com.google.Chrome.desktop"
+            pkg_presente "$id" "$cmd" "$pkg" || continue
+            case "$id" in
+                lazyssh|lazysql)
+                    rm -f "$HOME/.local/bin/$id" && log "Removido: $id (~/.local/bin)" "OK"
                     ;;
                 samba)
-                    # Servicio: parar y deshabilitar antes de remover el paquete.
-                    if has_cmd smbd; then
-                        sudo systemctl disable --now smb &>/dev/null || true
-                        $PKG_REMOVE samba && log "Desinstalado: samba" "OK" || log "Fallo al desinstalar samba" "WARN"
-                    fi
+                    sudo systemctl disable --now smb &>/dev/null || true
+                    $PKG_REMOVE samba && log "Desinstalado: samba" "OK" || log "Fallo al desinstalar samba" "WARN"
                     ;;
                 openlogi)
-                    # Servicio de usuario: parar/deshabilitar antes de remover el .rpm.
-                    if rpm -q openlogi &>/dev/null; then
-                        systemctl --user disable --now openlogi-agent.service &>/dev/null || true
-                        $PKG_REMOVE openlogi && log "Desinstalado: openlogi" "OK" || log "Fallo al desinstalar openlogi" "WARN"
-                    fi
+                    systemctl --user disable --now openlogi-agent.service &>/dev/null || true
+                    $PKG_REMOVE openlogi && log "Desinstalado: openlogi" "OK" || log "Fallo al desinstalar openlogi" "WARN"
                     ;;
                 obsidian)
-                    # Instalado via Flatpak (Flathub), no por el gestor de paquetes.
-                    if has_cmd flatpak && flatpak info md.obsidian.Obsidian &>/dev/null; then
-                        sudo flatpak uninstall -y md.obsidian.Obsidian \
-                            && log "Desinstalado: obsidian (Flatpak)" "OK" \
-                            || log "Fallo al desinstalar obsidian" "WARN"
-                    fi
+                    sudo flatpak uninstall -y md.obsidian.Obsidian \
+                        && log "Desinstalado: obsidian (Flatpak)" "OK" \
+                        || log "Fallo al desinstalar obsidian" "WARN"
                     ;;
-                google-chrome-stable)
-                    # Remueve el paquete y el .repo de Google que dejo el .rpm oficial.
-                    if rpm -q google-chrome-stable &>/dev/null; then
-                        $PKG_REMOVE google-chrome-stable \
-                            && log "Desinstalado: google-chrome-stable" "OK" \
-                            || log "Fallo al desinstalar google-chrome-stable" "WARN"
-                        sudo rm -f /etc/yum.repos.d/google-chrome.repo \
-                            && log "Removido: repo de Google" "OK"
-                    fi
-                    # Override local que deduplica la entrada "Web" de GNOME
-                    # (lo genera el bootstrap, no es symlink del repo).
-                    rm -f "$HOME/.local/share/applications/com.google.Chrome.desktop" \
-                        && log "Removido: override .desktop de Chrome" "OK"
+                chrome)
+                    $PKG_REMOVE google-chrome-stable \
+                        && log "Desinstalado: google-chrome-stable" "OK" \
+                        || log "Fallo al desinstalar google-chrome-stable" "WARN"
+                    sudo rm -f /etc/yum.repos.d/google-chrome.repo \
+                        && log "Removido: repo de Google" "OK"
                     ;;
                 *)
-                    if has_cmd "$(pkg_cmd "$pkg")"; then
-                        $PKG_REMOVE "$pkg" && log "Desinstalado: $pkg" "OK" || log "Fallo al desinstalar $pkg" "WARN"
-                    fi
+                    $PKG_REMOVE "$pkg" && log "Desinstalado: $pkg" "OK" || log "Fallo al desinstalar $pkg" "WARN"
                     ;;
             esac
         done
+        log "No se desinstalan (instaladas fuera del gestor): oh-my-posh, zoxide, opencode, claude, aws" "SKIP"
     fi
 fi
 

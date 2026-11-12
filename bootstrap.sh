@@ -258,99 +258,28 @@ ensure_base_deps() {
     run_step "Dependencias base (${missing[*]})" $PKG_INSTALL "${missing[@]}"
 }
 
-# ==============================================================================
-# CATALOGO DE HERRAMIENTAS
-# ------------------------------------------------------------------------------
-# Fuente unica de lo que instala el bootstrap: "id|grupo|descripcion". Grupos: core,
-# shell, dev, cloud, fonts. Agregar una herramienta = una linea aca + su case en
-# tool_installed() e install_tool(); el selector decide cuales se instalan.
-# ==============================================================================
-
-TOOLS_CATALOG=(
-    "neovim|core|Editor de terminal"
-    "tree-sitter-cli|core|Compilador de parsers de nvim (requisito de treesitter)"
-    "ripgrep|core|Busqueda rapida (picker y buscar/reemplazar de nvim)"
-    "fzf|core|Fuzzy finder (Ctrl+R)"
-    "bash-completion|core|Autocompletado de bash"
-    "oh-my-posh|shell|Prompt con tema"
-    "zoxide|shell|cd inteligente con memoria"
-    "eza|shell|Reemplazo moderno de ls"
-    "lazygit|shell|UI de git en terminal"
-    "yazi|shell|File manager TUI (preview de imagenes/PDF/video)"
-    "blesh|shell|Syntax highlighting en bash (estilo PSReadLine)"
-    "zsh|shell|Shell zsh (alternativa a bash)"
-    "zsh-autosuggestions|shell|Sugerencias inline en zsh (estilo PSReadLine)"
-    "zsh-syntax-highlighting|shell|Syntax highlighting en zsh (estilo ble.sh)"
-    "node|dev|Runtime JS + npm"
-    "codex|dev|Codex CLI (OpenAI)"
-    "claude|dev|Claude Code CLI"
-    "opencode|dev|opencode (SST)"
-    "gitleaks|dev|Detector de secretos (pre-commit que activa ginit)"
-    "aws|cloud|AWS CLI (Bedrock)"
-    "lazyssh|shell|TUI para gestionar conexiones SSH (estilo lazygit)"
-    "lazysql|shell|TUI para administrar bases de datos (MySQL/PostgreSQL/MSSQL/SQLite)"
-    "gh|cloud|GitHub CLI (PRs/issues + clonado del vault)"
-    "glab|cloud|GitLab CLI"
-    "age|cloud|Encriptacion de claves SSH"
-    "rclone|cloud|Sync nube (iCloud Drive, etc.) - ver icloud-mount"
-    "firacode|fonts|FiraCode Nerd Font"
-    "ulauncher|apps|Lanzador de apps (estilo Spotlight)"
-    "samba|apps|Compartir carpetas por red (SMB, p.ej. app Archivos de iPhone)"
-    "chrome|apps|Google Chrome (RPM oficial + repo para updates)"
-    "firefox|apps|Firefox (perfiles Personal/Aplicaciones, privacidad por user.js y PWA)"
-    "onlyoffice|apps|Suite ofimatica compatible con Word/Excel/PowerPoint (RPM oficial)"
-    "openlogi|apps|Config de mouse Logitech MX (HID++, alternativa a Options+)"
-    "flameshot|apps|Recortador de pantalla con anotaciones (atajo Super+Shift+S)"
-    "remmina|apps|Cliente RDP/VNC (conexiones a servers Windows)"
-    "obsidian|apps|Notas en Markdown (Flatpak, sin .rpm oficial)"
-    "vscode|apps|Editor de codigo (VS Code, repo oficial de Microsoft)"
-)
+# Catalogo de herramientas (TOOLS_CATALOG, tool_field).
+source "$REPO_ROOT/catalogo.sh"
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
 tool_installed() {
     case "$1" in
-        neovim)          has_cmd nvim ;;
-        ripgrep)         has_cmd rg ;;
-        tree-sitter-cli) has_cmd tree-sitter ;;
-        fzf)             has_cmd fzf ;;
         bash-completion) [[ -f /usr/share/bash-completion/bash_completion ]] \
                             || rpm -q bash-completion &>/dev/null \
                             || dpkg -l bash-completion &>/dev/null ;;
-        oh-my-posh)      has_cmd oh-my-posh ;;
-        zoxide)          has_cmd zoxide ;;
-        eza)             has_cmd eza ;;
-        lazygit)         has_cmd lazygit ;;
-        yazi)            has_cmd yazi ;;
-        lazyssh)         has_cmd lazyssh ;;
-        lazysql)         has_cmd lazysql ;;
         blesh)           [[ -f "$HOME/.local/share/blesh/ble.sh" ]] ;;
-        zsh)                     has_cmd zsh ;;
         zsh-autosuggestions)     [[ -f "$HOME/.local/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] ;;
         zsh-syntax-highlighting) [[ -f "$HOME/.local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] ;;
-        node)            has_cmd node ;;
-        codex)           has_cmd codex ;;
-        claude)          has_cmd claude ;;
-        opencode)        has_cmd opencode ;;
-        gitleaks)        has_cmd gitleaks ;;
-        aws)             has_cmd aws ;;
-        gh)              has_cmd gh ;;
-        glab)            has_cmd glab ;;
-        age)             has_cmd age ;;
-        rclone)          has_cmd rclone ;;
         firacode)        # grep -c evita el SIGPIPE que 'fc-list | grep -q' dispara con pipefail
                          [[ "$(fc-list | grep -ci "FiraCode Nerd Font")" != "0" ]] ;;
-        ulauncher)       has_cmd ulauncher ;;
         samba)           # listo si el paquete esta y el servicio quedo habilitado
                          rpm -q samba &>/dev/null && systemctl is-enabled smb &>/dev/null ;;
         chrome)          rpm -q google-chrome-stable &>/dev/null ;;
-        firefox)         has_cmd firefox ;;
         onlyoffice)      rpm -q onlyoffice-desktopeditors &>/dev/null ;;
         openlogi)        rpm -q openlogi &>/dev/null ;;
-        flameshot)       has_cmd flameshot ;;
-        remmina)         has_cmd remmina ;;
         obsidian)        has_cmd flatpak && flatpak info md.obsidian.Obsidian &>/dev/null ;;
-        vscode)          has_cmd code ;;
-        *)               return 1 ;;
+        *)               local cmd; cmd="$(tool_field "$1" 3)" || return 1
+                         [[ -n "$cmd" ]] && has_cmd "$cmd" ;;
     esac
 }
 
@@ -367,7 +296,7 @@ want_tool() {
 # install_tool <id> — instala la herramienta.
 install_tool() {
     case "$1" in
-        neovim|ripgrep|tree-sitter-cli|fzf|bash-completion|zsh|flameshot|gitleaks)
+        tree-sitter-cli|bash-completion)
             run_step "Instalar $1" $PKG_INSTALL "$1"
             ;;
         zsh-autosuggestions)
@@ -725,7 +654,12 @@ install_tool() {
             fi
             ;;
         *)
-            log "Herramienta desconocida: $1" "WARN"
+            local pkg; pkg="$(tool_field "$1" 4 || true)"
+            if [[ -n "$pkg" ]]; then
+                run_step "Instalar $1" $PKG_INSTALL "$pkg"
+            else
+                log "Herramienta desconocida: $1" "WARN"
+            fi
             ;;
     esac
 }
@@ -741,15 +675,6 @@ install_tool() {
 
 SELECTED_TOOLS=()
 
-# Devuelve el grupo de un id segun el catalogo (vacio si no existe)
-_tool_group() {
-    local entry
-    for entry in "${TOOLS_CATALOG[@]}"; do
-        [[ "${entry%%|*}" == "$1" ]] && { echo "$entry" | cut -d'|' -f2; return 0; }
-    done
-    return 1
-}
-
 # Valida una lista separada por comas contra el catalogo -> SELECTED_TOOLS
 _select_from_csv() {
     local csv="$1" id unknown=()
@@ -758,7 +683,7 @@ _select_from_csv() {
     for id in "${_ids[@]}"; do
         id="${id// /}"   # sin espacios
         [[ -z "$id" ]] && continue
-        if _tool_group "$id" >/dev/null; then
+        if tool_field "$id" 2 >/dev/null; then
             SELECTED_TOOLS+=("$id")
         else
             unknown+=("$id")

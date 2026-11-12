@@ -1,19 +1,8 @@
 # ==============================================================================
 #   bootstrap.ps1 — Setup completo de entorno de desarrollo (Windows / pwsh 7)
-#   Autor: Kevin Charpentier
 #   Uso:   pwsh -ExecutionPolicy Bypass -File bootstrap.ps1
 #          [-WithAws] [-DryRun] [-SkipWinget] [-SkipModules] [-SkipDotfiles]
 #          [-Tools a,b,c] [-AllTools] [-Pace 0.18 | -Fast]
-# ==============================================================================
-#   Qué hace:
-#     1. Verifica requisitos (pwsh 7, winget)
-#     2. Instala herramientas vía winget
-#     3. Instala módulos de PowerShell
-#     4. Crea estructura de carpetas (~/.config, ~/.local, etc.)
-#     5. Copia dotfiles del repo a sus ubicaciones correctas
-#     6. Configura AWS CLI (opcional, si se pasa -WithAws)
-#     7. Configura Windows Terminal
-#     8. Loguea errores y genera resumen final
 # ==============================================================================
 
 [CmdletBinding()]
@@ -57,11 +46,7 @@ $DIRS = @(
     "$HOME\.cache"
     "$HOME\.ssh"
 )
-# Carpetas de configuracion de una herramienta puntual: se agregan mas abajo
-# (paso 5) solo si el usuario quiere esa herramienta. Sin el gate quedaban un
-# ~\.config\lazygit y un %APPDATA%\yazi\config VACIOS en la maquina de quien no
-# eligio ninguna de las dos. No se puede resolver aca: $DIRS se define antes de
-# que exista la seleccion (Resolve-SelectedTools corre en el paso 2).
+# Carpetas de una herramienta puntual: se agregan en el paso 5, cuando ya existe la seleccion.
 $DIRS_GATED = @(
     @{ Path="$HOME\.config\lazygit";      Tool='lazygit' }
     @{ Path="$env:APPDATA\yazi\config";   Tool='yazi'    }
@@ -81,25 +66,18 @@ if (Test-Path $giVault) {
 }
 foreach ($c in $ctxDirs) { $DIRS += (Join-Path $HOME "repositorios\$c") }
 
-# Paquetes winget — catalogo enriquecido (espejo del TOOLS_CATALOG de Linux)
-# Formato: @{ Id='...'; Name='...'; Optional=$false; Key='...'; Group='...' }
-#   Key   = identificador corto para -Tools y el selector (igual idea que en bash)
+# Catalogo de paquetes winget.
+#   Key   = identificador corto para -Tools y el selector
 #   Group = core | shell | dev | cloud | fonts | extras
-# NOTA: zsh (+ zsh-autosuggestions/zsh-syntax-highlighting) son Linux/macOS-only
-# y por eso NO estan en este catalogo. En Windows el shell unificado es
-# PowerShell + PSReadLine (ver profile.ps1), que ya replica la misma paleta.
 $WINGET_PACKAGES = @(
     @{ Id='Microsoft.WindowsTerminal';      Name='Windows Terminal';        Optional=$false; Key='windows-terminal'; Group='core'   }
     @{ Id='Microsoft.PowerShell';           Name='PowerShell 7';            Optional=$false; Key='pwsh';             Group='core'   }
     @{ Id='Git.Git';                        Name='Git for Windows';         Optional=$false; Key='git';              Group='core'   }
     @{ Id='Neovim.Neovim';                  Name='Neovim';                  Optional=$false; Key='neovim';           Group='core'   }
     @{ Id='BurntSushi.ripgrep.MSVC';        Name='ripgrep';                 Optional=$false; Key='ripgrep';          Group='core'   }
-    # Requisito de nvim-treesitter rama 'main': compila los parsers. Sin esto,
-    # nvim abre pero sin resaltado de sintaxis (ver nvim/lua/plugins/treesitter.lua).
+    # nvim-treesitter (rama main) lo usa para compilar los parsers.
     @{ Id='tree-sitter.tree-sitter-cli';    Name='tree-sitter CLI';         Optional=$false; Key='tree-sitter-cli';  Group='core'   }
-    # Compilador C para los parsers de arriba: en Linux ya hay gcc, en Windows no
-    # hay ninguno de fabrica. zig trae 'zig cc', que nvim-treesitter detecta solo
-    # (liviano: un solo binario via winget, sin instalar Visual Studio).
+    # Compilador C para los parsers: 'zig cc', sin instalar Visual Studio.
     @{ Id='zig.zig';                        Name='Zig (compilador C)';      Optional=$false; Key='zig';              Group='core'   }
     @{ Id='junegunn.fzf';                   Name='fzf';                     Optional=$false; Key='fzf';              Group='core'   }
     @{ Id='JanDeDobbeleer.OhMyPosh';        Name='Oh My Posh';              Optional=$false; Key='oh-my-posh';       Group='shell'  }
@@ -107,8 +85,7 @@ $WINGET_PACKAGES = @(
     @{ Id='JesseDuffield.lazygit';          Name='LazyGit';                 Optional=$false; Key='lazygit';          Group='shell'  }
     @{ Id='sxyazi.yazi';                    Name='yazi (file manager TUI)'; Optional=$true ; Key='yazi';             Group='shell'  }
     @{ Id='OpenJS.NodeJS.LTS';              Name='Node.js LTS';             Optional=$false; Key='node';             Group='dev'    }
-    # Override = argumentos del instalador de python.org (reemplaza los de winget):
-    # por usuario (sin admin ni UAC), con python.exe en el PATH y sin el launcher py.exe.
+    # Override: por usuario (sin admin), con python.exe en el PATH y sin el launcher py.exe.
     @{ Id='Python.Python.3.13';             Name='Python 3.13';             Optional=$false; Key='python';           Group='dev'
        Override='/quiet InstallAllUsers=0 PrependPath=1 Include_launcher=0' }
     @{ Id='Microsoft.VisualStudioCode';     Name='Visual Studio Code';      Optional=$true ; Key='vscode';           Group='dev'    }
@@ -144,34 +121,24 @@ $EXTRA_TOOLS = @(
 $TOOLS_CATALOG = $WINGET_PACKAGES + $EXTRA_TOOLS
 
 # ==============================================================================
-# VS CODE Y PYTHON (antes eran instalaciones manuales)
+# VS CODE, PYTHON Y GIT
 # ------------------------------------------------------------------------------
-# Se dejaban a mano por miedo a que winget no pusiera `code`/`python` en el PATH;
-# ninguna de las dos cosas se sostuvo (nvim/ no usa python3_host_prog y el instalador
-# de python.org acepta PrependPath=1 por --override). Python va por usuario (sin admin);
-# VS Code con el User Installer (verificado: deja `code` en el PATH de usuario sin Override).
-# Git for Windows tambien va por winget (Id 'Git.Git'): editor y line endings los fija
-# el .gitconfig versionado del vault, y el SSH es el OpenSSH nativo de Windows.
+# Python va por usuario (PrependPath=1); VS Code con el User Installer. Git for Windows
+# tambien por winget: editor y line endings los fija el .gitconfig del vault.
 # ==============================================================================
 
-# Modulos de PowerShell, gateados por el catalogo; cada uno declara la Key que lo
-# habilita: PSReadLine (editor de linea, profile.ps1 lo configura entero) y
-# Terminal-Icons (lo usa 'll', carga diferida). posh-git salio: profile.ps1 no lo usa,
-# el estado de git del prompt lo da oh-my-posh.
+# Modulos de PowerShell; cada uno declara la Key que lo habilita.
 $PS_MODULES = @(
     @{ Name='PSReadLine';     Tool='pwsh' }
     @{ Name='Terminal-Icons'; Tool='pwsh' }
 )
 
-# Dotfiles: origen (relativo al repo) -> destino
-#   Tool = Key del catalogo que "dueña" esta config. Si esta presente, la config
-#          solo se aplica cuando Test-ToolWanted da True (elegida o ya instalada).
-#          Sin Tool -> se aplica siempre (config base, sin dueño: pwsh, git).
+# Dotfiles: origen (relativo al repo) -> destino.
+#   Tool = Key del catalogo dueña de la config; sin Tool se aplica siempre.
 $DOTFILES = @(
     # Shell (symlinks: editar en el repo se ve al instante)
     @{ Src='shell\profile.ps1';       Dst="$HOME\.config\powershell\profile.ps1"; Mode='link' }
-    # bash en Windows solo existe si esta Git for Windows (trae Git Bash): sin el,
-    # estos symlinks no los lee nadie.
+    # bash en Windows solo existe con Git for Windows.
     @{ Src='shell\bashrc';            Dst="$HOME\.bashrc"                       ; Mode='link'; Tool='git' }
     @{ Src='shell\bash_profile';      Dst="$HOME\.bash_profile"                 ; Mode='link'; Tool='git' }
     # Git ignore (publico)
@@ -187,15 +154,10 @@ $DOTFILES = @(
     @{ Src='terminal\settings.json';  Dst="$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"; Mode='link'; Tool='windows-terminal' }
     # Editorconfig (symlink)
     @{ Src='.editorconfig';           Dst="$HOME\.editorconfig"                  ; Mode='link' }
-    # yazi (file manager TUI): en Windows la config vive en %APPDATA%\yazi\config
-    # (NO en ~/.config como Linux). Symlink: editar en el repo se ve al instante.
+    # En Windows la config de yazi vive en %APPDATA%\yazi\config.
     @{ Src='yazi\yazi.toml';          Dst="$env:APPDATA\yazi\config\yazi.toml"   ; Mode='link'; Tool='yazi' }
-    # Claude Code (settings.json por symlink: se versiona al editar en el repo.
-    # OJO: un /model en cualquier sesion escribe a traves del symlink y modifica
-    # el repo. settings.local.json NO se toca: es per-maquina (permisos con rutas
-    # absolutas), no esta trackeado y cada PC mantiene el suyo — paridad con Linux.
-    # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
-    # que sea portable en cada instalacion (paridad con bootstrap.sh).
+    # Claude Code: settings.json por symlink (un /model escribe ahi: revisar el diff).
+    # settings.local.json es por maquina. CLAUDE.md son las reglas globales.
     @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link'; Tool='claude' }
     @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link'; Tool='claude' }
     # Subagentes propios (equipo estandar): carpeta entera (paridad con link_dir).
@@ -215,8 +177,7 @@ foreach ($flowPlugin in (Get-ChildItem -Directory (Join-Path $REPO_ROOT 'flowlau
 foreach ($flowTheme in (Get-ChildItem -File (Join-Path $REPO_ROOT 'flowlauncher\Themes') -Filter *.xaml -ErrorAction SilentlyContinue).Name) {
     $DOTFILES += @{ Src="flowlauncher\Themes\$flowTheme"; Dst="$env:APPDATA\FlowLauncher\Themes\$flowTheme"; Mode='link'; Tool='flowlauncher' }
 }
-# Un perfil de identidad por sufijo del vault (ver $idSuffixes): con nombres
-# propios (freelance, cliente-x...) antes no se symlinkeaba ninguno.
+# Un perfil de identidad por sufijo.
 foreach ($s in $idSuffixes) {
     $DOTFILES += @{ Src="git\config-$s"; Dst="$HOME\.gitconfig-$s"; Mode='link'; Root='vault' }
 }
@@ -234,9 +195,7 @@ $script:ICONS = if ([Console]::OutputEncoding.CodePage -eq 65001) {
     @{ Section='>'; Ok='[OK]'; Warn='[!]'; Err='[X]'; Skip='[-]' }
 }
 
-# Paleta ANSI (espejo de bootstrap.sh). PowerShell 7 + Windows Terminal soportan
-# truecolor, asi que la barra y los titulos usan el MISMO naranja #D4874E del
-# prompt (oh-my-posh). El ESC se escribe con "`e" (PS 7+).
+# Naranja del prompt (#D4874E). El ESC se escribe con "`e" (PS 7+).
 $ESC = [char]27
 $script:C_RESET = "$ESC[0m"
 $script:C_BAR   = "$ESC[38;2;212;135;78m"       # naranja plano (barra)
@@ -246,10 +205,9 @@ $script:C_OK    = "$ESC[32m"
 $script:C_WARN  = "$ESC[33m"
 $script:C_ERR   = "$ESC[31m"
 
-# ── BARRA DE PROGRESO GLOBAL (espejo de gb_* en bootstrap.sh) ────────────────
-# UNA barra global ponderada (GB_WEIGHTS, suman 100; GB_BASE = % acumulado antes de
-# cada paso) que cruza los 8 pasos. Se pausa en interacciones (Suspend-Bar) y se
-# retoma en el proximo Step/Sub. Sin consola interactiva no dibuja: headers '[N/8] ...'.
+# ── BARRA DE PROGRESO GLOBAL ────────────────────────────────────────────────
+# Barra ponderada (GB_WEIGHTS suma 100; GB_BASE = % acumulado antes de cada paso).
+# Se pausa con Suspend-Bar en las interacciones; sin consola no dibuja.
 $script:GB_WEIGHTS = @(0, 4, 34, 14, 8, 6, 22, 4, 8)
 $script:GB_BASE    = @(0, 0, 4, 38, 52, 60, 66, 88, 92)
 $script:GB_STEP   = 0
@@ -350,12 +308,8 @@ Add-Type -Namespace Win32 -Name NativeConsole -MemberDefinition @'
 '@
 
 function Read-Console {
-    # Equivalente a 'read -r input < /dev/tty': lee una linea de la consola real.
-    # Nota: [System.IO.File]::Open('CONIN$') funciona en pwsh 7 (.NET moderno)
-    # pero NO en PowerShell 5.1, donde FileStream rechaza abrir dispositivos de
-    # consola. Este script solo corre en pwsh 7, asi que se usa la via directa;
-    # el fallback via CreateFile queda por robustez (y esta en install.ps1, que
-    # SI arranca bajo 5.1).
+    # Lee una linea de la consola real. File.Open('CONIN$') solo funciona en pwsh 7;
+    # el fallback via CreateFile queda de respaldo.
     try {
         $fs = [System.IO.File]::Open('CONIN$', 'Open', 'Read', 'ReadWrite')
         $reader = [System.IO.StreamReader]::new($fs)
@@ -378,10 +332,7 @@ function Write-Log {
     $ts = Get-Date -Format 'HH:mm:ss'
     Add-Content -Path $LOG_FILE -Value "[$ts][$Level] $Message" -ErrorAction SilentlyContinue
 
-    # Con la barra global ACTIVA, la pantalla la maneja la barra: el ruido de
-    # exito (OK/INFO/SKIP) ya quedo en el log, no se imprime. Solo lo notable
-    # (WARN/ERROR) scrollea ARRIBA de la barra. SECTION se ignora (los headers los
-    # pone Step-Bar). Sin barra, comportamiento normal de abajo.
+    # Con la barra activa solo WARN/ERROR van a pantalla; el resto queda en el log.
     if ($script:GB_ACTIVE) {
         switch ($Level) {
             'WARN'  { Note-Bar $script:C_WARN $script:ICONS.Warn $Message }
@@ -423,10 +374,8 @@ function Invoke-Step {
 }
 
 function Protect-EnvFile {
-    # ~/.env con ACL de solo-tu-usuario (equivalente al chmod 600 de Linux).
-    # Se llama en CADA lugar donde el bootstrap crea o restaura el archivo: antes
-    # solo corria en el paso 5 y el ~/.env que creaba despues el paso de AWS
-    # quedaba con los permisos heredados del perfil.
+    # ~/.env con ACL solo para el usuario (el chmod 600 de Linux). Se llama en cada
+    # lugar donde se crea o restaura el archivo.
     param([string]$Path)
     $acl = Get-Acl $Path
     $acl.SetAccessRuleProtection($true, $false)
@@ -438,14 +387,8 @@ function Protect-EnvFile {
 }
 
 function Test-WingetAvailable {
-    # Encontrar winget en el PATH no alcanza: hay que EJECUTARLO. Caso real en
-    # una PC corporativa: el PATH de sistema (Machine, que va antes que el de
-    # User) traia el WindowsApps de OTRO usuario (la cuenta de admin de IT).
-    # Get-Command lo encontraba, pero los .exe de WindowsApps son App Execution
-    # Aliases que solo resuelve su dueno: cada llamada fallaba con "El sistema
-    # no puede encontrar la ruta especificada" y no se instalaba ningun paquete.
-    # Se prueba cada candidato con 'winget --version' y se usa el primero que
-    # anda; si el del PATH no era ese, se avisa con la causa probable.
+    # Encontrar winget en el PATH no alcanza: el PATH de sistema puede traer el WindowsApps
+    # de otro usuario, cuyos alias no resuelven. Se prueba cada candidato con 'winget --version'.
     if ($script:WINGET_EXE) { return $true }   # ya verificado (se llama 2 veces)
     $own =Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\winget.exe'
     $candidates = @(Get-Command winget -All -CommandType Application -ErrorAction SilentlyContinue |
@@ -454,9 +397,8 @@ function Test-WingetAvailable {
 
     foreach ($exe in $candidates) {
         if (-not (Test-Path -LiteralPath $exe)) { continue }
-        # El fallo al arrancar el proceso es un error NO terminante: no lo agarra
-        # el catch y $LASTEXITCODE queda con el valor de la llamada anterior.
-        # Por eso se valida la salida (winget imprime 'v1.x.y'), no el exit code.
+        # Si el proceso no arranca el error no es terminante y $LASTEXITCODE queda viejo:
+        # se valida la salida, no el exit code.
         try {
             $out = "$(& $exe --version 2>&1)"
         } catch { continue }
@@ -474,10 +416,8 @@ function Test-WingetAvailable {
     return $false
 }
 
-# Proxy: todas las llamadas 'winget ...' del script pasan por el ejecutable que
-# Test-WingetAvailable verifico. En PowerShell una funcion le gana a un .exe
-# del mismo nombre, asi que no hace falta tocar cada llamada; $LASTEXITCODE y
-# las redirecciones (2>&1, 2>$null) se comportan igual que con el .exe directo.
+# Todas las llamadas 'winget ...' pasan por el ejecutable verificado: una funcion
+# le gana a un .exe del mismo nombre.
 $script:WINGET_EXE = $null
 function winget {
     $exe = if ($script:WINGET_EXE) { $script:WINGET_EXE } else { 'winget.exe' }
@@ -505,13 +445,9 @@ function Test-DeveloperMode {
 }
 
 function Get-NetskopeCaBundle {
-    # Devuelve la ruta de ~/combined-ca.pem (CA de Netskope + bundle publico) o
-    # $null si la maquina no tiene el proxy corporativo. Lo construye si falta.
-    #
-    # OJO con Set-StrictMode: si el Where-Object no encuentra nada (o sea, en
-    # cualquier maquina SIN el proxy corporativo), el pipeline devuelve $null y
-    # leerle .Thumbprint lanza PropertyNotFoundException. De ahi el $null
-    # explicito y el try/catch (el drive Cert: tampoco existe fuera de Windows).
+    # Devuelve la ruta de ~/combined-ca.pem (CA de Netskope + bundle publico) o $null si
+    # no hay proxy corporativo. Bajo StrictMode leer .Thumbprint de $null lanza: de ahi
+    # el $null explicito y el try/catch.
     $netskopeThumb = $null
     try {
         $netskopeCert = Get-ChildItem -Path Cert:\LocalMachine\Root -ErrorAction SilentlyContinue |
@@ -538,10 +474,7 @@ function Get-NetskopeCaBundle {
         [System.IO.File]::WriteAllBytes("$HOME\netskope-root.cer", $bytes)
         certutil -encode "$HOME\netskope-root.cer" "$HOME\netskope-root.pem" | Out-Null
 
-        # Buscar cacert.pem o descargarlo. OJO: descargar justamente un CA
-        # bundle con la verificacion TLS apagada (curl -k) seria lo peor;
-        # Invoke-WebRequest usa el cert store de Windows, que ya confia en
-        # el certificado de Netskope, asi que valida el TLS sin -k.
+        # Invoke-WebRequest valida el TLS con el cert store de Windows, sin curl -k.
         $cacert = Get-ChildItem -Path "$HOME\.vscode\extensions" -Recurse -Filter "cacert.pem" `
                     -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
         if (-not $cacert) {
@@ -585,10 +518,8 @@ function Get-WingetPhase {
 }
 
 function Invoke-WingetInstall {
-    # Corre 'winget install' en segundo plano y anima la linea de accion de la barra
-    # ("Zig ⠹ 3m12s · extrayendo"): los paquetes pesados tardan minutos detras de un
-    # antivirus/proxy y con la barra quieta parecia colgado. Devuelve @{ ExitCode; Output };
-    # si el proceso ni arranca, ExitCode = -1 (suma a $ERRORS).
+    # Corre 'winget install' en segundo plano y anima la linea de accion de la barra.
+    # Devuelve @{ ExitCode; Output }; si el proceso no arranca, ExitCode = -1.
     param([string]$Id, [string]$Name, [string]$Override = '')
 
     $exe  = if ($script:WINGET_EXE) { $script:WINGET_EXE } else { 'winget.exe' }
@@ -660,13 +591,10 @@ function Install-WingetPackage {
         [string]$Override = ''
     )
 
-    # --accept-source-agreements + --disable-interactivity: sin --source, 'list' consulta
-    # tambien msstore, que la primera vez pide aceptar sus terminos y, con la salida
-    # redirigida, el bootstrap quedaba colgado. No se fuerza --source winget para seguir
-    # detectando lo instalado desde la Store (p.ej. pwsh).
-    # "Ya instalado" = exit 0 de 'winget list' (sin resultados devuelve NO_APPLICATIONS_FOUND);
-    # la tabla recorta los Id con '…', asi que la busqueda por texto queda de respaldo.
-    # $LASTEXITCODE se resetea antes: si winget no arranca conserva el de otra llamada.
+    # --accept-source-agreements + --disable-interactivity: 'list' tambien consulta msstore,
+    # que la primera vez pide aceptar terminos y cuelga. Sin --source winget para detectar
+    # lo instalado desde la Store. Instalado = exit 0; la busqueda por texto es respaldo.
+    # $LASTEXITCODE se resetea antes por si winget no arranca.
     if (Test-WingetPackageInstalled $Id) {
         Write-Log "$Name ya instalado, saltando" 'SKIP'
         return
@@ -680,12 +608,8 @@ function Install-WingetPackage {
     }
 
     $run = Invoke-WingetInstall -Id $Id -Name $Name -Override $Override
-    # Reintento SELECTIVO (uno solo): en PCs corporativas el antivirus escanea
-    # el .exe recien extraido y bloquea el movimiento de los paquetes portables
-    # ("copy_file: Acceso denegado"). Caso real: yazi fallo asi en el bootstrap
-    # y a mano, segundos despues, se instalo sin problema. Otros errores (proxy,
-    # paquete inexistente, instalador que falla) no se reintentan: duplicar su
-    # tiempo no los arregla.
+    # Un reintento solo para "Acceso denegado": el antivirus bloquea el .exe recien extraido
+    # y segundos despues pasa. Otros errores no se reintentan.
     if ($run.ExitCode -ne 0 -and $run.Output -match 'copy_file|Acceso denegado|Access is denied') {
         Write-Log "$Name`: acceso denegado al mover archivos (probable antivirus) - reintentando una vez..." 'INFO'
         Start-Sleep -Seconds 5
@@ -709,20 +633,15 @@ function Install-WingetPackage {
 # ==============================================================================
 # SELECTOR DE HERRAMIENTAS
 # ------------------------------------------------------------------------------
-# Espejo del selector de bootstrap.sh: deja en $script:SELECTED_KEYS las Keys a instalar.
-# Prioridad: 1) -Tools "a,b,c", 2) -AllTools / -DryRun (todo), 3) consola interactiva
-# (menu opt-in, sin nada marcado), 4) sin consola (irm | iex): no instala nada y pide
-# -Tools/-AllTools. Es para escritorio/laptop, no para servers headless.
+# Deja en $script:SELECTED_KEYS las Keys a instalar. Prioridad: 1) -Tools, 2) -AllTools /
+# -DryRun (todo), 3) consola interactiva (opt-in), 4) sin consola: no instala nada.
 # ==============================================================================
 
 $script:SELECTED_KEYS = @()
 
 function Test-Interactive {
-    # $true si hay consola fisica adjunta (humano), aunque stdin venga por pipe.
-    # Sondea CONIN$ (equivalente a [[ -e /dev/tty ]] en Linux): existe cuando hay
-    # un humano, falta en CI/headless real -> ahi cae a la red de seguridad.
-    # GENERIC_READ=0x80000000, FILE_SHARE_READ|WRITE=3, OPEN_EXISTING=3.
-    # Nota: 0x80000000 se castea a [uint32] porque PowerShell lo toma como Int32 negativo.
+    # $true si hay consola fisica (CONIN$), aunque stdin venga por pipe.
+    # GENERIC_READ=0x80000000 (casteado a [uint32]), FILE_SHARE_READ|WRITE=3, OPEN_EXISTING=3.
     try {
         $h = [Win32.NativeConsole]::CreateFile('CONIN$', ([uint32]'0x80000000'), 3, [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)
         if ($h -eq [IntPtr]::Zero -or $h.ToInt64() -eq -1) { return $false }
@@ -786,10 +705,8 @@ function Select-ToolsInteractive {
         $m = $rows.Count
         if ($cur -ge $m) { $cur = $m - 1 }
 
-        # Subir el cursor al inicio del frame anterior y borrar de ahi hasta el
-        # final de pantalla (\e[0J). Sin el borrado, al COLAPSAR un grupo el frame
-        # nuevo tiene menos lineas y las sobrantes del frame viejo quedan abajo
-        # (efecto "menu duplicado"). PadRight solo limpia el ancho, no lineas de mas.
+        # Sube al inicio del frame anterior y borra hasta el final de pantalla: al colapsar
+        # un grupo el frame nuevo tiene menos lineas.
         if (-not $firstDraw) { Write-Host ("`e[$($drawn)A`e[0J") -NoNewline }
         $firstDraw = $false
 
@@ -944,10 +861,7 @@ function Test-ToolSelected {
     return ($script:SELECTED_KEYS -contains $Key)
 }
 
-# Test-ToolInstalled <Key> — True si la herramienta YA esta presente en la
-# maquina (espejo del tool_installed de bootstrap.sh). Se chequea por comando en
-# PATH, que es barato y no depende de winget; para las que no dejan binario
-# (fuentes, apps GUI) se usa la comprobacion que corresponda.
+# Test-ToolInstalled <Key> — True si la herramienta ya esta en la maquina.
 function Test-ToolInstalled {
     param([string]$Key)
     switch ($Key) {
@@ -965,10 +879,8 @@ function Test-ToolInstalled {
     }
 }
 
-# Test-ToolWanted <Key> — DECISION UNICA de "¿el usuario quiere esta
-# herramienta?": True si la eligio en el selector o si ya la tiene instalada.
-# Espejo exacto de want_tool en bootstrap.sh (ver el comentario largo alla).
-# Es el gate de las CONFIGS del paso 6.
+# Test-ToolWanted <Key> — True si la herramienta se eligio en el selector o ya esta
+# instalada. Es el gate de las configs del paso 6.
 function Test-ToolWanted {
     param([string]$Key)
     if (Test-ToolSelected $Key) { return $true }
@@ -1036,10 +948,7 @@ Write-Host "$($script:C_SECT)$($script:ICONS.Section) bootstrap.ps1 — Setup de
 Write-Host "  $($script:C_DIM)$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')$(if ($DryRun) { '  ·  modo DryRun' })$($script:C_RESET)"
 Add-Content -Path $LOG_FILE -Value "[$(Get-Date -Format 'HH:mm:ss')] === bootstrap.ps1 — Setup de entorno ===" -ErrorAction SilentlyContinue
 
-# ~/.env: si no esta ni en esta maquina ni cifrado en el vault, avisar ANTES de
-# arrancar (caso real: se olvido migrarlo y recien lo noto el paso de AWS, al
-# final). Va antes de la barra porque pide una confirmacion (Enter) — es
-# interaccion, no ruido de progreso. Es el unico punto que frena con un Enter.
+# Sin ~/.env local ni cifrado en el vault: avisar antes de arrancar (pide un Enter).
 if (-not (Test-Path (Join-Path $HOME '.env')) -and -not (Test-Path $VAULT_ENV_AGE)) {
     Write-Host ''
     Write-Host "  $($script:C_WARN)$($script:ICONS.Warn)$($script:C_RESET) ~/.env con tus tokens: no esta en esta maquina ni en el vault."
@@ -1073,9 +982,7 @@ if (-not (Test-WingetAvailable)) {
 Sub-Bar 80 "winget disponible"
 Write-Log "winget disponible" 'OK'
 
-# Modo de desarrollador: sin el, crear symlinks requiere admin y CADA symlink
-# de configs falla por separado (una docena de ERRORs en el resumen, con la causa
-# real invisible). Se avisa una sola vez y claro, antes de intentarlo.
+# Sin Modo de desarrollador cada symlink falla por separado: se avisa una vez, antes.
 if (-not (Test-DeveloperMode)) {
     Write-Log "Modo de desarrollador desactivado — los symlinks de configs van a fallar" 'WARN'
     Write-Log "  Activalo en: Configuración → Sistema → Para desarrolladores → Modo de desarrollador" 'WARN'
@@ -1127,11 +1034,7 @@ if ($SkipWinget) {
                 if ($DryRun) {
                     Write-Log "[DryRun] wsl --install -d Ubuntu-22.04" 'SKIP'
                 } else {
-                    # 'wsl -l' escribe en UTF-16LE: leida como texto, cada letra
-                    # viene separada por un NUL ("U`0b`0u`0...") y Select-String
-                    # 'Ubuntu' nunca matcheaba. Resultado: con Ubuntu ya instalado
-                    # se reintentaba 'wsl --install' en cada corrida y tiraba
-                    # ERROR_ALREADY_EXISTS (marcado igual como OK). Se quitan los NUL.
+                    # 'wsl -l' escribe en UTF-16LE: se quitan los NUL para que Select-String matchee.
                     $wslList = ((wsl -l -q 2>$null) -join "`n") -replace "`0", ''
                     if ($wslList -match 'Ubuntu') {
                         Write-Log "WSL Ubuntu ya instalado, saltando" 'SKIP'
@@ -1147,10 +1050,8 @@ if ($SkipWinget) {
             }
             Install-WingetPackage -Id $pkg.Id -Name $pkg.Name -Optional $pkg.Optional -Override $pkg['Override']
 
-            # yazi + bundle de deps de preview: poppler (PDF), ffmpeg (video/audio), imagemagick
-            # (imagenes), 7zip (comprimidos). Si el proxy corporativo bloquea las descargas de
-            # GitHub releases quedan como WARN y se instalan a mano. Sin chafa (que Linux si
-            # necesita): Windows Terminal soporta Sixel (>=1.22).
+            # Deps de preview: poppler, ffmpeg, imagemagick, 7zip. Sin chafa: Windows Terminal
+            # soporta Sixel.
             if ($pkg.Key -eq 'yazi') {
                 $yaziDeps = @(
                     @{ Id='oschwartz10612.Poppler';    Name='poppler (yazi: PDF)'         }
@@ -1193,11 +1094,8 @@ if ($SkipWinget) {
     } elseif (Test-CommandAvailable 'claude') {
         Write-Log "Claude Code ya instalado" 'SKIP'
     } else {
-        # Instalador nativo oficial (igual que Linux): se autoactualiza y deja
-        # claude.exe en ~\.local\bin. NO el paquete winget, que no se
-        # autoactualiza y publica con dias de retraso (2.1.292 en winget cuando
-        # la oficial ya era 2.1.295). Va en un pwsh hijo porque un 'exit' del
-        # script bajo 'iex' mataria el bootstrap entero.
+        # Instalador nativo oficial (se autoactualiza; el paquete winget no). En un pwsh hijo:
+        # un 'exit' bajo 'iex' mataria el bootstrap.
         Invoke-Step "Instalar Claude Code (instalador nativo)" {
             pwsh -NoProfile -Command 'irm https://claude.ai/install.ps1 | iex'
             if ($LASTEXITCODE -ne 0) { throw "el instalador salio con codigo $LASTEXITCODE" }
@@ -1206,9 +1104,7 @@ if ($SkipWinget) {
         }
     }
 
-    # --- FiraCode Nerd Font ---
-    # Replica lo que hace Linux: baja el zip de nerd-fonts y registra los .ttf
-    # para el usuario actual (sin admin). La terminal ya usa 'FiraCode Nerd Font'.
+    # --- FiraCode Nerd Font: zip de nerd-fonts, registrado para el usuario (sin admin) ---
     Sub-Bar 65 "firacode"
     if (-not (Test-ToolSelected 'firacode')) {
         Write-Log "FiraCode Nerd Font no seleccionada, saltando" 'SKIP'
@@ -1246,9 +1142,7 @@ if ($SkipWinget) {
         }
     }
 
-    # --- lazyssh (TUI para SSH) ---
-    # No esta en winget/scoop: se baja el binario del release oficial a
-    # ~/.local/bin (igual que en Linux) y se agrega ese dir al PATH de usuario.
+    # --- lazyssh: binario del release oficial a ~/.local/bin, agregado al PATH de usuario ---
     Sub-Bar 90 "lazyssh"
     if (-not (Test-ToolSelected 'lazyssh')) {
         Write-Log "lazyssh no seleccionado, saltando" 'SKIP'
@@ -1271,7 +1165,7 @@ if ($SkipWinget) {
             Remove-Item $zip -Force -ErrorAction SilentlyContinue
             Remove-Item $ext -Recurse -Force -ErrorAction SilentlyContinue
 
-            # Asegurar que ~/.local/bin este en el PATH de usuario
+            # ~/.local/bin en el PATH de usuario (el paso de lazyssh no siempre corre).
             $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
             if ($userPath -notlike "*$binDir*") {
                 [Environment]::SetEnvironmentVariable('Path', "$userPath;$binDir", 'User')
@@ -1281,9 +1175,7 @@ if ($SkipWinget) {
         }
     }
 
-    # --- lazysql (TUI para bases de datos) ---
-    # No esta en winget/scoop: mismo patron que lazyssh (binario del release
-    # oficial a ~/.local/bin, ya en PATH por el paso anterior).
+    # --- lazysql: binario del release oficial a ~/.local/bin ---
     Sub-Bar 95 "lazysql"
     if (-not (Test-ToolSelected 'lazysql')) {
         Write-Log "lazysql no seleccionado, saltando" 'SKIP'
@@ -1306,7 +1198,7 @@ if ($SkipWinget) {
             Remove-Item $zip -Force -ErrorAction SilentlyContinue
             Remove-Item $ext -Recurse -Force -ErrorAction SilentlyContinue
 
-            # Asegurar que ~/.local/bin este en el PATH de usuario
+            # ~/.local/bin en el PATH de usuario (el paso de lazyssh no siempre corre).
             $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
             if ($userPath -notlike "*$binDir*") {
                 [Environment]::SetEnvironmentVariable('Path', "$userPath;$binDir", 'User')
@@ -1411,16 +1303,12 @@ if ($SkipDotfiles) {
     foreach ($df in $DOTFILES) {
         $dfIdx++
         Sub-Bar ([int]($dfIdx * 60 / $dfTot)) "$($df.Src)"
-        # Resolver raiz: 'vault' (privado) o repo publico por defecto.
-        # OJO: $df es un hashtable — sus claves NO son propiedades PSObject
-        # (PSObject.Properties['Root'] da siempre $null); hay que usar ContainsKey.
+        # Raiz: 'vault' o el repo. $df es un hashtable: usar ContainsKey, no PSObject.Properties.
         $root = if ($df.ContainsKey('Root') -and $df.Root -eq 'vault') { $VAULT_DIR } else { $REPO_ROOT }
         $src = Join-Path $root $df.Src
         $dst = $df.Dst
 
-        # Gate por herramienta: si la config tiene dueño (Tool) y el usuario no
-        # lo eligio ni lo tiene instalado, no se aplica. Al log, no a pantalla:
-        # no es un problema, es la config que el usuario no pidio.
+        # Gate por herramienta: sin dueño elegido o instalado, la config no se aplica.
         if ($df.ContainsKey('Tool') -and -not (Test-ToolWanted $df.Tool)) {
             Write-Log "$($df.Src): $($df.Tool) no seleccionado ni instalado, saltando" 'SKIP'
             continue
@@ -1465,10 +1353,7 @@ if ($SkipDotfiles) {
         }
     }
 
-    # --- Reglas globales de agentes IA: AGENTS.md para Codex/opencode ---
-    # El MISMO .claude\CLAUDE.md rige para todos los agentes: Codex y opencode
-    # leen AGENTS.md (fuente unica, paridad con bootstrap.sh). Solo si el CLI
-    # esta instalado.
+    # --- Codex y opencode leen el mismo CLAUDE.md como AGENTS.md ---
     Sub-Bar 62 "reglas de agentes IA"
     $agentsSrc  = Join-Path $REPO_ROOT '.claude\CLAUDE.md'
     $agentsDsts = @()
@@ -1491,12 +1376,8 @@ if ($SkipDotfiles) {
         }
     }
 
-    # --- Neovim: config completa versionada (nvim/) ---
-    # Symlink de DIRECTORIO a %LOCALAPPDATA%\nvim (paridad con link_dir de bootstrap.sh);
-    # si habia config real previa se borra antes (sin backup: el repo es el historial).
-    # Gateado: sin eso, quien no eligio Neovim quedaba con esta config al instalarlo
-    # despues. Si $XDG_CONFIG_HOME esta seteada, Neovim resuelve stdpath('config') ahi
-    # tambien en Windows: symlinkear solo %LOCALAPPDATA% lo deja con defaults.
+    # --- Neovim: symlink de directorio a %LOCALAPPDATA%\nvim ---
+    # Si $XDG_CONFIG_HOME esta seteada, Neovim resuelve la config ahi tambien en Windows.
     Sub-Bar 65 "config de nvim"
     $nvimSrc = Join-Path $REPO_ROOT 'nvim'
     $nvimDst = if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME 'nvim' } else { Join-Path $env:LOCALAPPDATA 'nvim' }
@@ -1510,14 +1391,8 @@ if ($SkipDotfiles) {
         } elseif ($DryRun) {
             Write-Log "[DryRun] Symlink nvim → $nvimDst" 'SKIP'
         } elseif (-not (Test-DeveloperMode)) {
-            # ORDEN DESTRUCTIVO: abajo se borra la config previa ANTES de
-            # crear el symlink. Si el symlink falla, el usuario queda sin config y
-            # sin link → nvim arranca con defaults (sin lualine, sin tema, sin
-            # números de línea) y el sintoma es indistinguible de "nvim roto".
-            # Por eso se corta ACÁ, antes de tocar nada: sin Modo de desarrollador
-            # (ni admin) New-Item -ItemType SymbolicLink no puede funcionar.
-            # El aviso del paso 1 queda cientos de lineas de log atras, asi que se
-            # repite acá, donde importa.
+            # Se corta antes de borrar la config previa: sin Modo de desarrollador el symlink
+            # no se puede crear y nvim quedaria con defaults.
             $msg = "Symlink de nvim omitido: Modo de desarrollador desactivado (la config previa NO se toco)"
             Write-Log $msg 'ERROR'
             Write-Log "  Activalo en: Configuración → Sistema → Para desarrolladores, o corré como admin" 'WARN'
@@ -1533,9 +1408,7 @@ if ($SkipDotfiles) {
             Invoke-Step "Symlink nvim → $nvimDst" {
                 New-Item -ItemType SymbolicLink -Path $nvimDst -Target $nvimSrc | Out-Null
             }
-            # Verificar que el symlink QUEDÓ USABLE, no solo que el comando no tiró.
-            # Un link creado pero que no resuelve a init.lua deja a nvim sin config,
-            # y sin este chequeo el bootstrap lo reporta como exito.
+            # Un link que no resuelve a init.lua deja a nvim sin config.
             if (-not (Test-Path (Join-Path $nvimDst 'init.lua'))) {
                 $msg = "Symlink de nvim creado pero $nvimDst\init.lua no resuelve — nvim va a arrancar sin config"
                 Write-Log $msg 'ERROR'
@@ -1544,12 +1417,8 @@ if ($SkipDotfiles) {
         }
     }
 
-    # --- Shim de compilador C para nvim-treesitter (zig actuando como 'cc') ---
-    # tree-sitter-cli invoca literalmente "cc" y le pasa un target triple en formato Rust
-    # que zig no entiende sin MSVC; el shim resuelve ambas (ver nvim/windows-cc-shim.c).
-    # OJO: CC queda seteada a nivel de USUARIO: cualquier herramienta que la lea (make,
-    # cargo, node-gyp...) compilara via zig-como-gnu en vez de MSVC. Aceptado: la
-    # alternativa es no tener resaltado de sintaxis.
+    # --- Shim de compilador C para nvim-treesitter (ver nvim/windows-cc-shim.c) ---
+    # CC queda seteada a nivel de usuario: make, cargo o node-gyp compilaran via zig.
     Sub-Bar 66 "shim de compilador (zig -> cc) para treesitter"
     $ccShimSrc = Join-Path $REPO_ROOT 'nvim\windows-cc-shim.c'
     $ccShimBin = Join-Path $HOME '.local\bin\cc.exe'
@@ -1589,8 +1458,7 @@ if ($SkipDotfiles) {
                 $env:CC = 'cc'
             }
         }
-        # Asegurar que ~/.local/bin este en el PATH de usuario: hoy lo unico
-        # que lo garantiza es el paso de lazyssh, y no corre si no se elige.
+        # ~/.local/bin en el PATH de usuario (el paso de lazyssh no siempre corre).
         $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
         if ($userPath -notlike "*$binDir*") {
             [Environment]::SetEnvironmentVariable('Path', "$userPath;$binDir", 'User')
@@ -1604,17 +1472,12 @@ if ($SkipDotfiles) {
         }
     }
 
-    # --- Tema oh-my-posh (claude-code) ---
-    # Estrategia unificada: el repo es la unica fuente de verdad.
-    # 1. POSH_THEMES_PATH apunta SIEMPRE a <repo>\shell\themes.
-    # 2. Si quedo una copia vieja en %LOCALAPPDATA%\Programs\oh-my-posh\themes\
-    #    de instalaciones previas, la borramos para evitar drift.
+    # --- Tema oh-my-posh: POSH_THEMES_PATH apunta a <repo>\shell\themes ---
+    # Una copia vieja en %LOCALAPPDATA%\Programs\oh-my-posh\themes se borra.
     $ompSrc          = Join-Path $REPO_ROOT "shell\themes\claude-code.omp.json"
     $ompThemesLocal  = Join-Path $REPO_ROOT "shell\themes"
     $ompLegacyTheme  = "$env:LOCALAPPDATA\Programs\oh-my-posh\themes\claude-code.omp.json"
 
-    # Gateado por oh-my-posh: setea POSH_THEMES_PATH (variable de entorno de
-    # USUARIO, persistente), no corresponde tocarla si no se tiene el prompt.
     if ((Test-Path $ompSrc) -and -not (Test-ToolWanted 'oh-my-posh')) {
         Write-Log "oh-my-posh no seleccionado ni instalado, saltando tema" 'SKIP'
     } elseif (Test-Path $ompSrc) {
@@ -1643,11 +1506,7 @@ if ($SkipDotfiles) {
             }
         }
 
-        # NOTA: el auto-upgrade de oh-my-posh en Windows (MSIX no lo soporta) NO se
-        # desactiva aca. 'oh-my-posh disable upgrade' no gana contra el auto:true
-        # explicito del tema, que se relee en cada 'init --config'. El fix real vive
-        # en profile.ps1: deriva una copia local del tema con upgrade apagado y
-        # arranca contra ella (ver el bloque PROMPT & ESTETICA).
+        # El auto-upgrade (no soportado en MSIX) se apaga en profile.ps1, con una copia local del tema.
     }
 
     # --- SSH keys (encriptadas con age, en el vault privado) ---
@@ -1657,10 +1516,7 @@ if ($SkipDotfiles) {
     Sub-Bar 70 "claves SSH"
     if ($ageFiles) {
         if (Test-CommandAvailable 'age') {
-            # age NO lee la passphrase de stdin: la pide SIEMPRE de la consola
-            # (igual que en Linux, ver vault-sync). Pasarla por pipe no funciona,
-            # asi que se deja que age pregunte por cada clave FALTANTE (normalmente
-            # falta 0-1, no molesta). La interaccion va fuera de la barra.
+            # age lee la passphrase de la consola, una vez por clave faltante.
             $missingKeys = @($ageFiles | Where-Object { -not (Test-Path "$HOME\.ssh\$($_.BaseName)") })
             if ($missingKeys.Count -gt 0 -and -not $DryRun) {
                 Suspend-Bar
@@ -1676,8 +1532,7 @@ if ($SkipDotfiles) {
                 } elseif ($DryRun) {
                     Write-Log "[DryRun] Desencriptar $keyName → ~/.ssh/$keyName" 'SKIP'
                 } else {
-                    # Hasta 3 intentos: un typo antes perdia esa clave y obligaba
-                    # a re-correr todo el bootstrap (paridad: age_decrypt_retry).
+                    # Hasta 3 intentos de passphrase.
                     Invoke-Step "Desencriptar $keyName → ~/.ssh/$keyName" {
                         for ($try = 1; $try -le 3; $try++) {
                             age -d -o $dstKey $ageFile.FullName
@@ -1712,9 +1567,7 @@ if ($SkipDotfiles) {
         Write-Log "No hay claves .age en ssh/keys/, saltando" 'SKIP'
     }
 
-    # --- ~/.env (cifrado con age en el vault: env/env.age, lo sube 'env-save') ---
-    # Solo se restaura si FALTA: nunca pisa un ~/.env local, que puede tener
-    # tokens mas nuevos que el vault.
+    # --- ~/.env: solo se restaura si falta (el local puede tener tokens mas nuevos) ---
     Sub-Bar 85 "~/.env desde el vault"
     $envDst = Join-Path $HOME '.env'
     if (-not (Test-Path $VAULT_ENV_AGE)) {
@@ -1741,13 +1594,8 @@ if ($SkipDotfiles) {
         }
     }
 
-    # --- Boveda de Obsidian ---
-    # Es un repo PRIVADO del usuario (no de este repo): la URL no se versiona aca,
-    # sale de OBSIDIAN_REPO en ~/.env (con el alias SSH del perfil, p. ej.
-    # git@github.com-<perfil>:<ns>/obsidian.git). Se clona en ~\obsidian
-    # (OBSIDIAN_DIR la cambia) solo si Obsidian esta elegido/instalado, la
-    # variable existe y la carpeta no existe todavia. Va despues de las claves SSH.
-    # La identidad git sale sola de la URL (includeIf hasconfig del vault).
+    # --- Boveda de Obsidian: repo privado cuya URL sale de OBSIDIAN_REPO en ~/.env ---
+    # Se clona en ~\obsidian (OBSIDIAN_DIR) si no existe; va despues de las claves SSH.
     if (Test-ToolWanted 'obsidian') {
         $obsRepo = $env:OBSIDIAN_REPO
         if (-not $obsRepo -and (Test-Path $envDst)) {
@@ -1790,8 +1638,7 @@ if ($SkipDotfiles) {
 
 Step-Bar 7 "Configuración AWS SSO"
 
-# Si no vino -WithAws pero es una sesion interactiva, preguntar: así el instalador
-# GUÍA (en vez de exigir conocer el flag). En headless se saltea igual que antes.
+# Sin -WithAws y con consola: preguntar.
 if (-not $WithAws -and (Test-Interactive)) {
     Suspend-Bar
     Write-Host ''
@@ -1822,15 +1669,12 @@ if (-not $WithAws) {
         Write-Log "Cert Netskope no encontrado — máquina sin Netskope, SSL de AWS debería funcionar directo" 'INFO'
     }
 
-    # Datos de la org (cuenta, portal SSO, rol) NO se versionan: son infra
-    # privada. Se leen de ~/.env (KEY=VALUE). Sin ellos no hay que preconfigurar.
+    # Los datos de la org son infra privada: se leen de ~/.env.
     $ssoStartUrl  = $env:AWS_SSO_START_URL
     $ssoAccountId = $env:AWS_SSO_ACCOUNT_ID
     $ssoRoleName  = if ($env:AWS_SSO_ROLE_NAME) { $env:AWS_SSO_ROLE_NAME } else { "Bedrock_Access" }
     $ssoRegion    = if ($env:AWS_SSO_REGION)    { $env:AWS_SSO_REGION }    else { "us-east-1" }
-    # Nombre del perfil (y sso-session) que se escribe en ~/.aws/config; el mismo
-    # que consume claude-smg. Cada usuario pone el suyo en ~/.env
-    # (AWS_SSO_PROFILE=elteruel); fallback a CLAUDE_SMG_AWS_PROFILE (compat) y 'default'.
+    # Nombre del perfil y de la sso-session; el mismo que usa claude-smg.
     $ssoProfile   = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { "default" }
     # Perfiles adicionales bajo la misma sso-session (formato ver más abajo).
     $ssoExtraProfiles = $env:AWS_EXTRA_PROFILES
@@ -1846,8 +1690,7 @@ if (-not $WithAws) {
         }
     }
 
-    # Faltan datos obligatorios y hay tty -> pedirlos y persistirlos al ~/.env
-    # (así claude-smg y futuras corridas ya los tienen; la org no se versiona).
+    # Faltan datos y hay consola: pedirlos y guardarlos en ~/.env.
     if ((-not $ssoAccountId -or -not $ssoStartUrl) -and (Test-Interactive)) {
         Write-Log "Faltan datos de AWS SSO en ~/.env — te los pido ahora" 'INFO'
         if (-not $ssoStartUrl)  { $ssoStartUrl  = Read-Host "  Portal SSO (ej: https://tu-org.awsapps.com/start/#)" }
@@ -1861,13 +1704,8 @@ if (-not $WithAws) {
                 New-Item -ItemType File -Path $envFileAws -Force | Out-Null
                 Invoke-Step "Asegurar permisos de ~/.env" { Protect-EnvFile $envFileAws }
             }
-            # OJO: el cast [string] no es decorativo. Get-Content -Raw sobre un
-            # archivo VACIO (el que se acaba de crear arriba) devuelve $null, y
-            # PowerShell trata el $null de un cmdlet como coleccion: ahi
-            # '-notmatch' FILTRA en vez de comparar y devuelve un Object[] vacio,
-            # que en un 'if' es falso. Resultado: no se agregaba ni una clave,
-            # el ~/.env quedaba vacio pese al "Datos AWS guardados" y claude-smg
-            # caia al perfil 'default' inexistente. Con [string] es '' y compara.
+            # El cast [string] es necesario: Get-Content -Raw de un archivo vacio da $null y
+            # '-notmatch' sobre $null filtra en vez de comparar.
             $envTxt = [string](Get-Content $envFileAws -Raw -ErrorAction SilentlyContinue)
             $toAdd = [System.Collections.Generic.List[string]]::new()
             if ($envTxt -notmatch '(?m)^AWS_SSO_START_URL=')  { $toAdd.Add("AWS_SSO_START_URL=$ssoStartUrl") }
@@ -1886,9 +1724,7 @@ if (-not $WithAws) {
         Write-Log "Faltan AWS_SSO_START_URL / AWS_SSO_ACCOUNT_ID en ~/.env — salteo preconfig SSO" 'WARN'
         $WARNINGS.Add("AWS SSO sin preconfigurar: defini AWS_SSO_START_URL, AWS_SSO_ACCOUNT_ID (y opcional AWS_SSO_ROLE_NAME) en ~/.env")
     } else {
-        # Escribo ~/.aws/config con formato sso-session: habilita el flujo PKCE
-        # (login por navegador sin codigo de 6 digitos). 'aws configure set' no
-        # sabe escribir bloques [sso-session], por eso se escribe el archivo.
+        # Se escribe el archivo: 'aws configure set' no sabe crear bloques [sso-session].
         Invoke-Step "Pre-configurar perfil AWS SSO '$ssoProfile' (formato sso-session/PKCE)" {
             $awsDir = Join-Path $HOME ".aws"
             New-Item -ItemType Directory -Force -Path $awsDir | Out-Null
@@ -1988,13 +1824,9 @@ if (Test-Path $loaderProfile) {
     }
 }
 
-# --- SSL de git detras del proxy corporativo (parte del paso 8) ---
-# El gitconfig de sistema de Git for Windows usa su propio ca-bundle sin la CA de
-# Netskope: todo clone por HTTPS muere con "self-signed certificate" (y por SSH no sirve:
-# los remotes usan host aliases). Sintoma: 'claude plugin marketplace add' falla.
-# Se arregla con GIT_SSL_CAINFO apuntando al combined-ca.pem del paso 7: 'git config
-# --global' escribiria dentro del vault (~/.gitconfig es symlink) y viajaria a Fedora, y
-# GIT_SSL_CAINFO es una variable de usuario de Windows que no existe en Linux.
+# --- SSL de git detras del proxy corporativo ---
+# Git for Windows usa un ca-bundle sin la CA de Netskope y todo clone HTTPS falla.
+# Se usa GIT_SSL_CAINFO (variable de usuario): 'git config --global' escribiria en el vault.
 Sub-Bar 60 "SSL de git (proxy corporativo)"
 $gitCaBundle = Get-NetskopeCaBundle
 if ($gitCaBundle) {
@@ -2018,8 +1850,7 @@ if (Test-Path $testScript) {
     if ($DryRun) {
         Write-Log "[DryRun] pwsh -File $testScript" 'SKIP'
     } else {
-        # Anti-choclo: capturar la salida completa al log; en pantalla solo el
-        # resumen (como hito arriba de la barra). Los fallos siempre se muestran.
+        # La salida completa va al log; en pantalla, el resumen y los fallos.
         $testOut = & pwsh -File $testScript 2>&1
         $testExit = $LASTEXITCODE
         Add-Content -Path $LOG_FILE -Value ($testOut -join "`n") -ErrorAction SilentlyContinue
@@ -2072,7 +1903,6 @@ Write-Host "    $($script:C_DIM)$stepNum. Abri una terminal nueva para recargar 
 $stepNum++
 if ($script:AWS_SSO_OK) {
     # SSO ya configurado y logueado en esta corrida: solo queda verificarlo.
-    # (Antes se pedia 'aws configure sso' igual, aunque ya estuviera hecho.)
     $awsProf = if ((Test-Path variable:ssoProfile) -and $ssoProfile) { $ssoProfile } else { 'tu_usuario' }
     Write-Host "    $($script:C_DIM)$stepNum. Verifica AWS: aws sts get-caller-identity --profile $awsProf$($script:C_RESET)"
     $stepNum++

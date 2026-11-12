@@ -33,11 +33,8 @@ El mismo comando **instala y actualiza** (si el repo ya existe hace `git pull`).
 trabajo. La secuencia:
 
 1. **Verifica/instala git** y clona el repo público en `~/.dotfiles`.
-2. **Pregunta por el vault privado**: si tenés uno, lo clona (`gh` por
-   navegador o SSH); si **no** tenés, podés elegir **«crear mis perfiles de git
-   ahora»** — un asistente por consola que arma tu propio vault (identidades,
-   claves SSH, carpetas de contexto; ver [Adaptalo](adaptalo.md#el-vault)) — o
-   **saltar** (instala solo lo público).
+2. **Pregunta por el vault privado**: lo clona (`gh` por navegador o SSH) o
+   lo saltea (instala solo lo público).
 3. **Pantalla de bienvenida + selector de herramientas**: un menú por grupos,
    colapsable, que arranca **sin nada marcado** (opt-in — nada se instala por
    sorpresa). Elegís y confirmás con Enter; `q` cancela.
@@ -202,6 +199,6 @@ confirmación antes de tocar nada.
 | *El selector no aparece y no instala nada* | No hay terminal interactiva (pipe/CI): usá `--tools=...` o `--all-tools`. |
 | *Descargas de GitHub bloqueadas (proxy corporativo)* | Algunas deps (p.ej. previews de yazi en Windows) quedan como WARN; instalalas a mano cuando puedas. |
 | *`age` pide la passphrase varias veces* | Es por diseño: age la lee siempre de la consola, una vez por clave faltante. Normalmente falta 0-1. |
-| *La validación final muestra WARNs de "vault no cargado"* | Esperable si instalaste sin vault: esos checks solo aplican con vault. La instalación está bien; para tener vault propio, corré el [asistente](adaptalo.md#el-vault). |
+| *La validación final muestra WARNs de "vault no cargado"* | Esperable si instalaste sin vault: esos checks solo aplican con vault. |
 | *Prompt sin íconos / cuadrados* | La terminal no está usando una Nerd Font: seleccioná «FiraCode Nerd Font» (la instala el grupo `fonts`). |
 | *Algo quedó a medias* | Todo queda logueado en `~/.local/logs/bootstrap-<timestamp>.log`. Re-correr el bootstrap es seguro (es idempotente). |

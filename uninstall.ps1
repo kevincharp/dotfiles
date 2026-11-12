@@ -51,17 +51,7 @@ $DOTFILES_TARGETS = @(
     "$HOME\.local\bin\lazysql.exe"
 )
 
-# Identidades git (~/.gitconfig-<sufijo>): los sufijos salen del vault si define
-# $GitIdentityFiles, y SE SUMAN a los historicos en vez de reemplazarlos —
-# desinstalar con el vault ya borrado debe limpiar igual los symlinks viejos.
-$idSuffixes = @('personal', 'work', 'cei_walle')
-$giVault = Join-Path $VAULT_DIR 'shell\git-identities.ps1'
-if (Test-Path $giVault) {
-    $GitIdentityFiles = $null
-    . $giVault
-    if ($GitIdentityFiles) { $idSuffixes += @($GitIdentityFiles.Keys) }
-}
-foreach ($s in ($idSuffixes | Sort-Object -Unique)) {
+foreach ($s in 'personal', 'work', 'cei_walle') {
     $DOTFILES_TARGETS += "$HOME\.gitconfig-$s"
 }
 # Settings.json de los plugins de Flow Launcher: uno por carpeta del repo.

@@ -1,7 +1,6 @@
 # Arquitectura y decisiones de diseño
 
-Cómo está armado el repo y por qué. Útil si querés entender qué hace el
-bootstrap por dentro, contribuir, o copiarte ideas para tus propios dotfiles.
+Cómo está armado el repo y por qué.
 
 ---
 
@@ -14,15 +13,7 @@ bootstrap por dentro, contribuir, o copiarte ideas para tus propios dotfiles.
 
 La regla es simple: **nada sensible en el repo público, nunca**. El bootstrap
 combina ambos y funciona igual si el vault no está (saltea esos pasos con un
-aviso). Quien no tiene vault puede generarse uno con el **asistente**
-(`git-profiles.sh`/`.ps1`), que produce exactamente la estructura esperada.
-Detalle: [Adaptalo](adaptalo.md#el-vault).
-
-> Este repo hace **dos trabajos a la vez**: es el instalador y es la config del
-> autor. Hay una idea pausada para separarlos —que la herramienta *genere* el
-> dotfiles del usuario y se lo versione en su cuenta— con el diseño y los
-> problemas abiertos escritos en
-> [idea-generador-de-dotfiles.md](idea-generador-de-dotfiles.md).
+aviso).
 
 ## Symlink vs copia
 
@@ -52,8 +43,7 @@ normal al re-correr el bootstrap.
 En Windows el gate es declarativo: las entradas de `$DOTFILES` llevan una clave
 `Tool` con el dueño de la config, y el loop saltea las que no correspondan. Sin
 `Tool`, la config se aplica siempre (es config base: `profile.ps1`,
-`.editorconfig`, `git/ignore`). La tabla de qué depende de qué está en
-[adaptalo.md](adaptalo.md#solo-se-configura-lo-que-elegís).
+`.editorconfig`, `git/ignore`).
 
 <a name="dconf"></a>
 ## dconf no es un archivo (Ptyxis / GNOME)
@@ -139,7 +129,6 @@ reglas por área (`.claude/rules/`) — acá el mapa:
 .dotfiles/
 ├── install.sh / install.ps1      # Instalador interactivo (público + vault)
 ├── bootstrap.sh / bootstrap.ps1  # Setup: paquetes + symlinks + dconf
-├── git-profiles.sh / .ps1        # Asistente de perfiles git + vault propio
 ├── uninstall.sh / uninstall.ps1  # Desinstalador
 ├── update.sh                     # Atajo: pull de repos + re-bootstrap
 ├── test-bootstrap.sh / .ps1      # Validación post-install + paridad de shells

@@ -172,38 +172,21 @@ clone_vault() {
     # Decide metodo de auth: flag, o pregunta interactiva.
     local method="$VAULT_AUTH"
     if [[ -z "$method" ]]; then
-        log "Vault privado: un 2do repo (dotfiles-vault) con TUS claves SSH e identidades git." "INFO"
-        log "Solo aplica si ya tenes uno propio (o forkeaste con el tuyo)." "INFO"
-        echo "    1) Tengo mi vault — clonar con gh (login por navegador)"
-        echo "    2) Tengo mi vault — clonar por SSH (clave ya cargada)"
-        echo "    3) No tengo vault — crear mis perfiles de git AHORA (asistente guiado)"
-        echo "    4) Saltar — instala solo lo publico  [default]"
-        echo "       (asistente y vault propio, cuando quieras: docs/adaptalo.md)"
+        log "Vault privado (dotfiles-vault): claves SSH e identidades git." "INFO"
+        echo "    1) Clonar con gh (login por navegador)"
+        echo "    2) Clonar por SSH (clave ya cargada)"
+        echo "    3) Saltar — instala solo lo publico  [default]"
         local choice
-        choice="$(ask 'Opcion [1/2/3/4]: ' '4')"
+        choice="$(ask 'Opcion [1/2/3]: ' '3')"
         case "$choice" in
             1) method="gh" ;;
             2) method="ssh" ;;
-            3) method="wizard" ;;
             *) method="skip" ;;
         esac
     fi
 
-    if [[ "$method" == "wizard" ]]; then
-        # El asistente pregunta perfiles/claves y deja un vault local valido en
-        # VAULT_DIR: el bootstrap despues lo aplica por el camino normal.
-        if bash "$DOTFILES_DIR/git-profiles.sh" && [[ -f "$VAULT_DIR/git/config" ]]; then
-            return 0
-        fi
-        log "El asistente no completo — sigo sin vault" "WARN"
-        log "  Podes correrlo cuando quieras: bash $DOTFILES_DIR/git-profiles.sh" "INFO"
-        return 1
-    fi
-
     if [[ "$method" == "skip" ]]; then
-        log "Sin vault: se instala todo lo publico igual (shells, herramientas, configs)." "INFO"
-        log "Tu git y tu SSH quedan como estan. Para crear un vault propio: docs/adaptalo.md" "INFO"
-        log "Con vault listo, aplicalo con: bash $DOTFILES_DIR/install.sh" "INFO"
+        log "Sin vault: git y SSH quedan como estan. Para aplicarlo despues: bash $DOTFILES_DIR/install.sh" "INFO"
         return 1
     fi
 
@@ -232,15 +215,12 @@ clone_vault() {
             return 0
         fi
         log "Error clonando vault con gh" "ERROR"
-        log "  Si NO es tu vault (estas probando el repo de otra persona), es esperable:" "INFO"
-        log "  tu cuenta no tiene acceso. El resto se instala igual; ver docs/adaptalo.md" "INFO"
         return 1
     fi
 
     if [[ "$method" == "ssh" ]]; then
         git clone "$VAULT_SSH" "$VAULT_DIR" && return 0
         log "Error clonando vault via SSH (tenes la clave cargada?)" "ERROR"
-        log "  Si NO es tu vault, es esperable. El resto se instala igual; ver docs/adaptalo.md" "INFO"
         return 1
     fi
 }
@@ -308,20 +288,15 @@ log "Publico: $DOTFILES_DIR" "OK"
 if [[ "$VAULT_OK" == true ]]; then
     log "Vault:   $VAULT_DIR" "OK"
 else
-    log "Vault:   sin aplicar — tu git/SSH quedan como estaban" "WARN"
-    log "Para crear tu vault (identidades git + claves): docs/adaptalo.md" "INFO"
-    log "Con vault listo, aplicalo con: bash $DOTFILES_DIR/install.sh" "INFO"
+    log "Vault:   sin aplicar — git/SSH quedan como estaban (aplicarlo: bash $DOTFILES_DIR/install.sh)" "WARN"
 fi
 
 log "Proximos pasos" "SECTION"
 log "1. Abri una terminal nueva para recargar el profile" "INFO"
 log "2. Proba dothelp para ver los comandos disponibles" "INFO"
 
-# El consejo de pasar el remote a SSH solo aplica si el repo es TUYO (o forkeaste
-# y cambiaste GH_USER). Si estas probando el repo de otra persona, ese remote
-# apunta a donde no podes pushear: mejor no sugerirlo.
 ORIGIN_URL="$(git -C "$DOTFILES_DIR" remote get-url origin 2>/dev/null || true)"
 if [[ "$ORIGIN_URL" == https://* ]]; then
-    log "3. Si es TU repo (o tu fork) y queres pushear sin credenciales, pasa el remote a SSH:" "INFO"
+    log "3. Para pushear sin credenciales, pasa el remote a SSH:" "INFO"
     log "   cd $DOTFILES_DIR && git remote set-url origin $PUBLIC_SSH" "INFO"
 fi

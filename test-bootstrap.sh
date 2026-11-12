@@ -59,16 +59,10 @@ has_cmd() {
 # Si el vault no esta, las secciones que dependen de el se saltean.
 _GI_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
 declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
-# OJO: inicializado con =() — declarado sin asignar, ${#...[@]} rompe con set -u.
-declare -gA GIT_IDENTITY_FILES=()
-GIT_CONTEXT_DIRS=()
 [[ -f "$_GI_FILE" ]] && . "$_GI_FILE"
 VAULT_LOADED=$([[ ${#GIT_IDENTITIES_EMAIL[@]} -gt 0 ]] && echo true || echo false)
-# Mapa archivo→perfil (~/.gitconfig-<sufijo> pertenece a <perfil>). Si el vault
-# no lo define (vaults previos al asistente), fallback al mapeo historico.
-if [[ "$VAULT_LOADED" == true && ${#GIT_IDENTITY_FILES[@]} -eq 0 ]]; then
-    GIT_IDENTITY_FILES=([personal]=kevincharp [work]=work [cei_walle]=cei_walle)
-fi
+# ~/.gitconfig-<sufijo> pertenece a <perfil>.
+declare -A GIT_IDENTITY_FILES=([personal]=kevincharp [work]=work [cei_walle]=cei_walle)
 
 # ==============================================================================
 # 1. DIRECTORIOS REQUERIDOS
@@ -83,14 +77,10 @@ DIRS=(
     "$HOME/.local/logs"
     "$HOME/.cache"
     "$HOME/.ssh"
+    "$HOME/repositorios/personal"
+    "$HOME/repositorios/work"
+    "$HOME/repositorios/cei_walle"
 )
-# Carpetas de contexto: las del vault (GIT_CONTEXT_DIRS, si el asistente
-# git-profiles las definio) o las historicas (mismo criterio que bootstrap.sh).
-if [[ ${#GIT_CONTEXT_DIRS[@]} -gt 0 ]]; then
-    for _c in "${GIT_CONTEXT_DIRS[@]}"; do DIRS+=("$HOME/repositorios/$_c"); done
-else
-    DIRS+=("$HOME/repositorios/personal" "$HOME/repositorios/work" "$HOME/repositorios/cei_walle")
-fi
 
 for dir in "${DIRS[@]}"; do
     if [[ -d "$dir" ]]; then
@@ -113,9 +103,7 @@ DOTFILES=(
     "$HOME/.config/git/ignore"
     "$HOME/.editorconfig"
 )
-# Del vault: solo exigibles si el vault esta cargado. Sin vault (tercero que
-# instalo solo lo publico) su ausencia es esperable — WARN, no FAIL. Los
-# ~/.gitconfig-<sufijo> salen del mapa GIT_IDENTITY_FILES (no hardcodeados).
+# Del vault: solo exigibles si el vault esta cargado.
 VAULT_DOTFILES=(
     "$HOME/.gitconfig"
     "$HOME/.ssh/config"
@@ -145,7 +133,7 @@ if [[ "$VAULT_LOADED" == true ]]; then
         fi
     done
 else
-    test_warn "gitconfigs + ssh/config" "vault no cargado — saltando (ver docs/adaptalo.md)"
+    test_warn "gitconfigs + ssh/config" "vault no cargado — saltando"
 fi
 
 # Dotfiles de zsh: solo se exigen si zsh esta instalado (es opcional por maquina).
@@ -267,8 +255,6 @@ section "7. Git config — useConfigOnly + includeIf"
 
 GITCONFIG="$HOME/.gitconfig"
 
-# La convencion useConfigOnly+includeIf viene DEL VAULT: sin vault, el
-# ~/.gitconfig (si existe) es el propio del usuario y no se le exige nada.
 if [[ "$VAULT_LOADED" != true ]]; then
     test_warn "Git config (useConfigOnly/includeIf)" "vault no cargado — saltando"
 elif [[ -f "$GITCONFIG" ]]; then
@@ -296,8 +282,7 @@ fi
 
 section "8. Identity configs — user.name y user.email"
 
-# Valores esperados desde el vault (cargado al inicio del script). Los archivos
-# y su perfil salen del mapa GIT_IDENTITY_FILES (no hardcodeados).
+# Valores esperados desde el vault (cargado al inicio del script).
 if [[ "$VAULT_LOADED" != true ]]; then
     test_warn "Identity configs" "vault no cargado ($_GI_FILE) — saltando"
 else

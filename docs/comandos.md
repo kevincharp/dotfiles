@@ -45,7 +45,7 @@ bash/zsh; los *(Windows)* solo en PowerShell.
 
 ## Git — identidades por perfil
 
-Requieren el [vault](adaptalo.md#el-vault) (ahí viven los nombres/emails).
+Requieren el vault (ahí viven los nombres y emails).
 
 | Comando | Qué hace |
 |---|---|
@@ -114,7 +114,6 @@ Requieren configurar el remote una vez con `rclone config` (pide Apple ID + 2FA)
 | Comando | Qué hace |
 |---|---|
 | `dothelp [filtro]` | Esta misma ayuda, en la terminal |
-| `bash ~/.dotfiles/git-profiles.sh` | Asistente de perfiles git + vault propio (ver [adaptalo](adaptalo.md#el-vault)) — en Windows: `pwsh -File ~/.dotfiles/git-profiles.ps1` |
 | `ptyxis-save` / `ptyxis-load` | Vuelca al repo / restaura la config de la terminal Ptyxis (dconf) |
 | `gnome-save` / `gnome-load` | Ídem para GNOME (atajos, dock, extensiones) — ver [arquitectura](arquitectura.md#dconf) |
 
@@ -122,4 +121,4 @@ Requieren configurar el remote una vez con `rclone config` (pide Apple ID + 2FA)
 
 | Comando | Qué hace |
 |---|---|
-| `claude-smg` | Lanza Claude Code contra AWS Bedrock con perfil SSO (renueva el login si expiró). Opcional — ver [adaptación](adaptalo.md#aws--bedrock-opcional) |
+| `claude-smg` | Lanza Claude Code contra AWS Bedrock con perfil SSO (renueva el login si expiró). Ver [instalación](instalacion.md#aws-sso--bedrock-opcional) |

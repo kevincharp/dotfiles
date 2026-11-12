@@ -654,39 +654,20 @@ function Invoke-CloneVault {
     # Decide metodo de auth: parametro, o pregunta interactiva.
     $method = $VaultAuth
     if (-not $method) {
-        Write-Log 'Vault privado: un 2do repo (dotfiles-vault) con TUS claves SSH e identidades git.' 'INFO'
-        Write-Log 'Solo aplica si ya tenes uno propio (o forkeaste con el tuyo).' 'INFO'
-        Write-Host '    1) Tengo mi vault - clonar con gh (login por navegador)'
-        Write-Host '    2) Tengo mi vault - clonar por SSH (clave ya cargada)'
-        Write-Host '    3) No tengo vault - crear mis perfiles de git AHORA (asistente guiado)'
-        Write-Host '    4) Saltar - instala solo lo publico  [default]'
-        Write-Host '       (asistente y vault propio, cuando quieras: docs/adaptalo.md)'
-        $choice = Read-Host 'Opcion [1/2/3/4]'
+        Write-Log 'Vault privado (dotfiles-vault): claves SSH e identidades git.' 'INFO'
+        Write-Host '    1) Clonar con gh (login por navegador)'
+        Write-Host '    2) Clonar por SSH (clave ya cargada)'
+        Write-Host '    3) Saltar - instala solo lo publico  [default]'
+        $choice = Read-Host 'Opcion [1/2/3]'
         switch ($choice) {
             '1'     { $method = 'gh' }
             '2'     { $method = 'ssh' }
-            '3'     { $method = 'wizard' }
             default { $method = 'skip' }
         }
     }
 
-    if ($method -eq 'wizard') {
-        # El asistente pregunta perfiles/claves y deja un vault local valido en
-        # VAULT_DIR: el bootstrap despues lo aplica por el camino normal. Corre
-        # como proceso aparte (usa 'exit' internamente).
-        $wiz = Join-Path $DOTFILES_DIR 'git-profiles.ps1'
-        $shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
-        & $shell -ExecutionPolicy Bypass -File $wiz
-        if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $VAULT_DIR 'git\config'))) { return $true }
-        Write-Log 'El asistente no completo - sigo sin vault' 'WARN'
-        Write-Log "  Podes correrlo cuando quieras: pwsh -File $DOTFILES_DIR\git-profiles.ps1" 'INFO'
-        return $false
-    }
-
     if ($method -eq 'skip') {
-        Write-Log 'Sin vault: se instala todo lo publico igual (shells, herramientas, configs).' 'INFO'
-        Write-Log 'Tu git y tu SSH quedan como estan. Para crear un vault propio: docs/adaptalo.md' 'INFO'
-        Write-Log "Con vault listo, aplicalo con: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
+        Write-Log "Sin vault: git y SSH quedan como estan. Para aplicarlo despues: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
         return $false
     }
 
@@ -708,8 +689,6 @@ function Invoke-CloneVault {
         gh repo clone "$GH_USER/dotfiles-vault" $VAULT_DIR
         if ($LASTEXITCODE -ne 0) {
             Write-Log 'Error clonando vault con gh' 'ERROR'
-            Write-Log '  Si NO es tu vault (estas probando el repo de otra persona), es esperable:' 'INFO'
-            Write-Log '  tu cuenta no tiene acceso. El resto se instala igual; ver docs/adaptalo.md' 'INFO'
             return $false
         }
         # gh clona via HTTPS: en la 2da corrida 'git pull' pediria credenciales
@@ -724,7 +703,6 @@ function Invoke-CloneVault {
         git clone $VAULT_SSH $VAULT_DIR
         if ($LASTEXITCODE -eq 0) { return $true }
         Write-Log 'Error clonando vault via SSH (tenes la clave cargada?)' 'ERROR'
-        Write-Log '  Si NO es tu vault, es esperable. El resto se instala igual; ver docs/adaptalo.md' 'INFO'
         return $false
     }
 
@@ -800,21 +778,16 @@ Write-Log "Publico: $DOTFILES_DIR" 'OK'
 if ($VAULT_OK) {
     Write-Log "Vault:   $VAULT_DIR" 'OK'
 } else {
-    Write-Log 'Vault:   sin aplicar - tu git/SSH quedan como estaban' 'WARN'
-    Write-Log 'Para crear tu vault (identidades git + claves): docs/adaptalo.md' 'INFO'
-    Write-Log "Con vault listo, aplicalo con: pwsh -File $DOTFILES_DIR\install.ps1" 'INFO'
+    Write-Log "Vault:   sin aplicar - git/SSH quedan como estaban (aplicarlo: pwsh -File $DOTFILES_DIR\install.ps1)" 'WARN'
 }
 
 Write-Log 'Proximos pasos' 'SECTION'
 Write-Log '1. Abri una terminal nueva para recargar el profile' 'INFO'
 Write-Log '2. Proba dothelp para ver los comandos disponibles' 'INFO'
 
-# El consejo de pasar el remote a SSH solo aplica si el repo es TUYO (o forkeaste
-# y cambiaste GH_USER). Si estas probando el repo de otra persona, ese remote
-# apunta a donde no podes pushear: mejor no sugerirlo.
 $originUrl = git -C $DOTFILES_DIR remote get-url origin 2>$null
 if ($LASTEXITCODE -eq 0 -and $originUrl -like 'https://*') {
-    Write-Log '3. Si es TU repo (o tu fork) y queres pushear sin credenciales, pasa el remote a SSH:' 'INFO'
+    Write-Log '3. Para pushear sin credenciales, pasa el remote a SSH:' 'INFO'
     Write-Log "   cd $DOTFILES_DIR; git remote set-url origin $PUBLIC_SSH" 'INFO'
 }
 

@@ -48,15 +48,9 @@ Cualquier función o alias que se toque en un shell **debe replicarse en los otr
   crean los symlinks. Primitivas: `copy_dotfile <src> <dst> [link|copy]` para
   archivos y `link_dir <src> <dst>` para directorios (nvim, user-themes).
   Flags: `--dry-run`, `--skip-packages`, `--with-aws`, `--all-tools`.
-- **`git-profiles.sh` / `.ps1`**: asistente que GENERA un vault válido para
-  terceros sin vault (lo invoca install como opción del paso de vault). Testeable
-  sin tty: `GIT_PROFILES_INPUT=<archivo-de-respuestas>`.
-- **Contrato del vault** (`shell/git-identities.sh`/`.ps1`): además de nombres/
-  emails/aliases, dos variables opcionales que bootstrap y tests consumen:
-  `GIT_CONTEXT_DIRS` (carpetas bajo `~/repositorios/`; fallback
-  personal/work/cei_walle) y `GIT_IDENTITY_FILES` (mapa sufijo→perfil de los
-  `~/.gitconfig-<sufijo>`; fallback al mapeo histórico). El vault propio no las
-  define — no agregarlas ahí sin motivo.
+- **Contextos:** `personal`, `work` y `cei_walle` son a la vez las carpetas
+  bajo `~/repositorios/` y los sufijos de `~/.gitconfig-<sufijo>`; están fijos
+  en bootstrap, uninstall y tests.
 - **`~/.env` en el vault:** opcional, cifrado con age en `env/env.age` (lo
   escribe `env-save`, paridad bash/zsh/pwsh). Bootstrap y `vault-sync` lo
   restauran **solo si falta** — nunca pisan un `~/.env` local.
@@ -69,8 +63,7 @@ Cualquier función o alias que se toque en un shell **debe replicarse en los otr
 Opcional (grupo `apps`/`extras`). La **bóveda es un repo privado aparte**, nunca
 parte de este repo (son notas personales). El bootstrap solo la clona en
 `~/obsidian` si `~/.env` define `OBSIDIAN_REPO` (URL con alias SSH) y la
-carpeta no existe; detalle en [`docs/adaptalo.md`](docs/adaptalo.md). Dentro de
-la bóveda, `.gitignore` excluye `workspace.json` y el `data.json` del plugin
+carpeta no existe. Dentro de la bóveda, `.gitignore` excluye `workspace.json` y el `data.json` del plugin
 Jira (cuenta); la sincronización entre PCs la hace el plugin Obsidian Git.
 
 ## Reglas por área

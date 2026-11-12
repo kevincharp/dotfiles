@@ -4,11 +4,6 @@ Archivo único de reglas para cualquier agente: Claude Code lo lee como
 `~/.claude/CLAUDE.md`; Codex y opencode lo leen como `AGENTS.md` (symlinks que
 crea el bootstrap). Editar acá rige para todos.
 
-Estructura: todo lo de arriba es **base funcional** — sirve tal cual para
-cualquiera que adopte estos dotfiles porque se apoya en los mecanismos del repo
-(perfiles del vault, helpers de shell), no en nombres propios. La última
-sección, **Preferencias**, es personal: editala a tu gusto.
-
 ## Commits
 
 - **Granulares:** uno por cambio lógico (separar por archivo/propósito).
@@ -112,7 +107,7 @@ nunca se crea como carpeta hermana suelta del repo.
 - No reportar algo como hecho/funcionando sin haberlo verificado; si no se pudo
   verificar (p. ej. requiere otro SO), decirlo explícitamente.
 
-## Preferencias (editá a tu gusto)
+## Preferencias
 
 - **Responder siempre en español.**
 - Comentarios, docs y mensajes de commit **en español** (los identificadores

@@ -1360,46 +1360,8 @@ if want_tool lazygit; then
     DIRS+=("$HOME/.config/lazygit")
 fi
 
-# Carpetas de contexto de repos (~/repositorios/<contexto>): si el vault define
-# GIT_CONTEXT_DIRS en git-identities.sh (lo escribe el asistente git-profiles),
-# se usan esas; si no, las historicas. Se lee en un bash aparte para no
-# contaminar el entorno del bootstrap con las variables del vault.
-_ctx_dirs=(personal work cei_walle)
-if [[ -f "$VAULT_DIR/shell/git-identities.sh" ]]; then
-    # OJO: hay que declarar TODOS los arrays asociativos que el vault pueda
-    # asignar, GIT_IDENTITY_FILES incluido. Si falta uno, bash trata
-    # 'MAPA[clave]=x' como array indexado y evalua la clave como aritmetica:
-    # con claves no numericas ('personal') aborta el source entero y este
-    # subshell no imprime nada -> se caia al fallback historico en silencio.
-    _ctx_from_vault="$(bash -c '
-        declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
-        GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
-        source "$1" >/dev/null 2>&1 || true
-        echo "${GIT_CONTEXT_DIRS[@]:-}"
-    ' _ "$VAULT_DIR/shell/git-identities.sh" 2>/dev/null)" || _ctx_from_vault=""
-    [[ -n "$_ctx_from_vault" ]] && read -ra _ctx_dirs <<< "$_ctx_from_vault"
-fi
-for _c in "${_ctx_dirs[@]}"; do DIRS+=("$HOME/repositorios/$_c"); done
-unset _c _ctx_from_vault
-
-# Sufijos de los ~/.gitconfig-<sufijo> a symlinkear desde el vault: si define
-# GIT_IDENTITY_FILES (mapa sufijo→perfil), se usan sus claves; si no, las
-# historicas. Sin esto los perfiles de un vault ajeno no se symlinkean nunca
-# (y se avisaba por los tres nombres historicos inexistentes).
-# OJO: el archivo del vault NO trae 'declare -gA', asi que hay que declararlo
-# antes de sourcear (si no, bash lo toma como array indexado y hace aritmetica
-# con el nombre del perfil). Mismo bash aparte que _ctx_dirs, por lo mismo.
-_id_sfx=(personal work cei_walle)
-if [[ -f "$VAULT_DIR/shell/git-identities.sh" ]]; then
-    _id_from_vault="$(bash -c '
-        declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
-        GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
-        source "$1" >/dev/null 2>&1 || true
-        echo "${!GIT_IDENTITY_FILES[@]}"
-    ' _ "$VAULT_DIR/shell/git-identities.sh" 2>/dev/null)" || _id_from_vault=""
-    [[ -n "$_id_from_vault" ]] && read -ra _id_sfx <<< "$_id_from_vault"
-fi
-unset _id_from_vault
+for _c in personal work cei_walle; do DIRS+=("$HOME/repositorios/$_c"); done
+unset _c
 
 # La barra global avanza por carpeta; abajo se ve que hace (crear/validar).
 # El "ya existe" va al log; solo se cuentan. Fallos se muestran (gb_note vía log).
@@ -1543,15 +1505,13 @@ copy_dotfile "git/ignore"           "$HOME/.config/git/ignore"    "link"
 # Git config principal + identidades (vault privado): contiene namespaces y emails
 if [[ -d "$VAULT_DIR/git" ]]; then
     copy_dotfile "$VAULT_DIR/git/config"           "$HOME/.gitconfig"            "link"
-    # Un perfil por sufijo del vault (ver _id_sfx): con nombres propios
-    # (freelance, cliente-x...) antes no se symlinkeaba ninguno.
-    for _s in "${_id_sfx[@]}"; do
+    for _s in personal work cei_walle; do
         copy_dotfile "$VAULT_DIR/git/config-$_s" "$HOME/.gitconfig-$_s" "link"
     done
     unset _s
 else
     log "Vault no encontrado en $VAULT_DIR — saltando git config e identidades" "WARN"
-    WARNINGS+=("~/.gitconfig e identidades no aplicados — sin vault (crear el tuyo: docs/adaptalo.md)")
+    WARNINGS+=("~/.gitconfig e identidades no aplicados — sin vault")
 fi
 
 # Identidades para el shell bash (gclone/gset-profile) — desde el vault
@@ -1565,7 +1525,7 @@ if [[ -f "$VAULT_DIR/ssh/config" ]]; then
     run_step "Permisos ~/.ssh/config" chmod 600 "$HOME/.ssh/config"
 else
     log "Vault no encontrado — saltando ssh/config" "WARN"
-    WARNINGS+=("~/.ssh/config no aplicado — sin vault (crear el tuyo: docs/adaptalo.md)")
+    WARNINGS+=("~/.ssh/config no aplicado — sin vault")
 fi
 
 # rclone.conf (vault privado): contiene el token de iCloud Drive.
@@ -2238,15 +2198,13 @@ printf '\n    %bLog:%b     %s\n' "$C_DIM" "$C_RESET" "$LOG_FILE"
 
 banner "Proximos pasos"
 log "1. Abri una terminal nueva para recargar el profile" "INFO"
-# El host alias sale del vault (antes se sugeria el del autor, que no existe en
-# otros vaults). Sin vault se muestra un placeholder.
 _ssh_alias_hint="$(bash -c '
-    declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
-    GIT_PROFILE_REMOTES=(); GIT_CONTEXT_DIRS=()
+    declare -A GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
+    GIT_PROFILE_REMOTES=()
     source "$1" >/dev/null 2>&1 || true
     for _a in "${!GIT_SSH_ALIASES[@]}"; do echo "$_a"; done | sort | head -1
 ' _ "$VAULT_DIR/shell/git-identities.sh" 2>/dev/null)" || _ssh_alias_hint=""
-log "2. Verifica tus claves SSH: ssh -T git@${_ssh_alias_hint:-<host-alias-de-tu-vault>}" "INFO"
+log "2. Verifica tus claves SSH: ssh -T git@${_ssh_alias_hint:-<host-alias>}" "INFO"
 unset _ssh_alias_hint
 if [[ "$WITH_AWS" == true ]]; then
     log "3. Ejecuta: aws configure sso" "INFO"

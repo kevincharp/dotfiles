@@ -1,52 +1,15 @@
 # dotfiles
 
-**Un entorno de desarrollo completo y reproducible, con un solo comando.**
-Linux (Fedora/Debian/Arch) y Windows, con paridad real entre ambos: mismo
-prompt, mismos atajos, mismas funciones en bash, zsh y PowerShell.
+Mi entorno de desarrollo en Linux (Fedora) y Windows: shells, terminal, git,
+Neovim, escritorio GNOME y el harness para trabajar con agentes de IA. Mismas
+funciones y mismo prompt en bash, zsh y PowerShell.
 
 ![Captura del entorno](screenshots/2026-07-09_22-31.png)
 
-## Qué incluye
+Lo sensible (claves SSH cifradas con age, identidades git, tokens) vive en un
+segundo repo privado, `dotfiles-vault`. Acá no hay nada secreto.
 
-- **Instalador interactivo con selector**: elegís qué instalar de un catálogo de
-  ~30 herramientas por grupos (core, shell, dev, cloud, fonts, apps). Nada se
-  instala sin que lo marques — y **tampoco se configura**: la config de cada
-  herramienta se aplica solo si la elegiste o ya la tenías instalada. Si no
-  marcás Neovim, tu `~/.config/nvim` no se toca.
-- **Tres shells, una experiencia**: prompt [oh-my-posh](https://ohmyposh.dev)
-  temado, syntax highlighting mientras tipeás, sugerencias desde el historial y
-  la misma paleta de colores en bash, zsh y PowerShell 7.
-- **Historial estilo PSReadLine en Linux**: `↑` abre la lista del historial
-  filtrada por prefijo (fzf); `Ctrl+R` busca difuso. En los tres shells.
-- **[~60 comandos y aliases](docs/comandos.md)** de git, puertos, navegación y
-  sistema — con `dothelp` como ayuda interactiva integrada.
-- **Secretos fuera del repo**: las claves SSH viven cifradas con
-  [age](https://age-encryption.org) en un segundo repo privado («vault»), y las
-  identidades de git se aplican solas según el remoto (`includeIf` +
-  `hasconfig`). Este repo puede ser público porque no contiene nada sensible —
-  y si no tenés vault, **un asistente te crea el tuyo** en la primera instalación.
-- **Escritorio versionado (Fedora/GNOME)**: atajos, dock, extensiones y la
-  terminal Ptyxis se guardan como volcados dconf y se restauran en una máquina
-  nueva.
-- **Reglas para agentes de IA incluidas**: un único archivo de reglas
-  (commits convencionales, manejo de secretos, arranque de proyectos con
-  identidad correcta) compartido entre Claude Code, Codex y opencode vía
-  `CLAUDE.md`/`AGENTS.md` — [cómo personalizarlo](docs/adaptalo.md#reglas-para-agentes-de-ia).
-- **Seguro de usar**: log completo de cada corrida, desinstalador que
-  remueve lo que instaló, y re-correrlo es siempre idempotente. Ojo: no hace
-  backups; si ya tenés un archivo en el destino de un symlink, se reemplaza.
-
-## Requisitos previos
-
-- **Linux**: una distro con `dnf`, `apt` o `pacman` (Fedora es la de
-  referencia) y poco más — `git` se instala solo si falta.
-- **Windows**: **Modo de desarrollador** activado (para symlinks sin admin).
-  Ni PowerShell 7 ni winget hacen falta tenerlos: si corrés el one-liner desde la consola por defecto (5.1) y
-  falta alguno, el instalador te ofrece instalarlos y se relanza solo.
-
-Detalle completo por sistema: [docs/instalacion.md](docs/instalacion.md#requisitos-previos).
-
-## Instalación rápida
+## Instalar o actualizar
 
 ```bash
 # Linux
@@ -54,64 +17,30 @@ curl -fsSL https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.sh
 ```
 
 ```powershell
-# Windows (desde pwsh 7)
+# Windows
 irm https://raw.githubusercontent.com/kevincharp/dotfiles/main/install.ps1 | iex
 ```
 
-El mismo comando **instala y actualiza** (detecta si el repo ya existe). Qué va
-a pasar cuando lo corras:
+Clona el repo en `~/.dotfiles`, clona el vault, muestra el selector de
+herramientas, crea los symlinks y valida. Re-correrlo es idempotente. No hace
+backups: un archivo en el destino de un symlink se reemplaza.
 
-1. Clona el repo en `~/.dotfiles` y pregunta por el **vault privado** — si no
-   tenés uno, un **asistente te crea tus perfiles de git ahí mismo** (nombre,
-   email y clave SSH por contexto), o elegí «saltar» y sigue solo con lo público.
-2. Te muestra el **selector de herramientas** (nada pre-marcado; `espacio`
-   marca, `Enter` confirma, `q` cancela).
-3. En Linux pregunta el **shell por defecto** (bash/zsh) si elegiste zsh.
-4. Instala, crea los symlinks y aplica el vault si está.
-5. Pregunta si querés configurar **AWS SSO** (opcional, solo para
-   [Claude Code vía Bedrock](docs/instalacion.md#aws-sso--bedrock-opcional)) —
-   decí que no y listo.
-6. Valida la instalación y muestra el resumen.
-
-Al terminar: **abrí una terminal nueva** y probá `dothelp`.
-
-> Flags útiles: `--dry-run` (simula sin tocar nada), `--all-tools`,
-> `--tools=a,b,c`, `--update-only`. Lista completa en
-> [docs/instalacion.md](docs/instalacion.md#flags).
-
-## Adoptarlo como tuyo
-
-Nació como config personal, pero está pensado para que cualquiera lo use. Tres
-niveles, de menor a mayor compromiso:
-
-| Nivel | Qué hacés | Qué obtenés |
-|---|---|---|
-| **Probarlo** | Correr el instalador y «saltar» el vault | Todo lo público: herramientas, shells, configs |
-| **Fork** | Forkear y cambiar `GH_USER` en los installers | El one-liner instala *tu* copia |
-| **Vault propio** | Elegir «crear mis perfiles ahora» en el instalador (o `bash ~/.dotfiles/git-profiles.sh`) | Identidades git automáticas por remoto + claves SSH, portables entre máquinas |
-
-La guía paso a paso (incluida la estructura exacta del vault):
-**[docs/adaptalo.md](docs/adaptalo.md)**.
+Flags y detalle: [docs/instalacion.md](docs/instalacion.md).
 
 ## Documentación
 
 | Doc | Qué cubre |
 |---|---|
-| [Instalación a fondo](docs/instalacion.md) | Requisitos, paso a paso, todos los flags, AWS SSO, troubleshooting |
-| [Adaptalo a tu cuenta](docs/adaptalo.md) | Usarlo sin vault, fork, crear tu propio vault, identidades git |
-| [Referencia de comandos](docs/comandos.md) | Todas las funciones y aliases, por categoría |
-| [Arquitectura](docs/arquitectura.md) | Dos repos, symlink vs copia, dconf, paridad de shells, decisiones de diseño |
-| [Idea: generador de dotfiles](docs/idea-generador-de-dotfiles.md) | *(pausada)* Convertir el repo en una herramienta que genere **tu** dotfiles y lo versione en tu cuenta |
-| [Catálogo de Agent Skills](docs/agent-skills-catalogo.md) | Qué plugins/skills de Claude Code tenemos habilitados, de dónde salen, y qué es Claude-específico vs. formato abierto |
-| [Radar de skills/plugins IA](docs/skills-radar.md) | Todo lo evaluado (instalado, descartado o pendiente) por categoría funcional — mirar antes de sumar una skill nueva |
-| [Notas técnicas](docs/notas-tecnicas.md) | Bitácora de bugs reales y decisiones de diseño (el "por qué" detrás de las reglas de `AGENTS.md`) |
+| [Instalación](docs/instalacion.md) | Requisitos, pasos, flags, AWS SSO, problemas comunes |
+| [Comandos](docs/comandos.md) | Funciones y aliases por categoría (`dothelp` en la terminal) |
+| [Arquitectura](docs/arquitectura.md) | Dos repos, symlink o copia, dconf, paridad de shells |
+| [Playbook de desarrollo](docs/playbook-desarrollo.md) | Flujo de trabajo con agentes |
+| [Catálogo de skills](docs/agent-skills-catalogo.md) | Plugins y skills habilitados |
+| [Radar de skills](docs/skills-radar.md) | Lo evaluado, instalado o no |
+| [Notas técnicas](docs/notas-tecnicas.md) | El porqué de las reglas de `AGENTS.md` |
 
 ## Desinstalar
 
 ```bash
 bash ~/.dotfiles/uninstall.sh      # pwsh -File ~/.dotfiles/uninstall.ps1 en Windows
 ```
-
-Muestra un preview, pide confirmación, remueve los symlinks y borra los repos.
-Opciones en
-[docs/instalacion.md](docs/instalacion.md#desinstalación).

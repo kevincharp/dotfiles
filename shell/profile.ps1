@@ -1153,7 +1153,6 @@ $script:GitIdentities     = @{}
 $script:GitHostAliases    = @{}
 $script:GitSshAliases     = @{}
 $script:GitProfileRemotes = @()
-$script:GitIdentityFiles  = @{}
 $_giFile = Join-Path ($env:XDG_CONFIG_HOME ?? (Join-Path $HOME '.config')) 'git-identities.ps1'
 if (Test-Path -LiteralPath $_giFile) {
     . $_giFile
@@ -1161,7 +1160,6 @@ if (Test-Path -LiteralPath $_giFile) {
     if ($GitHostAliases)    { $script:GitHostAliases    = $GitHostAliases }
     if ($GitSshAliases)     { $script:GitSshAliases     = $GitSshAliases }
     if ($GitProfileRemotes) { $script:GitProfileRemotes = $GitProfileRemotes }
-    if ($GitIdentityFiles)  { $script:GitIdentityFiles  = $GitIdentityFiles }
 }
 
 <#
@@ -1209,8 +1207,7 @@ function Resolve-GitProfileGuess {
     }
 
     # 2. Carpeta de contexto ~/repositorios/<ctx>. El ctx puede ser el nombre del
-    #    perfil, una clave de $GitIdentityFiles (sufijo->perfil) o resolverse por
-    #    el email de ~/.gitconfig-<ctx>, para no hardcodear nombres de perfil.
+    #    perfil o resolverse por el email de ~/.gitconfig-<ctx>.
     $reposRoot = Join-Path $HOME 'repositorios'
     if ($Dir -and $Dir.StartsWith($reposRoot, [StringComparison]::OrdinalIgnoreCase)) {
         $rest = $Dir.Substring($reposRoot.Length).TrimStart('\', '/')
@@ -1219,8 +1216,6 @@ function Resolve-GitProfileGuess {
             $found = $null
             if ($script:GitIdentities.ContainsKey($ctx)) {
                 $found = $ctx
-            } elseif ($script:GitIdentityFiles.ContainsKey($ctx)) {
-                $found = $script:GitIdentityFiles[$ctx]
             } else {
                 $ctxFile = Join-Path $HOME ".gitconfig-$ctx"
                 if (Test-Path -LiteralPath $ctxFile) {

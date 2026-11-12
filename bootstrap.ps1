@@ -66,24 +66,15 @@ $DIRS_GATED = @(
     @{ Path="$HOME\.config\lazygit";      Tool='lazygit' }
     @{ Path="$env:APPDATA\yazi\config";   Tool='yazi'    }
 )
-# Carpetas de contexto de repos: si el vault define $GitContextDirs en
-# git-identities.ps1 (lo escribe el asistente git-profiles), se usan esas;
-# si no, las historicas (mismo criterio que bootstrap.sh).
+# Carpetas de contexto de repos y sufijos de los ~/.gitconfig-<sufijo>.
 $ctxDirs = @('personal', 'work', 'cei_walle')
-# Sufijos de los ~/.gitconfig-<sufijo>: idem, del mapa $GitIdentityFiles del
-# vault. Sin esto los perfiles de un vault ajeno no se symlinkean nunca.
-$idSuffixes = @('personal', 'work', 'cei_walle')
-# Un host alias real del vault, para el consejo final de "verifica tus claves
-# SSH" (antes se sugeria el alias del autor, inexistente en otros vaults).
+$idSuffixes = $ctxDirs
+# Host alias del vault para el consejo final de "verifica tus claves SSH".
 $script:sshAliasHint = $null
 $giVault = Join-Path $VAULT_DIR 'shell\git-identities.ps1'
 if (Test-Path $giVault) {
-    $GitContextDirs = $null
-    $GitIdentityFiles = $null
     $GitSshAliases = $null
     . $giVault
-    if ($GitContextDirs) { $ctxDirs = @($GitContextDirs) }
-    if ($GitIdentityFiles) { $idSuffixes = @($GitIdentityFiles.Keys) }
     if ($GitSshAliases -and $GitSshAliases.Keys.Count -gt 0) {
         $script:sshAliasHint = ($GitSshAliases.Keys | Sort-Object | Select-Object -First 1)
     }
@@ -977,10 +968,7 @@ function Test-ToolInstalled {
 # Test-ToolWanted <Key> — DECISION UNICA de "¿el usuario quiere esta
 # herramienta?": True si la eligio en el selector o si ya la tiene instalada.
 # Espejo exacto de want_tool en bootstrap.sh (ver el comentario largo alla).
-# Es el gate de las CONFIGS del paso 6: antes el array $DOTFILES se aplicaba
-# completo, asi que un tercero que elegia solo pwsh + Windows Terminal + aws se
-# llevaba igual ~/.bashrc, la config de yazi, %LOCALAPPDATA%\nvim apuntando a
-# este repo y el CLAUDE.md con las reglas de trabajo del autor.
+# Es el gate de las CONFIGS del paso 6.
 function Test-ToolWanted {
     param([string]$Key)
     if (Test-ToolSelected $Key) { return $true }

@@ -722,8 +722,8 @@ _GIT_IDENTITIES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/git-identities.sh"
 # solo los que se usan aca. Si falta uno, 'MAPA[clave]=x' se toma como array
 # indexado y la clave se evalua como aritmetica: con claves no numericas
 # ('personal') el source ABORTA ahi mismo y las identidades quedan sin cargar
-# (gclone/ginit rotos). Los vaults del asistente definen GIT_IDENTITY_FILES.
-declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES GIT_IDENTITY_FILES
+# (gclone/ginit rotos).
+declare -gA GIT_IDENTITIES_NAME GIT_IDENTITIES_EMAIL GIT_SSH_ALIASES
 # GIT_PROFILE_REMOTES (indexado, "url|perfil|label") tambien se declara: si el
 # vault no esta, _infer_git_profile lo consulta y sin declarar reventaria.
 declare -ga GIT_PROFILE_REMOTES
@@ -765,7 +765,7 @@ _git_url_host() {
 # Infiere el perfil de identidad git cuando no se paso -p; deja el resultado en
 # _gi_profile y su origen en _gi_profile_src (devuelve 1 si no pudo). Orden: host
 # del remoto vs. GIT_PROFILE_REMOTES, luego la carpeta ~/repositorios/<ctx> (nombre
-# de perfil, clave de GIT_IDENTITY_FILES o el perfil dueño del email de ~/.gitconfig-<ctx>).
+# de perfil o el perfil dueño del email de ~/.gitconfig-<ctx>).
 # --- [git] _infer_git_profile: (interna) deduce el perfil git de un remoto/carpeta | uso: _infer_git_profile <url> <dir> ---
 _infer_git_profile() {
     local url="$1" dir="$2"
@@ -791,8 +791,6 @@ _infer_git_profile() {
     if [[ -n "$ctx" ]]; then
         if [[ -n "${GIT_IDENTITIES_EMAIL[$ctx]:-}" ]]; then
             _gi_profile="$ctx"
-        elif [[ -n "${GIT_IDENTITY_FILES[$ctx]:-}" ]]; then
-            _gi_profile="${GIT_IDENTITY_FILES[$ctx]}"
         elif [[ -f "$HOME/.gitconfig-$ctx" ]]; then
             local ctx_mail p
             ctx_mail="$(git config --file "$HOME/.gitconfig-$ctx" user.email 2>/dev/null)"

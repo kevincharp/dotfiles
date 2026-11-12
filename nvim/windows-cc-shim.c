@@ -1,25 +1,11 @@
-/* Shim de compilador C para nvim-treesitter en Windows (rama 'main').
+/* Shim "cc" para nvim-treesitter en Windows: reenvia todo a "zig cc".
  *
- * nvim-treesitter compila los parsers invocando literalmente un programa
- * llamado "cc" (ver do_compile en su install.lua). Sin MSVC instalado, la
- * unica opcion liviana es que ese "cc" sea zig ("zig cc"), pero eso no se
- * puede lograr solo con la variable CC: tree-sitter-cli usa la PRIMERA
- * palabra de CC como programa y descarta el resto, asi que CC="zig cc"
- * termina invocando "zig" con "-O2" (u otro flag) como si fuera un
- * subcomando, y zig lo rechaza ("unknown command"). Hace falta un unico
- * ejecutable llamado cc.exe que internamente reenvie todo a "zig cc".
+ * tree-sitter-cli invoca la primera palabra de CC y descarta el resto, asi que
+ * CC="zig cc" no sirve: hace falta un ejecutable llamado cc.exe. Ademas pasa el
+ * target "x86_64-pc-windows-msvc", que zig no entiende; se reescribe a
+ * "x86_64-windows-gnu" (mingw-w64 embebido, sin Visual Studio).
  *
- * Ademas, tree-sitter-cli le pasa a "cc" el target triple con el que se
- * compilo la propia herramienta, en formato Rust/LLVM
- * ("x86_64-pc-windows-msvc"). El parser de targets de zig no tiene campo de
- * vendor y no entiende ese string tal cual ("UnknownOperatingSystem"). Sin
- * MSVC instalado tampoco sirve pedirle la ABI msvc real, asi que se reescribe
- * a la ABI gnu ("x86_64-windows-gnu"), que zig resuelve con sus propios
- * headers de mingw-w64 embebidos, sin depender de Visual Studio.
- *
- * Lo compila bootstrap.ps1 con `zig build-exe` a ~/.local/bin/cc.exe (ver el
- * paso "shim de compilador" en la seccion de nvim). CC=cc queda seteada a
- * nivel de usuario para que nvim (y cualquier otra herramienta) la use.
+ * Lo compila bootstrap.ps1 con `zig build-exe` a ~/.local/bin/cc.exe.
  */
 #include <windows.h>
 #include <string.h>
@@ -27,8 +13,7 @@
 
 int main(void) {
     char *full = GetCommandLineA();
-    /* Saltar el primer token (el nombre del propio ejecutable) para quedarnos
-     * solo con los argumentos que nos pasaron. */
+    /* Saltar el nombre del propio ejecutable. */
     char *rest = full;
     if (*rest == '"') {
         rest++;

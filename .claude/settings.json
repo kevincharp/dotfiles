@@ -14,7 +14,8 @@
     "mattpocock-skills@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
     "claude-security@claude-plugins-official": true,
-    "watch@claude-video": true
+    "watch@claude-video": true,
+    "bibliotecario@kevincharp-dotfiles": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {

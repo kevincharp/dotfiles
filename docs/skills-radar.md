@@ -74,7 +74,7 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 | `mattpocock-skills` | TDD, debugging, spec→tickets, review paralelo | Disciplina de ingeniería real en un repo de trabajo | ✅ | Oficial (Matt Pocock) |
 | `the-architect` | Entrevista + blueprints de construcción validados | Proyecto nuevo desde cero, con criterios de aceptación | 🔍 desinstalada (2026-11-11): se solapa con `superpowers` y la experiencia de uso fue mala | `github.com/Hainrixz/the-architect` |
 | `claude-code-setup` | Recomienda automatizaciones para un repo | Onboarding de Claude Code a un repo nuevo | 📦 | Oficial |
-| `bibliotecario` | Recomienda plugins, skills y repos con estrella para el proyecto y los instala por proyecto | Arrancar un proyecto, o "qué tengo para X" | 📋 escrita, pendiente de instalar global (requiere push) | Propia (`claude-skills/bibliotecario`) |
+| `bibliotecario` | Recomienda plugins, skills y repos con estrella para el proyecto y los instala por proyecto | Arrancar un proyecto, o "qué tengo para X" | ✅ | Propia (`claude-skills/bibliotecario`) |
 | `gstack` | 23 comandos (CEO/eng-manager/QA/security/release) | Ver nota abajo | 🔍 referencia, no instalado | `github.com/garrytan/gstack` |
 | `handshake` | Entrevista guiada de idea difusa → doc entregable | Ver nota abajo | 🔍 pausado | `flowstate.help` (sin repo público) |
 | DEF Starter Kit | `CLAUDE.md` de proyecto + `LOOP/`/`Planning/` estilo GTD | Ver nota abajo | 🔍 pausado | `flowstate.help` (sin repo público) |

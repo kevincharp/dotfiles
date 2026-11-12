@@ -52,13 +52,8 @@ function _Invoke-CachedInit {
             Sort-Object -Descending | Select-Object -First 1
         $stale = $newest -and ($newest -gt $cacheTime)
 
-        # oh-my-posh v29 no cachea el prompt inline: su 'init' es un loader que hace
-        # dot-source de un temporal init.<n>.ps1 en el LocalCache del paquete Appx. Al
-        # actualizarse (winget upgrade), oh-my-posh genera un temporal nuevo y el viejo
-        # puede desaparecer, pero el shim oh-my-posh.exe de WindowsApps NO cambia de fecha
-        # (el binario real vive en Packages\...), asi que $Sources no detecta el cambio y
-        # el cache queda apuntando a un init inexistente -> prompt roto. Blindaje: si el
-        # cache referencia con "& '...'" un archivo que ya no existe, se da por viejo.
+        # El 'init' de oh-my-posh hace dot-source de un temporal que desaparece al actualizarse,
+        # sin que cambie la fecha del shim: si el cache referencia un archivo inexistente, se regenera.
         if (-not $stale) {
             foreach ($ref in [regex]::Matches((Get-Content -Raw -LiteralPath $cacheFile), "&\s*'([^']+)'")) {
                 $refPath = $ref.Groups[1].Value
@@ -107,13 +102,8 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
         "$_repoRoot\shell\themes\claude-code.omp.json"
     } else { $null }
     if ($_ompTheme) {
-        # El tema (symlink compartido con Linux) trae upgrade.auto/notice=true, util
-        # solo en Linux. En Windows oh-my-posh se instala como paquete MSIX/Appx y NO
-        # puede autoactualizarse: cada arranque tira "upgrade is not supported when
-        # installed as a MSIX package". El toggle 'oh-my-posh disable upgrade' no gana
-        # contra el auto:true explicito del JSON, asi que derivamos una copia LOCAL del
-        # tema con upgrade apagado y arrancamos contra ella. El symlink no se toca (Linux
-        # sigue autoactualizando). La copia se regenera si el tema original cambia.
+        # En Windows oh-my-posh es MSIX y no puede autoactualizarse: se usa una copia local
+        # del tema con upgrade apagado, regenerada si el original cambia.
         $_ompLocal = Join-Path ($env:LOCALAPPDATA ?? $env:TEMP) 'pwsh-init-cache\claude-code.omp.json'
         try {
             $_srcTime = (Get-Item $_ompTheme).LastWriteTimeUtc
@@ -183,19 +173,14 @@ if (Get-Command fzf -ErrorAction SilentlyContinue) {
     Set-PSReadLineKeyHandler -Chord "Ctrl+r" -ScriptBlock {
         $lineas = @(Get-Content -LiteralPath (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue |
                     Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        # OJO: NO deduplicar con 'Sort-Object -Unique' — para poder unificar, ORDENA
-        # ALFABETICAMENTE: fzf pierde el orden cronologico (con --tac quedaba de la z
-        # a la a, no lo mas reciente primero) y el recorte a 5000 se queda con un
-        # tramo del abecedario en vez del historial reciente. Recorremos de abajo
-        # hacia arriba (lo mas nuevo primero) quedandonos con la primera vista de cada
-        # linea: dedup SIN perder recencia (mismo criterio que el bloque de dedup).
+        # Sin 'Sort-Object -Unique', que ordena alfabeticamente: se recorre de lo mas nuevo a
+        # lo mas viejo quedandose con la primera vista de cada linea.
         $vistas = [System.Collections.Generic.HashSet[string]]::new()
         $historial = [System.Collections.Generic.List[string]]::new()
         for ($i = $lineas.Count - 1; $i -ge 0 -and $historial.Count -lt 5000; $i--) {
             if ($vistas.Add($lineas[$i])) { $historial.Add($lineas[$i]) }
         }
-        # Sin --tac: la lista ya viene mas-reciente-primero y el layout default de fzf
-        # deja el primer item pegado al prompt (espejo del 'history | tac' del bashrc).
+        # Sin --tac: la lista ya viene mas-reciente-primero.
         # --scheme=history + --tiebreak=index: mismo ranking que bash/zsh.
         $selected = $historial | fzf --no-sort --scheme=history --tiebreak=index `
                                      --height 40% --border --prompt "historial> "
@@ -223,11 +208,7 @@ if (Get-Module PSReadLine -ErrorAction SilentlyContinue) {
     }
     Set-PSReadLineOption -EditMode Windows -ErrorAction SilentlyContinue
     Set-PSReadLineOption -MaximumHistoryCount 10000 -ErrorAction SilentlyContinue
-    # OJO: -HistoryNoDuplicates NO deduplica el archivo en disco, solo la
-    # NAVEGACION (salta duplicados al recorrer con ↑ / buscar). El archivo
-    # (ConsoleHost_history.txt) igual acumula cada repeticion. La dedup real del
-    # archivo (paridad con erasedups de bash / HIST_IGNORE_ALL_DUPS de zsh) se
-    # hace mas abajo, al arrancar (ver bloque "DEDUP DEL HISTORIAL").
+    # -HistoryNoDuplicates solo afecta la navegacion; el archivo se deduplica mas abajo.
     Set-PSReadLineOption -HistoryNoDuplicates -ErrorAction SilentlyContinue
     Set-PSReadLineOption -BellStyle None -ErrorAction SilentlyContinue
     Set-PSReadLineOption -Colors @{
@@ -251,12 +232,7 @@ if (Get-Module PSReadLine -ErrorAction SilentlyContinue) {
     Set-PSReadLineKeyHandler -Chord "Ctrl+RightArrow" -Function AcceptNextSuggestionWord -ErrorAction SilentlyContinue
     Set-PSReadLineKeyHandler -Chord "Ctrl+Spacebar"   -Function MenuComplete -ErrorAction SilentlyContinue
 
-    # --- DEDUP DEL HISTORIAL (paridad real con erasedups / HIST_IGNORE_ALL_DUPS) ---
-    # PSReadLine NO deduplica el archivo (ConsoleHost_history.txt): -HistoryNoDuplicates
-    # solo afecta la navegacion. Asi que al arrancar limpiamos el archivo dejando la
-    # ocurrencia MAS RECIENTE de cada comando (igual que erasedups en bash). Recorremos
-    # de abajo hacia arriba (lo mas nuevo primero) quedandonos con la primera vista de
-    # cada linea, y luego reinvertimos para conservar el orden cronologico.
+    # --- Dedup del archivo de historial: queda la ocurrencia mas reciente de cada comando ---
     try {
         $histPath = (Get-PSReadLineOption).HistorySavePath
         if ($histPath -and (Test-Path -LiteralPath $histPath)) {
@@ -304,9 +280,7 @@ Set-Alias vi   nvim
 Set-Alias vim  nvim
 Set-Alias nano nvim
 
-# yazi (file manager TUI): en Windows no encuentra el binario 'file' solo, hay
-# que apuntarlo con YAZI_FILE_ONE o falla la deteccion de MIME ("Cannot find
-# file's MIME type"). Se usa el 'file.exe' de Git Bash (paridad con bashrc).
+# En Windows yazi no encuentra 'file' solo: se le pasa el de Git Bash.
 if ($IsWindows -and -not $env:YAZI_FILE_ONE) {
     $_fileOne = Get-Command file.exe -ErrorAction SilentlyContinue |
         Select-Object -ExpandProperty Source
@@ -347,10 +321,8 @@ function open-here {
     }
 }
 
-# OJO: el bloque de help va DENTRO del if, pegado a 'function y'. dothelp exige
-# que el <#...#> este inmediatamente antes del 'function': con el 'if' en medio
-# no lo asociaba a 'y' (que desaparecia del menu) y ademas se lo colgaba a la
-# funcion siguiente, que salia con la descripcion y el uso de yazi.
+# El bloque de help va dentro del if, pegado a 'function y': dothelp exige que el
+# <#...#> este inmediatamente antes del 'function'.
 if (Get-Command yazi -ErrorAction SilentlyContinue) {
     <#
     .SYNOPSIS yazi con cd-on-exit (paridad con la funcion 'y' de bashrc/zshrc)
@@ -458,9 +430,7 @@ function clear-history {
         return
     }
 
-    # Salvaguarda: distinguir "sin args" de "un arg vacio". Si se paso -Pattern
-    # pero quedo vacio (ej: variable sin definir), NO vaciar todo — abortar. Solo
-    # el 'sin args' explicito borra el historial completo.
+    # Un -Pattern vacio (variable sin definir) no es 'sin args': abortar en vez de vaciar todo.
     if ($PSBoundParameters.ContainsKey('Pattern') -and [string]::IsNullOrEmpty($Pattern)) {
         Write-Host "clear-history: el patron esta vacio (variable sin definir?). Abortado." -ForegroundColor Red
         Write-Host "  Para vaciar TODO el historial, corre 'clear-history' sin argumentos." -ForegroundColor Red
@@ -475,9 +445,7 @@ function clear-history {
     }
 
     if ($Pattern) {
-        # Patron LITERAL y case-sensitive (paridad con el 'grep -F' de bash/zsh).
-        # Con -like, un token con * ? [ ] matchea de mas y se borran lineas que
-        # nadie pidio borrar.
+        # Patron literal y case-sensitive: con -like un token con * ? [ ] borraria de mas.
         $lineas   = @(Get-Content -LiteralPath $hist)
         $kept     = @($lineas | Where-Object { -not $_.Contains($Pattern) })
         $borradas = $lineas.Count - $kept.Count
@@ -485,10 +453,7 @@ function clear-history {
             Write-Host "Historial: ninguna linea contiene '$Pattern'. Nada que borrar."
             return
         }
-        # OJO: ClearHistory() vacia TODO el historial en memoria, no solo las
-        # lineas del patron. Sin re-agregar lo conservado, la sesion queda SIN
-        # historial (flecha ↑ y ListView vacios) hasta reabrir la terminal —
-        # justo el sintoma que parecia "clear-history rompe el historial".
+        # ClearHistory() vacia todo el historial en memoria: hay que re-agregar lo conservado.
         $style = (Get-PSReadLineOption).HistorySaveStyle
         try {
             # SaveNothing mientras se re-agrega: con SaveIncrementally cada
@@ -875,10 +840,7 @@ function rmrf {
     param([string[]]$p)
 
     foreach ($path in $p) {
-        # Resolver a ruta ABSOLUTA y matar solo procesos cuyo ejecutable viva
-        # DENTRO de ese directorio. Antes se comparaba con -like "*$path*"
-        # (substring): 'rmrf build' mataba cualquier proceso del sistema con
-        # "build" en su ruta, aunque no tuviera nada que ver.
+        # Ruta absoluta: solo se matan procesos cuyo ejecutable vive dentro de ese directorio.
         $full = (Resolve-Path -LiteralPath $path -ErrorAction SilentlyContinue).Path
         if ($full) {
             $prefix = $full.TrimEnd('\') + '\'
@@ -1146,9 +1108,7 @@ function aduser {
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================
 
-# Identidades (nombre/email por perfil) viven en el vault privado.
-# El bootstrap las copia a ~/.config/git-identities.ps1. Si no estan,
-# las funciones git de perfil avisan que falta el vault.
+# Las identidades viven en el vault; el bootstrap las copia a ~/.config/git-identities.ps1.
 $script:GitIdentities     = @{}
 $script:GitHostAliases    = @{}
 $script:GitSshAliases     = @{}
@@ -1260,9 +1220,7 @@ function gclone {
     $originHost = Get-GitUrlHost $remoteUrl
     $repoName   = [IO.Path]::GetFileNameWithoutExtension(($remoteUrl -replace '^[^:]+:|^https?://[^/]+/',''))
 
-    # Un '~' o un relativo dentro de un [string] de parametro NO los expande
-    # PowerShell: hay que normalizarlos a mano o Test-Path y la deteccion de la
-    # carpeta de contexto miran un path que no existe.
+    # PowerShell no expande '~' ni relativos dentro de un [string]: se normalizan a mano.
     if ($targetDir) {
         $targetDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($targetDir)
     }
@@ -1446,10 +1404,8 @@ function gremote {
 # ==============================================================================
 # SSH KEYS — dar de alta y sincronizar claves del vault (paridad bash/zsh)
 # ------------------------------------------------------------------------------
-# El vault privado versiona las claves SSH encriptadas con age (.age) + su .pub,
-# y un ssh/config con los Host. ssh-newkey da de alta una clave nueva (genera,
-# encripta, la mete al vault); vault-sync trae los cambios a esta maquina (pull,
-# aplica config, desencripta lo que falte). Misma logica que bootstrap.ps1.
+# El vault versiona las claves SSH cifradas con age, su .pub y el ssh/config.
+# ssh-newkey da de alta una clave; vault-sync trae los cambios a esta maquina.
 # ==============================================================================
 
 $script:VAULT_DIR = if ($env:VAULT_DIR) { $env:VAULT_DIR } else { Join-Path $HOME '.dotfiles-vault' }
@@ -1514,9 +1470,8 @@ function ssh-newkey {
     Write-Host "  git -C `"$script:VAULT_DIR`" commit -m `"feat(ssh): agrego clave $Name`" ; git -C `"$script:VAULT_DIR`" push"
 }
 
-# vault-sync — trae los cambios del vault a esta maquina: pull + config + claves
-# + ~/.env (si falta).
-# Desencripta solo las .age que FALTEN en ~/.ssh (pide passphrase una sola vez).
+# vault-sync — pull del vault, aplica ssh/config, desencripta las .age que falten y
+# restaura ~/.env si falta.
 <#
 .SYNOPSIS sincroniza (pull+push) el repo privado del vault
 .EXAMPLE vault-sync
@@ -1545,9 +1500,7 @@ function vault-sync {
     if ($missing.Count -eq 0) {
         Write-Host "Todas las claves ya estan en ~/.ssh, nada que desencriptar."
     } else {
-        # age NO lee la passphrase de stdin: la pide SIEMPRE de la consola. Por eso
-        # NO se puede cachear con un Read-Host y pasarla por pipe (age lo ignora y
-        # se cuelga esperando el prompt). Se deja que age pregunte por cada clave.
+        # age lee la passphrase de la consola, no de stdin: pregunta por cada clave.
         Write-Host "age pedira la passphrase por cada clave nueva ($($missing.Count)):"
         foreach ($f in $missing) {
             $dst = Join-Path $sshDir $f.BaseName
@@ -1580,10 +1533,8 @@ function vault-sync {
     Write-Host "vault-sync completo."
 }
 
-# env-save — cifra ~/.env con age y lo guarda en el vault (env/env.age). Correrlo
-# cada vez que agregues o rotes un token: vault-sync y el bootstrap lo restauran
-# en las otras maquinas (solo si alli falta, nunca pisan uno existente).
-# Deja el 'git add' hecho; el commit/push lo hace el usuario (regla del repo).
+# env-save — cifra ~/.env con age y lo guarda en el vault. Correrlo al agregar o rotar
+# un token. Deja el 'git add' hecho; commit y push manuales.
 <#
 .SYNOPSIS cifra ~/.env con age y lo guarda en el vault
 .EXAMPLE env-save
@@ -1671,10 +1622,7 @@ function Get-SecretFromEnv {
     return $t
 }
 
-# Tokens de git (GITLAB_TOKEN_<perfil> / GITHUB_TOKEN_<perfil>): se exportan
-# todos los que haya en ~/.env, sin listarlos por nombre — paridad con
-# _load_dotenv de bash/zsh, y asi los perfiles de cualquier vault funcionan.
-# gbrowser igual los resuelve por su cuenta via el tokenEnv del vault.
+# Se exportan todos los tokens de ~/.env (GITLAB_TOKEN_<perfil> / GITHUB_TOKEN_<perfil>).
 foreach ($__k in $__DOTENV.Keys) {
     if ($__k -match '^(GITLAB|GITHUB)_TOKEN_') {
         Set-Item -Path "env:$__k" -Value $__DOTENV[$__k]
@@ -1860,9 +1808,7 @@ function gbrowser {
 .EXAMPLE claude-smg
 #>
 function claude-smg {
-    # Guardar los valores previos para RESTAURARLOS al salir: antes se hacia
-    # Remove-Item a ciegas y un AWS_PROFILE propio del entorno quedaba borrado
-    # despues de usar claude-smg (paridad con el subshell de bash/zsh).
+    # Se guardan los valores previos para restaurarlos al salir.
     $prev = @{}
     foreach ($n in 'CLAUDE_CODE_USE_BEDROCK','AWS_PROFILE','AWS_REGION','ANTHROPIC_MODEL','ANTHROPIC_SMALL_FAST_MODEL',
                    'ANTHROPIC_DEFAULT_SONNET_MODEL','ANTHROPIC_DEFAULT_HAIKU_MODEL','ANTHROPIC_DEFAULT_OPUS_MODEL',
@@ -1870,27 +1816,18 @@ function claude-smg {
         $prev[$n] = [Environment]::GetEnvironmentVariable($n, 'Process')
     }
 
-    # El perfil AWS se toma de $env:AWS_SSO_PROFILE (defini en ~/.env); el mismo que
-    # usa el bootstrap al escribir ~/.aws/config. Fallback a CLAUDE_SMG_AWS_PROFILE
-    # (nombre viejo, compat) y luego 'default'.
+    # El perfil sale de $env:AWS_SSO_PROFILE (~/.env), el mismo que escribe el bootstrap.
     $env:CLAUDE_CODE_USE_BEDROCK = "1"
     $env:AWS_PROFILE             = if ($env:AWS_SSO_PROFILE) { $env:AWS_SSO_PROFILE } elseif ($env:CLAUDE_SMG_AWS_PROFILE) { $env:CLAUDE_SMG_AWS_PROFILE } else { 'default' }
     $env:AWS_REGION              = if ($env:CLAUDE_SMG_AWS_REGION)  { $env:CLAUDE_SMG_AWS_REGION }  else { 'us-east-1' }
-    # La cuenta de SMG solo habilita Sonnet 5.5 y Haiku 5.5 en Bedrock: el picker se
-    # restringe a esa lista con --settings availableModels y el primero es el default
-    # (ANTHROPIC_MODEL). Los defaults están en el repo (IDs públicos) para funcionar sin
-    # ~/.env; se pisan con CLAUDE_SMG_MODELS (lista separada por comas) o CLAUDE_SMG_MODEL
-    # (nombre viejo, lista de uno). Paridad con bash/zsh.
+    # La cuenta solo habilita esos modelos en Bedrock: el picker se restringe con
+    # availableModels y el primero es el default. Se pisan con CLAUDE_SMG_MODELS.
     $smgList = if ($env:CLAUDE_SMG_MODELS) { $env:CLAUDE_SMG_MODELS }
                elseif ($env:CLAUDE_SMG_MODEL) { $env:CLAUDE_SMG_MODEL }
                else { 'us.anthropic.claude-sonnet-5-5,us.anthropic.claude-haiku-5-5' }
     $smgModels = @($smgList -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $env:ANTHROPIC_MODEL = $smgModels[0]
-    # Cada familia del picker (Sonnet/Haiku/Opus) apunta al de la lista: el
-    # picker tiene entradas FIJAS por familia y availableModels solo las
-    # filtra. Sin este mapeo la entrada Haiku resolvia al Haiku por defecto
-    # de Claude Code en Bedrock (4.5, no habilitado) y el filtro la ocultaba,
-    # y "Default" seguia diciendo Sonnet 4.5.
+    # El picker tiene entradas fijas por familia: cada una se apunta al modelo de la lista.
     $smgPick = { param($f) $smgModels | Where-Object { $_ -match $f } | Select-Object -First 1 }
     $smgSonnet = & $smgPick 'sonnet'; $smgOpus = & $smgPick 'opus'
     if ($smgSonnet) { $env:ANTHROPIC_DEFAULT_SONNET_MODEL = $smgSonnet }
@@ -1901,9 +1838,7 @@ function claude-smg {
                 else { 'us.anthropic.claude-haiku-5-5' }
     $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = $smgHaiku
     $env:ANTHROPIC_SMALL_FAST_MODEL    = $smgHaiku   # nombre viejo, por compat
-    # security-guidance (plugin) revisa con Opus por defecto, bloqueado en la
-    # cuenta de SMG: la revision fallaba en silencio. Se fija al Sonnet de la
-    # lista (a proposito pisa un SECURITY_REVIEW_MODEL del entorno normal).
+    # security-guidance revisa con Opus, bloqueado en esta cuenta: se fija al Sonnet de la lista.
     if ($smgSonnet) { $env:SECURITY_REVIEW_MODEL = $smgSonnet; $env:SG_AGENTIC_MODEL = $smgSonnet }
     $smgSettings = @{ availableModels = $smgModels } | ConvertTo-Json -Compress
 
@@ -2006,10 +1941,8 @@ function dothelp {
     $text  = Get-Content -Raw -LiteralPath $profilePath -ErrorAction SilentlyContinue
     if (-not $text) { Write-Host "No se pudo leer el profile: $profilePath" -ForegroundColor Red; return }
 
-    # Helpers internos del arranque del profile (no son comandos de usuario).
-    # El resto de las internas NO se listan a mano: se detectan por el prefijo '_'
-    # en el nombre o por '(interna)' al principio del .SYNOPSIS (misma regla que
-    # el filtro de bash/zsh). Así una interna nueva no aparece por olvido.
+    # Helpers del arranque del profile. El resto de las internas se detecta por el prefijo
+    # '_' o por '(interna)' en el .SYNOPSIS.
     $skip = @('dothelp','Ensure-Module')
 
     $items = [System.Collections.Generic.List[object]]::new()
@@ -2061,9 +1994,7 @@ function dothelp {
         return
     }
 
-    # --- Menú interactivo (fzf) en DOS pasos: categoría → comando ---
-    # No usamos --preview (en Windows fzf lo corre bajo cmd.exe y complica): la
-    # descripción y el uso van en las columnas visibles del propio fzf.
+    # --- Menú en dos pasos: categoría → comando. Sin --preview: en Windows fzf lo corre bajo cmd.exe ---
     $tab = "`t"
 
     # Paso 1: categorías con conteo.
@@ -2090,11 +2021,8 @@ function dothelp {
         $parts = $pick2 -split $tab
         $name  = $parts[0]
         $uso   = if ($parts[2]) { $parts[2] } else { $name }
-        # Se inserta SOLO el nombre, NO la plantilla de uso: la plantilla lleva
-        # <obligatorio> y [opcional], que no son ejecutables (Enter sin editar =
-        # error de parseo, que no dice nada del comando). Con solo el nombre, ese
-        # Enter llega a la función y es ELLA la que imprime su uso: una sola
-        # fuente de verdad, imposible que el menú y el comando se contradigan.
+        # Se inserta solo el nombre: la plantilla de uso no es ejecutable y la funcion
+        # imprime su propio uso.
         if ($uso -ne $name) {
             Write-Host "uso: " -ForegroundColor DarkGray -NoNewline
             Write-Host $uso -ForegroundColor DarkGray

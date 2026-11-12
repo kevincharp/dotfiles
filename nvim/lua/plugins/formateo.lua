@@ -1,14 +1,13 @@
 -- ============================================================================
 -- formateo.lua — formateo automático al guardar (conform.nvim)
 -- ============================================================================
--- Usa las mismas herramientas de línea de comandos que la terminal o la CI
--- (prettier, shfmt, ruff…), instaladas vía Mason. <leader>cf formatea a mano; no
--- es <leader>f porque un atajo suelto bloquea el grupo "buscar" (snacks.lua).
+-- Formateadores instalados vía Mason (lsp.lua). <leader>cf y no <leader>f: un atajo
+-- suelto bloquearía el grupo "buscar".
 -- ============================================================================
 
 return {
   'stevearc/conform.nvim',
-  event = { 'BufWritePre' }, -- carga justo antes de guardar (para el auto-formateo)
+  event = { 'BufWritePre' },
   cmd = { 'ConformInfo' },
   keys = {
     {
@@ -21,14 +20,11 @@ return {
     },
   },
   opts = {
-    -- Formateador por tipo de archivo. conform corre estas herramientas en orden.
     formatters_by_ft = {
       lua = { 'stylua' },
-      python = { 'ruff_format' },        -- ruff también formatea (rápido, un solo binario)
-      -- Web: prettier para todo el stack front. La cadena cae a `prettier` si
-      -- `prettierd` falla — pero OJO: prettier a secas NO está instalado (Mason
-      -- solo baja prettierd), así que hoy ese respaldo es teórico. Se deja porque
-      -- engancha solo si algún día hay un prettier del proyecto en node_modules.
+      python = { 'ruff_format' },
+      -- prettier solo entra si el proyecto lo trae en node_modules; Mason baja
+      -- prettierd.
       javascript = { 'prettierd', 'prettier', stop_after_first = true },
       typescript = { 'prettierd', 'prettier', stop_after_first = true },
       typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
@@ -38,32 +34,17 @@ return {
       json = { 'prettierd', 'prettier', stop_after_first = true },
       yaml = { 'prettierd', 'prettier', stop_after_first = true },
       markdown = { 'prettierd', 'prettier', stop_after_first = true },
-      sh = { 'shfmt' },                  -- scripts de shell (bashrc/zshrc del repo)
+      sh = { 'shfmt' },
       bash = { 'shfmt' },
-      -- Los Dockerfile NO se listan a propósito: el formateador de la comunidad
-      -- (dockerfmt) se compila con Go y acá no hay toolchain de Go. Al no tener
-      -- entrada, conform cae al LSP por su lsp_format = 'fallback' y formatea con
-      -- dockerls, que sí ofrece textDocument/formatting (verificado).
-      -- Los compose son YAML: los formatea prettier. El filetype es compuesto
-      -- ('yaml.docker-compose', ver lua/tipos-archivo.lua) y conform resuelve por
-      -- el filetype ENTERO, así que hay que nombrarlo tal cual.
+      -- Sin entrada para Dockerfile: lo formatea dockerls por lsp_format = 'fallback'.
+      -- conform resuelve por el filetype entero, por eso el compose se nombra tal cual.
       ['yaml.docker-compose'] = { 'prettierd', 'prettier', stop_after_first = true },
-      -- SQL. Acá el formateo es LA funcionalidad, no un extra: no se le suma un
-      -- servidor LSP (el porqué está en lsp.lua), así que ordenar la consulta
-      -- —una cláusula por línea, columnas indentadas, JOIN y ON separados— es todo
-      -- lo que aporta el editor sobre el resaltado. Nota: sql_formatter respeta
-      -- las mayúsculas/minúsculas tal como las escribiste (no pasa las palabras
-      -- clave a MAYÚSCULA); solo reacomoda.
       sql = { 'sql_formatter' },
       mysql = { 'sql_formatter' },
       plsql = { 'sql_formatter' },
     },
 
-    -- Formatear al guardar (Format on Save).
     format_on_save = function(bufnr)
-      -- Lenguajes SIN formateador confiable universal: no forzar formateo al
-      -- guardar para no romper archivos ajenos. (Ninguno del stack ahora, pero
-      -- deja la puerta abierta a desactivarlo por tipo si hiciera falta.)
       local sin_autoformat = {}
       if sin_autoformat[vim.bo[bufnr].filetype] then
         return
@@ -72,7 +53,7 @@ return {
     end,
   },
   init = function()
-    -- Permitir formatear con el LSP como respaldo si no hay formateador dedicado.
+    -- gq formatea con conform.
     vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
   end,
 }

@@ -1,47 +1,33 @@
 -- ============================================================================
 -- autocompletado.lua — menú de autocompletado (blink.cmp)
 -- ============================================================================
--- Preset 'default': <C-n>/<C-p> navegan (y abren el menú), <C-y> acepta, <C-e>
--- cierra, <Tab> salta entre campos del snippet. <C-space> NO llega a nvim en Linux:
--- es el atajo global de Ulauncher (gnome/media-keys.dconf, custom1).
+-- Preset 'default': <C-n>/<C-p> navegan, <C-y> acepta, <C-e> cierra. <C-space> no llega
+-- a nvim en Linux: es el atajo global de Ulauncher.
 -- ============================================================================
 
 return {
   'saghen/blink.cmp',
-  -- Carga al ABRIR un archivo, no al empezar a escribir. Antes decía
-  -- 'InsertEnter', pero era letra muerta: blink registra sus capabilities de LSP
-  -- desde su plugin/, y eso tiene que pasar ANTES de que arranquen los servidores
-  -- (BufReadPre). Declararlo así hace explícito el momento real de carga.
+  -- blink registra sus capabilities antes de que arranquen los servidores LSP.
   event = { 'BufReadPre', 'BufNewFile' },
-  version = '1.*',        -- release estable (trae el binario Rust precompilado)
+  version = '1.*', -- release estable, con el binario precompilado
   dependencies = {
-    -- Colección de snippets lista para varios lenguajes.
     'rafamadriz/friendly-snippets',
   },
   opts = {
     keymap = { preset = 'default' },
 
     appearance = {
-      -- Usar íconos de Nerd Font en el menú (tipos de sugerencia).
       nerd_font_variant = 'mono',
     },
 
     completion = {
-      -- Mostrar la documentación de la sugerencia en un popup al lado,
-      -- automáticamente tras una breve pausa (como VSCode).
       documentation = { auto_show = true, auto_show_delay_ms = 300 },
     },
 
-    -- Firma de la función mientras escribís los argumentos: al abrir el paréntesis
-    -- aparecen los parámetros y se resalta en cuál estás. Es lo que VSCode hace
-    -- solo. Viene APAGADO por defecto en blink; existe el nativo <C-s> en insert,
-    -- pero es a demanda y el automático es el que cambia la experiencia.
+    -- Firma de la función al escribir los argumentos; viene apagada por defecto.
     signature = { enabled = true },
 
-    -- Fuentes de sugerencias, por prioridad: LSP, rutas, snippets, buffer.
-    -- 'lazydev' se suma para que al editar la config de nvim aparezcan los
-    -- símbolos de la API vim.* (ver lazydev.lua). El score_offset alto los pone
-    -- ARRIBA de lo que ofrece lua_ls, que para vim.* devuelve resultados peores.
+    -- lazydev aporta la API vim.*; el score_offset la pone arriba de lo que da lua_ls.
     sources = {
       default = { 'lsp', 'path', 'snippets', 'buffer', 'lazydev' },
       providers = {
@@ -49,9 +35,6 @@ return {
       },
     },
 
-    -- Motor de fuzzy matching. 'prefer_rust_with_warning': usa el binario Rust
-    -- (rápido) y avisa si tuviera que caer al de Lua. Viene precompilado con la
-    -- versión fijada, así que no requiere compilar nada.
     fuzzy = { implementation = 'prefer_rust_with_warning' },
   },
 }

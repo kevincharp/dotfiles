@@ -6,84 +6,64 @@
 -- Detalle: docs/notas-tecnicas.md (treesitter en rama main).
 -- ============================================================================
 
--- Parsers a instalar. Cubren el stack decidido: Web (JS/TS/React, HTML, CSS),
--- Python, Shell/Bash, Lua (la propia config), Docker, SQL y los formatos de datos
--- y documentación del repo.
 local PARSERS = {
   'javascript',
   'typescript',
-  'tsx',        -- React (.tsx)
+  'tsx',
   'html',
   'css',
-  'json',        -- también cubre jsonc (tsconfig.json): en 'main' el filetype
-                 -- 'jsonc' resuelve al parser 'json', no hay parser aparte
-                 -- (verificado con vim.treesitter.language.get_lang). Justo lo que
-                 -- en 'master' era imposible porque el tarball de 'jsonc' da 404.
+  'json', -- también cubre jsonc
   'python',
-  'bash',       -- scripts de shell (bashrc/zshrc del repo)
-  'lua',        -- la propia config de nvim
-  'luadoc',     -- las anotaciones ---@param de Lua
-  'vim',        -- vimscript embebido
-  'vimdoc',     -- ayuda de nvim (:help)
-  'markdown',   -- READMEs y docs del repo
+  'bash',
+  'lua',
+  'luadoc',
+  'vim',
+  'vimdoc',
+  'markdown',
   'markdown_inline',
-  'diff',       -- resaltado de diffs de git
-  'gitcommit',  -- mensajes de commit
+  'diff',
+  'gitcommit',
   'yaml',
-  'toml',       -- configs .toml (yazi, etc.)
-  'dockerfile', -- Dockerfile (los compose usan el parser de yaml)
-  'sql',        -- consultas .sql
-  'query',      -- los .scm de tree-sitter (para depurar queries)
-  'regex',      -- resalta las expresiones regulares embebidas en otros lenguajes
+  'toml',
+  'dockerfile', -- los compose usan el parser de yaml
+  'sql',
+  'query', -- los .scm de tree-sitter
+  'regex',
 }
 
 return {
   'nvim-treesitter/nvim-treesitter',
   branch = 'main',
-  -- lazy = false es OBLIGATORIO, no una preferencia: 'main' no declara eventos ni
-  -- soporta que lazy.nvim la cargue a demanda (lo dice su propio README).
+  -- 'main' no soporta carga diferida.
   lazy = false,
-  -- Al actualizar el plugin, recompilar los parsers con el CLI nuevo.
   build = ':TSUpdate',
   config = function()
     local ts = require('nvim-treesitter')
 
     ts.setup({
-      -- Los parsers van al data-dir, FUERA del repo (no se versionan: son
-      -- binarios compilados para esta máquina y este SO).
+      -- Fuera del repo: son binarios de esta máquina.
       install_dir = vim.fn.stdpath('data') .. '/site',
     })
 
-    -- Instalar lo que falte. install() es ASÍNCRONA en 'main', así que no bloquea
-    -- el arranque; los parsers nuevos quedan listos para el próximo archivo que
-    -- abras de ese lenguaje. Es el reemplazo del auto_install de 'master'.
+    -- Asíncrona: no bloquea el arranque.
     ts.install(PARSERS)
 
-    -- ---------------------------------------------------------------------
-    -- Prender el resaltado y la indentación. En 'master' esto era
-    -- `highlight = { enable = true }`; en 'main' no existe: hay que llamar a
-    -- vim.treesitter.start() por buffer, y el lugar correcto es un FileType.
-    -- ---------------------------------------------------------------------
+    -- En 'main' el resaltado se prende por buffer con vim.treesitter.start().
     vim.api.nvim_create_autocmd('FileType', {
       group = vim.api.nvim_create_augroup('treesitter-arranque', { clear = true }),
       callback = function(ev)
         local ft = vim.bo[ev.buf].filetype
-        -- El filetype no siempre se llama igual que el lenguaje: 'sh' usa el
-        -- parser 'bash', y los compuestos como 'yaml.docker-compose' resuelven a
-        -- 'yaml'. get_lang() hace esa traducción.
+        -- get_lang traduce el filetype al parser ('sh' → 'bash', 'yaml.docker-compose'
+        -- → 'yaml').
         local lang = vim.treesitter.language.get_lang(ft)
         if not lang then
           return
         end
-        -- pcall porque si el parser todavía no terminó de instalarse (o el
-        -- lenguaje no está en la lista), start() lanza error y abortaría el
-        -- FileType entero — o sea, se caería el resto de la config del buffer.
+        -- pcall: sin el parser instalado, start() lanza y abortaría el FileType.
         if not pcall(vim.treesitter.start, ev.buf, lang) then
           return
         end
-        -- Indentación por árbol sintáctico. Es OPCIONAL en 'main' (y su README la
-        -- marca como experimental), pero es lo que en 'master' venía en
-        -- `indent = { enable = true }` y se usa a diario con `==` y `=`.
+        -- Experimental en 'main'.
         vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
       end,
     })

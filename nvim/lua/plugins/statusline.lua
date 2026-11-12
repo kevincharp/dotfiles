@@ -1,8 +1,7 @@
 -- ============================================================================
 -- statusline.lua — barra de estado inferior (lualine), minimalista
 -- ============================================================================
--- Solo el modo a la izquierda y posición + reloj a la derecha, con los colores del
--- tema activo (theme = 'auto'). El centro queda vacío a propósito.
+-- Solo el modo a la izquierda, y diagnósticos, posición y reloj a la derecha.
 -- ============================================================================
 
 return {
@@ -11,36 +10,25 @@ return {
   event = 'VeryLazy',
   opts = {
     options = {
-      theme = 'auto',               -- hereda los colores de vscode.nvim
+      theme = 'auto',
       icons_enabled = vim.g.have_nerd_font,
-      component_separators = '',    -- sin separadores internos (más limpio)
-      section_separators = { left = '', right = '' }, -- sin separadores en los extremos tampoco
-      globalstatus = true,          -- UNA sola statusline para todo (no una por split)
-      -- No dibujar la barra dentro de las ventanas de snacks: si no, ahí aparece
-      -- el buffer del picker como si fuera un archivo abierto. NO existe extensión
-      -- de lualine para snacks (sí para neo-tree, que ya no usamos), así que la
-      -- vía real son estos filetypes, tomados del fuente de snacks.
+      component_separators = '',
+      section_separators = { left = '', right = '' },
+      globalstatus = true, -- una sola barra, no una por split
+      -- Sin barra en las ventanas de snacks (lualine no trae extensión para snacks).
       disabled_filetypes = { statusline = { 'snacks_picker_list', 'snacks_picker_input' } },
     },
     sections = {
-      -- Izquierda: solo el modo (NORMAL / INSERT / VISUAL...).
       lualine_a = { 'mode' },
       lualine_b = {},
-      lualine_c = {},                                    -- CENTRO VACÍO (a propósito)
-      -- Derecha: contador de errores/avisos, posición en el archivo y reloj.
-      -- El contador es la única concesión al minimalismo: la statusline NATIVA de
-      -- 0.12 muestra vim.diagnostic.status() por defecto y lualine la reemplaza,
-      -- así que sin esto perdíamos información que antes venía gratis.
+      lualine_c = {},
+      -- lualine reemplaza la statusline nativa, que ya mostraba los diagnósticos.
       lualine_x = { { 'diagnostics', symbols = { error = '󰅚 ', warn = '󰀪 ', info = '󰋽 ', hint = '󰌶 ' } } },
-      lualine_y = { 'location' },                        -- línea:columna
+      lualine_y = { 'location' },
       lualine_z = {
-        -- Reloj con la hora actual (como en el screenshot). El %H:%M lo resuelve
-        -- vim.fn.strftime en cada refresco de la barra.
         { function() return ' ' .. vim.fn.strftime('%H:%M') end },
       },
     },
-    -- Extensiones: barras a medida para ventanas de plugins (en vez del nombre de
-    -- buffer crudo). Solo las de plugins que realmente tenemos instalados.
     extensions = { 'toggleterm', 'lazy', 'mason', 'quickfix' },
   },
 }

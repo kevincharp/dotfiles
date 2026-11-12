@@ -1,16 +1,13 @@
 -- ============================================================================
 -- sesiones.lua — retomar el proyecto donde lo dejaste (persistence.nvim)
 -- ============================================================================
--- Guarda una sesión por directorio al salir; restaurar es manual a propósito.
--- <leader>p: s restaura la de este directorio, l la última, p elige, d no guarda.
--- Es <leader>p y no <leader>q: ese ya es 'cerrar ventana' y un atajo suelto bloquea su prefijo.
+-- Guarda una sesión por directorio al salir; restaurar es manual. <leader>p y no
+-- <leader>q, que ya es "cerrar ventana".
 -- ============================================================================
 
 return {
   'folke/persistence.nvim',
-  -- Carga al abrir el primer archivo real: ahí engancha su VimLeavePre para
-  -- guardar. Con VeryLazy alcanzaba, pero BufReadPre evita crear sesión cuando
-  -- nvim se abrió y cerró sin tocar nada.
+  -- BufReadPre: no crea sesión si nvim se abrió y cerró sin tocar nada.
   event = 'BufReadPre',
   keys = {
     {
@@ -35,14 +32,12 @@ return {
     },
   },
   opts = {
-    -- Una sesión por directorio Y POR RAMA de git. Es lo que uno quiere trabajando
-    -- con ramas: los archivos de una feature no son los de main.
+    -- Una sesión por rama de git.
     branch = true,
   },
   init = function()
-    -- sessionoptions (nativa de vim): se QUITAN 'blank' y 'terminal' (restaurar una
-    -- terminal deja un shell muerto) y se AGREGAN 'globals' y 'skiprtp' (el runtimepath
-    -- lo administra lazy.nvim y guardarlo rompe la restauración en otra máquina).
+    -- Sin 'blank' ni 'terminal' (restauraría un shell muerto); 'skiprtp' porque el
+    -- runtimepath lo administra lazy.nvim.
     vim.o.sessionoptions = 'buffers,curdir,folds,globals,help,skiprtp,tabpages,winsize'
   end,
 }

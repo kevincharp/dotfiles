@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
 #   bootstrap.sh — Setup completo de entorno de desarrollo (Linux / bash)
-#   Autor: Kevin Charpentier
 #   Uso:   bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages]
 #                             [--all-tools] [--tools=id1,id2,...]
 #                             [--pace=SEG | --fast]
@@ -21,8 +20,7 @@ TOOLS_ARG=""
 
 _usage="Uso: bash bootstrap.sh [--with-aws] [--dry-run] [--skip-packages] [--all-tools] [--tools=id1,id2,...] [--pace=SEG] [--fast]"
 
-# Ritmo de la barra de progreso (dwell por accion, en segundos). Se puede fijar por
-# variable de entorno BOOTSTRAP_PACE o con --pace. 0 = sin pausas (rapido, CI).
+# Dwell de la barra de progreso en segundos (BOOTSTRAP_PACE o --pace); 0 = sin pausas.
 BOOTSTRAP_PACE="${BOOTSTRAP_PACE:-0.18}"
 for arg in "$@"; do
     case "$arg" in
@@ -45,8 +43,7 @@ done
 # ==============================================================================
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
-# Vault privado con lo sensible (ssh, identidades git, bookmarks).
-# install.sh lo clona en ~/.dotfiles-vault; si no esta, se saltean esos pasos.
+# Vault privado (ssh, identidades git); si no esta, esos pasos se saltean.
 VAULT_DIR="${VAULT_DIR:-$HOME/.dotfiles-vault}"
 # ~/.env cifrado con age dentro del vault (lo genera env-save, paridad bash/zsh/pwsh)
 VAULT_ENV_AGE="$VAULT_DIR/env/env.age"
@@ -67,13 +64,9 @@ else
     I_SECTION=">"; I_OK="[OK]"; I_WARN="[!]"; I_ERROR="[X]"; I_SKIP="[-]"; I_INFO="-"
 fi
 
-# Colores ANSI
 C_RESET=$'\033[0m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_ERROR=$'\033[31m'
 C_SKIP=$'\033[90m'; C_DIM=$'\033[90m'; C_BOLD=$'\033[1m'
-# Naranja de marca: el MISMO #D4874E del prompt (oh-my-posh). Si la terminal no
-# soporta truecolor, degrada a naranja de 256-colores (208). C_BAR es el naranja
-# plano (barra de progreso); C_SECTION es el mismo naranja en negrita, usado para
-# la caja de bienvenida, titulos de seccion, headers de paso y el banner.
+# Naranja del prompt (#D4874E); sin truecolor degrada al 208.
 if [[ "${COLORTERM:-}" == *truecolor* || "${COLORTERM:-}" == *24bit* ]]; then
     C_BAR=$'\033[38;2;212;135;78m'; C_SECTION=$'\033[1;38;2;212;135;78m'
 else
@@ -88,13 +81,9 @@ log() {
     local msg="$1" level="${2:-INFO}"
     local ts; ts="$(date +%H:%M:%S)"
 
-    # Al archivo siempre con timestamp y nivel (traza completa)
     echo "[$ts][$level] $msg" >> "$LOG_FILE" 2>/dev/null || true
 
-    # Con la barra global ACTIVA, la pantalla la maneja la barra: el ruido de
-    # exito (OK/INFO/SKIP) ya quedo en el log, no se imprime. Solo lo notable
-    # (WARN/ERROR) scrollea ARRIBA de la barra vía gb_note. SECTION se ignora
-    # (los headers los pone gb_step). Sin barra, comportamiento normal de abajo.
+    # Con la barra activa solo WARN/ERROR van a pantalla (via gb_note); el resto queda en el log.
     if [[ "${_GB_ACTIVE:-0}" == 1 ]]; then
         case "$level" in
             WARN)  gb_note "$C_WARN"  "$I_WARN"  "$msg" ;;
@@ -103,10 +92,9 @@ log() {
         return 0
     fi
 
-    # A pantalla: iconos + jerarquia (seccion a col 0, items indentados)
     case "$level" in
         SECTION)
-            # Colapsa banners: quita bordes (= - # espacios). Si no queda texto, es separador -> se omite.
+            # Quita los bordes del banner; sin texto es un separador y se omite.
             local clean
             clean="$(printf '%s' "$msg" | sed -E 's/^[[:space:]=#-]+//; s/[[:space:]=#-]+$//')"
             [[ -z "$clean" ]] && return 0
@@ -129,9 +117,7 @@ banner() {
     return 0
 }
 
-# Modo silencioso: cuando _QUIET_STEPS=1, los run_step exitosos NO se imprimen
-# (solo al log) y se cuentan en _QUIET_OK. Los fallos SIEMPRE se muestran. Sirve
-# para colapsar pasos verbosos (symlinks, carpetas) a una linea de resumen.
+# Con _QUIET_STEPS=1 los run_step exitosos van solo al log y se cuentan en _QUIET_OK.
 _QUIET_STEPS=0
 _QUIET_OK=0
 run_step() {
@@ -159,10 +145,8 @@ run_step() {
     fi
 }
 
-# age_decrypt_retry <src.age> <dst> — desencripta pidiendo la passphrase hasta
-# 3 veces. Un typo antes abortaba esa clave y obligaba a re-correr el bootstrap
-# entero. age lee la passphrase de /dev/tty (no por pipe), asi que el reintento
-# es simplemente volver a invocarlo; entre intentos se borra el parcial.
+# age_decrypt_retry <src.age> <dst> — desencripta con hasta 3 intentos de passphrase.
+# age la lee de /dev/tty, asi que reintentar es volver a invocarlo.
 age_decrypt_retry() {
     local src="$1" dst="$2" try
     for try in 1 2 3; do
@@ -180,18 +164,13 @@ has_cmd() {
 }
 
 # ── BARRA DE PROGRESO GLOBAL ─────────────────────────────────────────────────
-# UNA barra global ponderada (_GB_WEIGHTS, suman 100; instalar paquetes pesa mas) que
-# cruza los 7 pasos, con la accion actual en una segunda linea fija. En interacciones
-# (selector, sudo, passphrase) se pausa con gb_pause y se retoma en la proxima
-# gb_step/gb_sub. Sin TTY (curl|bash, CI) no dibuja: cae a headers '[N/7] ...' via log().
+# Barra ponderada (_GB_WEIGHTS suma 100) con la accion actual en una segunda linea.
+# Se pausa con gb_pause en las interacciones; sin TTY no dibuja.
 _GB_WEIGHTS=(0 6 40 8 30 4 6 6)   # indice 1..7 (el 0 no se usa)
 _GB_BASE=(0 0 6 46 54 84 88 94)  # % acumulado ANTES de cada paso (calculado a mano de _GB_WEIGHTS)
 _GB_STEP=0 _GB_LABEL="" _GB_ACTION="" _GB_SUB=0 _GB_ACTIVE=0
 _GB_ENABLED=0; [[ -t 1 ]] && _GB_ENABLED=1     # solo con TTY
-# Ritmo minimo por accion ("dwell"): muchas acciones (validar carpetas, symlinks,
-# herramientas ya instaladas) son instantaneas y la barra las atravesaria de un
-# borron. gb_sub duerme este tiempo para que el usuario alcance a LEER cada paso.
-# Ajustable con --pace <seg> (0 = sin pausa, para CI/apuro). Solo aplica con TTY.
+# Dwell minimo por accion, para que cada paso se alcance a leer. Solo con TTY.
 _GB_DWELL="${BOOTSTRAP_PACE:-0.18}"
 
 # _gb_render — dibuja las 2 lineas y deja el cursor de vuelta en la barra.
@@ -210,7 +189,6 @@ _gb_render() {
     line2="[${_GB_STEP}/7] ${_GB_LABEL}"
     [[ -n "$_GB_ACTION" ]] && line2+=" · ${_GB_ACTION}"
     (( ${#line2} > maxw )) && line2="${line2:0:maxw-1}…"
-    # Barra, % y linea de estado, todo en el naranja del prompt (#D4874E).
     printf '\r  %b%s %3d%%%b\033[K\n  %b%s%b\033[K\033[1A\r' \
         "$C_BAR" "$b" "$pct" "$C_RESET" \
         "$C_BAR" "$line2" "$C_RESET"
@@ -225,9 +203,7 @@ gb_step() {
     else printf '\n%s%s [%s/7] %s%s\n' "$C_SECTION" "$I_SECTION" "$1" "$2" "$C_RESET"; fi
 }
 
-# gb_sub <sub0..100> [accion] — actualiza el avance dentro del paso y la accion.
-# Con TTY, respeta el ritmo minimo (_GB_DWELL) para que cada accion sea legible:
-# duerme SOLO si cambio la accion (no en refrescos de puro %) y si dwell > 0.
+# gb_sub <sub0..100> [accion] — avance dentro del paso. Duerme el dwell solo si cambio la accion.
 gb_sub() {
     local changed=0
     [[ $# -ge 2 && "$2" != "$_GB_ACTION" ]] && changed=1
@@ -239,21 +215,16 @@ gb_sub() {
     fi
 }
 
-# gb_note <color> <icono> <msg> — evento notable (nuevo/warn/error): queda escrito
-# ARRIBA de la barra y la barra se redibuja debajo. Sin TTY, sale como linea normal.
+# gb_note <color> <icono> <msg> — escribe un evento arriba de la barra; sin TTY, linea normal.
 gb_note() {
     if (( _GB_ENABLED )) && (( _GB_ACTIVE )); then printf '\r\033[K\n\r\033[K\033[1A\r'; fi
     printf '  %b%s%b %s\n' "$1" "$2" "$C_RESET" "$3"
-    # OJO: como 'if' y no '(( _GB_ENABLED )) && _gb_render'. Siendo el ULTIMO
-    # comando de la funcion, sin TTY (_GB_ENABLED=0) el (( )) devuelve 1, ese 1
-    # es el exit de gb_note y con 'set -e' aborta el bootstrap entero: moria en
-    # el paso [2/7] al instalar la 1ra herramienta, sin mensaje de error, cada
-    # vez que la salida estaba redirigida (log, CI, | tee).
+    # Como 'if': un (( )) falso como ultimo comando seria el exit de la funcion y
+    # set -e abortaria el bootstrap.
     if (( _GB_ENABLED )); then _gb_render; fi
 }
 
-# gb_pause — borra la barra para dar lugar a una interaccion (selector/sudo/shell).
-# La barra reaparece sola en la proxima gb_step/gb_sub.
+# gb_pause — borra la barra para una interaccion; reaparece en la proxima gb_step/gb_sub.
 gb_pause() {
     (( _GB_ENABLED )) && (( _GB_ACTIVE )) && printf '\r\033[K\n\r\033[K\033[1A\r'
     _GB_ACTIVE=0
@@ -268,10 +239,7 @@ gb_end() {
     _GB_ACTIVE=0
 }
 
-# ensure_base_deps — instala las dependencias base (curl/wget/unzip) que necesitan
-# varias herramientas para descargarse/descomprimirse. NO estan en el catalogo (no
-# son herramientas que el usuario elija): se resuelven solas y solo si faltan. En
-# Fedora curl/wget suelen venir de fabrica; unzip a veces no. Silencioso si ya estan.
+# ensure_base_deps — instala curl/wget/unzip si faltan; no estan en el catalogo.
 ensure_base_deps() {
     local dep missing=()
     for dep in curl wget unzip; do
@@ -386,10 +354,8 @@ tool_installed() {
     esac
 }
 
-# want_tool <id> — decision unica de "¿el usuario quiere esta herramienta?": 0 si la
-# eligio en el selector (SELECTED_TOOLS) o ya la tiene instalada. Es el gate de las
-# CONFIGS del paso [4/7]: sin esto se symlinkeaban configs de herramientas que nadie
-# pidio. Cuenta "ya instalada" a proposito: es el caso normal al re-correr el bootstrap.
+# want_tool <id> — 0 si la herramienta se eligio en el selector o ya esta instalada.
+# Es el gate de las configs del paso [4/7].
 want_tool() {
     local id="$1" t
     for t in "${SELECTED_TOOLS[@]:-}"; do
@@ -398,15 +364,14 @@ want_tool() {
     tool_installed "$id"
 }
 
-# install_tool <id> — instala la herramienta (logica por distro preservada)
+# install_tool <id> — instala la herramienta.
 install_tool() {
     case "$1" in
         neovim|ripgrep|tree-sitter-cli|fzf|bash-completion|zsh|flameshot|gitleaks)
             run_step "Instalar $1" $PKG_INSTALL "$1"
             ;;
         zsh-autosuggestions)
-            # Equivalente a ble.sh para zsh. No esta en repos con version/ruta
-            # consistente entre distros; se clona a ~/.local/share (el zshrc lo cablea).
+            # Sin paquete consistente entre distros: se clona a ~/.local/share.
             run_step "Instalar zsh-autosuggestions" bash -c '
                 dir="$HOME/.local/share/zsh-autosuggestions"
                 if [[ -d "$dir/.git" ]]; then git -C "$dir" pull --ff-only --quiet
@@ -447,9 +412,7 @@ install_tool() {
             fi
             ;;
         lazyssh)
-            # TUI para SSH (lee/escribe ~/.ssh/config). No esta en repos de distro
-            # ni en gestores; se baja el binario del release oficial a ~/.local/bin
-            # (ya en PATH, sin sudo). El asset es lazyssh_<uname>_<arch>.tar.gz.
+            # Sin paquete: binario del release oficial a ~/.local/bin.
             run_step "Instalar lazyssh (binario)" bash -c '
                 tag=$(curl -fsSL "https://api.github.com/repos/Adembc/lazyssh/releases/latest" | grep -Po "\"tag_name\": \"\K[^\"]*")
                 tmp="$(mktemp -d)"
@@ -461,9 +424,7 @@ install_tool() {
             '
             ;;
         lazysql)
-            # TUI para MySQL/PostgreSQL/MSSQL/SQLite. No esta en repos de distro
-            # ni en gestores; mismo patron que lazyssh: binario del release oficial
-            # a ~/.local/bin (ya en PATH, sin sudo).
+            # Sin paquete: binario del release oficial a ~/.local/bin.
             run_step "Instalar lazysql (binario)" bash -c '
                 tag=$(curl -fsSL "https://api.github.com/repos/jorgerojas26/lazysql/releases/latest" | grep -Po "\"tag_name\": \"\K[^\"]*")
                 tmp="$(mktemp -d)"
@@ -475,9 +436,7 @@ install_tool() {
             '
             ;;
         blesh)
-            # ble.sh (Bash Line Editor): syntax highlighting + autosugerencias.
-            # No esta en repos de distro; se instala desde el tarball de release
-            # oficial (sin compilar) en ~/.local/share/blesh. El bashrc lo cablea.
+            # Sin paquete: tarball del release oficial en ~/.local/share/blesh.
             run_step "Instalar ble.sh" bash -c '
                 tmp="$(mktemp -d)"
                 curl -fsSL https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz -o "$tmp/ble.tar.xz"
@@ -504,16 +463,10 @@ install_tool() {
             fi
             ;;
         yazi)
-            # yazi + bundle de deps de preview: poppler (PDF), ffmpeg (video/audio), ImageMagick
-            # (imagenes), p7zip (comprimidos), file (MIME) y chafa. Ptyxis no soporta sixel ni
-            # kitty-protocol, asi que sin chafa no hay preview de imagen; en otro terminal yazi
-            # elige el suyo y chafa no estorba (ver docs/notas-tecnicas.md).
+            # Deps de preview: poppler, ffmpeg, ImageMagick, p7zip, file y chafa (Ptyxis no
+            # soporta sixel ni kitty-protocol).
             if [[ "$PKG_MANAGER" == "dnf" ]]; then
-                # yazi NO esta en los repos base de Fedora: se habilita el COPR
-                # oficial (lihaohong/yazi), mismo patron que lazygit (atim/lazygit).
-                # yazi primero (critico); las deps van aparte para que el fallo de
-                # una (p.ej. ffmpeg completo requiere RPM Fusion, en repos base solo
-                # esta ffmpeg-free) no impida instalar el resto.
+                # COPR oficial. Las deps van aparte para que el fallo de una no frene el resto.
                 run_step "Instalar yazi (COPR)" bash -c '
                     sudo dnf install -y dnf-plugins-core
                     sudo dnf copr enable -y lihaohong/yazi
@@ -537,7 +490,7 @@ install_tool() {
             elif [[ "$PKG_MANAGER" == "pacman" ]]; then
                 run_step "Instalar Node.js" sudo pacman -S --noconfirm nodejs npm
             elif [[ "$PKG_MANAGER" == "apt" ]]; then
-                # apt: el repo de Debian trae una version vieja, usamos NodeSource para LTS
+                # El repo de Debian trae una version vieja: NodeSource para LTS.
                 run_step "Instalar Node.js LTS" bash -c '
                     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
                     sudo apt install -y nodejs
@@ -557,7 +510,6 @@ install_tool() {
             fi
             ;;
         claude)
-            # Instalador nativo oficial (macOS/Linux/WSL). Auto-actualiza en background.
             run_step "Instalar Claude Code CLI" bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
             ;;
         opencode)
@@ -572,8 +524,7 @@ install_tool() {
             '
             ;;
         gh)
-            # Fedora/Arch traen paquete nativo. En Debian/apt 'gh' no esta en los
-            # repos base: hay que agregar el repo oficial de GitHub primero.
+            # En Debian gh no esta en los repos base: se agrega el repo oficial.
             if [[ "$PKG_MANAGER" == "dnf" ]]; then
                 run_step "Instalar gh" $PKG_INSTALL gh
             elif [[ "$PKG_MANAGER" == "pacman" ]]; then
@@ -595,9 +546,7 @@ install_tool() {
             if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "pacman" ]]; then
                 run_step "Instalar glab" $PKG_INSTALL glab
             else
-                # Repo oficial gitlab-org/cli (profclems/glab esta archivado desde 2021).
-                # La version se consulta a la API de tags de GitLab y el asset es
-                # glab_<ver>_linux_amd64.tar.gz (minusculas), con el binario en bin/glab.
+                # Repo oficial gitlab-org/cli; la version sale de la API de tags.
                 run_step "Instalar glab (binario)" bash -c '
                     GLAB_VERSION=$(curl -fsSL "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/repository/tags?per_page=1" | grep -Po "\"name\":\"v\K[^\"]*" | head -1)
                     curl -Lo /tmp/glab.tar.gz "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_amd64.tar.gz"
@@ -608,9 +557,7 @@ install_tool() {
             fi
             ;;
         rclone)
-            # rclone esta en repos de dnf/apt/pacman con version reciente
-            # (Fedora 44 trae 1.74; el backend iclouddrive existe desde 1.69).
-            # La config del remote 'icloud' es manual (rclone config, pide 2FA).
+            # El remote 'icloud' se configura a mano (rclone config, pide 2FA).
             if [[ "$PKG_MANAGER" == "dnf" || "$PKG_MANAGER" == "apt" || "$PKG_MANAGER" == "pacman" ]]; then
                 run_step "Instalar rclone" $PKG_INSTALL rclone
             else
@@ -642,9 +589,7 @@ install_tool() {
             '
             ;;
         ulauncher)
-            # Fedora 44+: ya viene en los repos oficiales (dnf directo).
-            # Debian/Ubuntu: no esta en repos base, hace falta el PPA.
-            # Arch: AUR (no automatizable desde aqui).
+            # Debian/Ubuntu necesitan el PPA; en Arch es AUR.
             if [[ "$PKG_MANAGER" == "dnf" ]]; then
                 run_step "Instalar ulauncher" $PKG_INSTALL ulauncher
             elif [[ "$PKG_MANAGER" == "apt" ]]; then
@@ -661,19 +606,14 @@ install_tool() {
             fi
             ;;
         samba)
-            # Servidor SMB para compartir el home por red local (p.ej. la app
-            # Archivos del iPhone, que solo habla SMB, no SFTP). El smb.conf por
-            # defecto de Fedora ya trae el share [homes] con lectura/escritura, no
-            # hace falta tocarlo. Solo en Fedora/dnf (servicio + firewalld + SELinux).
-            # La contrasena SMB NO se versiona: es secreto, queda como paso manual
-            # ('sudo smbpasswd -a <usuario>'), igual que las claves SSH.
+            # Servidor SMB para compartir el home (la app Archivos del iPhone solo habla SMB).
+            # La contrasena queda como paso manual: sudo smbpasswd -a <usuario>.
             if [[ "$PKG_MANAGER" != "dnf" ]]; then
                 log "samba: cableado solo para Fedora/dnf — instalar manualmente en esta distro" "WARN"
                 WARNINGS+=("samba no configurado — distro no soportada por el bootstrap")
             else
                 run_step "Instalar samba" $PKG_INSTALL samba
                 run_step "Habilitar servicio smb" sudo systemctl enable --now smb
-                # Firewall (firewalld): abrir el servicio samba de forma permanente
                 if has_cmd firewall-cmd; then
                     run_step "Abrir samba en el firewall" bash -c '
                         sudo firewall-cmd --permanent --add-service=samba
@@ -690,9 +630,7 @@ install_tool() {
             fi
             ;;
         chrome)
-            # Google Chrome via el .rpm oficial de Google. Ese paquete deja el
-            # repo de Google configurado solo, asi que las updates llegan despues
-            # por 'dnf update'. Solo Fedora/dnf (rpm).
+            # El .rpm oficial deja configurado el repo de Google para las updates.
             if [[ "$PKG_MANAGER" != "dnf" ]]; then
                 log "chrome: cableado solo para Fedora/dnf (.rpm) — instalar manual en esta distro" "WARN"
                 WARNINGS+=("chrome no instalado — distro no soportada por el bootstrap")
@@ -703,9 +641,7 @@ install_tool() {
             fi
             ;;
         firefox)
-            # Firefox de los repos (RPM en Fedora, suele venir preinstalado). Las
-            # web apps (Taskbar Tabs) no funcionan en el Snap que usa Ubuntu, asi
-            # que apt queda afuera: instalar el .deb/tar de Mozilla a mano.
+            # Las web apps no funcionan en el Snap de Ubuntu: apt queda afuera.
             if [[ "$PKG_MANAGER" == "apt" ]]; then
                 log "firefox: en apt instala Snap (sin web apps) — instalar manual desde Mozilla" "WARN"
                 WARNINGS+=("firefox no instalado — en apt el paquete es Snap; instalar el de Mozilla a mano")
@@ -714,10 +650,7 @@ install_tool() {
             fi
             ;;
         onlyoffice)
-            # OnlyOffice Desktop Editors via el .rpm oficial (mismo patron que
-            # chrome): dnf instalado desde la URL directa resuelve las deps
-            # (fuentes, gtk3, etc.) contra los repos base. No agrega repo propio,
-            # a diferencia del .rpm de Chrome. Solo Fedora/dnf (rpm).
+            # .rpm oficial desde la URL directa; no agrega repo propio.
             if [[ "$PKG_MANAGER" != "dnf" ]]; then
                 log "onlyoffice: cableado solo para Fedora/dnf (.rpm) — instalar manual en esta distro" "WARN"
                 WARNINGS+=("onlyoffice no instalado — distro no soportada por el bootstrap")
@@ -728,10 +661,7 @@ install_tool() {
             fi
             ;;
         openlogi)
-            # Config de mouse Logitech MX por HID++ (alternativa nativa a Options+).
-            # No esta en repos: se baja el .rpm firmado del release oficial. Trae
-            # reglas udev (acceso sin sudo a /dev/hidraw*) y un servicio de usuario
-            # (openlogi-agent) que hay que habilitar. Solo Fedora/dnf (rpm).
+            # .rpm del release oficial; trae reglas udev y un servicio de usuario a habilitar.
             if [[ "$PKG_MANAGER" != "dnf" ]]; then
                 log "openlogi: cableado solo para Fedora/dnf (.rpm) — instalar manual en esta distro" "WARN"
                 WARNINGS+=("openlogi no instalado — distro no soportada por el bootstrap")
@@ -745,20 +675,13 @@ install_tool() {
                     sudo rpm -i --replacepkgs "$tmp/openlogi.rpm"
                     rm -rf "$tmp"
                 '
-                # Servicio de usuario que intercepta los botones HID++
                 run_step "Habilitar openlogi-agent (servicio de usuario)" \
                     systemctl --user enable --now openlogi-agent.service
             fi
             ;;
         remmina)
-            # Cliente RDP/VNC para conectarse a servers Windows. El core no trae
-            # los protocolos: van en paquetes de plugins aparte. Los nombres
-            # difieren por distro (Fedora usa 'plugins' plural; Debian 'plugin'
-            # singular; Arch los reparte entre remmina y freerdp).
-            #   - rdp:    protocolo RDP (el que se usa contra Windows).
-            #   - secret: guarda las credenciales en el keyring de GNOME.
-            # Los perfiles de conexion (host/usuario/pass) NO se versionan aca:
-            # son sensibles y van al vault, igual que las claves SSH.
+            # El core no trae los protocolos: rdp y secret (keyring) van como plugins, con
+            # nombres distintos por distro. Los perfiles de conexion van al vault.
             case "$PKG_MANAGER" in
                 dnf)    run_step "Instalar Remmina + plugins RDP" \
                             $PKG_INSTALL remmina remmina-plugins-rdp remmina-plugins-secret ;;
@@ -771,9 +694,7 @@ install_tool() {
             esac
             ;;
         obsidian)
-            # Notas en Markdown. Sin .rpm oficial mantenido para Fedora (a
-            # diferencia de chrome/onlyoffice/openlogi): se instala via Flatpak
-            # (Flathub), que es portable entre distros.
+            # Sin .rpm oficial para Fedora: Flatpak.
             if ! has_cmd flatpak; then
                 run_step "Instalar flatpak" $PKG_INSTALL flatpak
             fi
@@ -789,11 +710,7 @@ install_tool() {
             fi
             ;;
         vscode)
-            # VS Code via el repo oficial de Microsoft (mismo patron que chrome:
-            # agrega su propio repo, asi que las updates llegan despues por
-            # 'dnf update'). A diferencia de chrome, Microsoft no publica una URL
-            # estable de .rpm "current": el metodo documentado es importar la
-            # clave GPG y declarar el repo yum antes de instalar. Solo Fedora/dnf.
+            # Repo oficial de Microsoft: clave GPG + repo yum, sin URL estable de .rpm.
             if [[ "$PKG_MANAGER" != "dnf" ]]; then
                 log "vscode: cableado solo para Fedora/dnf (repo yum) — instalar manual en esta distro" "WARN"
                 WARNINGS+=("vscode no instalado — distro no soportada por el bootstrap")
@@ -853,8 +770,7 @@ _select_from_csv() {
     fi
 }
 
-# Orden de grupos en el selector. OJO: NO usar 'GROUPS' como nombre — es una
-# variable especial de bash (los grupos del usuario) y se ignora silenciosamente.
+# No llamarlo GROUPS: es una variable especial de bash.
 _GRP_ORDER=(core shell dev cloud fonts apps)
 
 # _grp_of <idx-catalogo> — grupo de una entrada
@@ -1018,7 +934,6 @@ _select_interactive_text() {
         local input
         read -r input < /dev/tty || input="ok"   # EOF -> aceptar lo marcado
 
-        # Enter vacio u "ok" -> confirmar
         if [[ -z "$input" || "$input" == "ok" ]]; then
             break
         fi
@@ -1045,7 +960,6 @@ _select_interactive_text() {
                     printf '    \033[33mEntrada ignorada: %s\033[0m\n' "$tok" > /dev/tty
                     ;;
                 *)
-                    # Numero: toggle de esa fila (1-based)
                     local idx=$((tok - 1))
                     if (( idx >= 0 && idx < n )); then
                         marked[idx]=$((marked[idx] == 1 ? 0 : 1))
@@ -1064,11 +978,10 @@ _select_interactive_text() {
     return 0
 }
 
-# Punto de entrada: resuelve SELECTED_TOOLS segun la prioridad documentada
+# Punto de entrada: resuelve SELECTED_TOOLS.
 select_tools() {
     if [[ -n "$TOOLS_ARG" ]]; then
         _select_from_csv "$TOOLS_ARG"
-        # Al log (no a pantalla): la barra global ya nombra cada herramienta.
         echo "[$(date +%H:%M:%S)][INFO] Herramientas via --tools: ${SELECTED_TOOLS[*]:-(ninguna)}" >> "$LOG_FILE" 2>/dev/null || true
     elif [[ "$ALL_TOOLS" == true || "$DRY_RUN" == true ]]; then
         SELECTED_TOOLS=(); for entry in "${TOOLS_CATALOG[@]}"; do SELECTED_TOOLS+=("${entry%%|*}"); done
@@ -1084,16 +997,11 @@ select_tools() {
     fi
 }
 
-# _ask_default_shell — PREGUNTA (no aplica) el shell por defecto, con un menu de
-# flechas al estilo del selector de herramientas. Guarda la eleccion en la global
-# DEFAULT_SHELL_TARGET (ruta del binario) para que _apply_default_shell la use
-# despues, ya con zsh instalado y .zshrc copiado. Se llama arriba, junto al
-# selector de tools, para juntar todas las decisiones del usuario al arranque.
-# Solo pregunta si zsh se va a tener (instalado o recien seleccionado) y hay tty.
+# _ask_default_shell — pregunta el shell por defecto y lo guarda en DEFAULT_SHELL_TARGET;
+# _apply_default_shell lo aplica despues, con zsh ya instalado.
 DEFAULT_SHELL_TARGET=""
 _ask_default_shell() {
-    # Solo en el flujo interactivo real (igual que la bienvenida y el selector de
-    # tools): con --dry-run/--tools/--all-tools/sin-tty no se pregunta.
+    # Solo en el flujo interactivo.
     [[ -z "$TOOLS_ARG" && "$ALL_TOOLS" == false && "$DRY_RUN" == false ]] || return 0
     # zsh disponible: ya instalado, o elegido en el selector (se instalara en [2/7]).
     local zsh_selected=0 t
@@ -1173,7 +1081,6 @@ welcome_screen() {
     elif has_cmd pacman; then pkg="pacman"; fi
     local vault_ok="✗ sin vault"; [[ -d "$VAULT_DIR" ]] && vault_ok="✓ vault presente"
 
-    # Conteo por grupo (dinamico desde el catalogo)
     local g j c line
     printf '%b' "$C_SECTION" > /dev/tty
     cat > /dev/tty <<'EOF'
@@ -1214,7 +1121,6 @@ EOF
 
 mkdir -p "$LOG_DIR"
 
-# Bienvenida solo en modo interactivo real (no en --dry-run/--tools/--all-tools/sin-tty)
 if [[ -z "$TOOLS_ARG" && "$ALL_TOOLS" == false && "$DRY_RUN" == false ]] \
    && [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
     welcome_screen
@@ -1222,9 +1128,7 @@ fi
 
 banner "bootstrap.sh — Setup de entorno" "$(date '+%Y-%m-%d %H:%M:%S')$([[ "$DRY_RUN" == true ]] && echo '  ·  modo DryRun')"
 
-# ~/.env: si no esta ni en esta maquina ni cifrado en el vault, avisar ANTES de
-# arrancar (caso real: se olvido migrarlo y recien lo noto el paso de AWS, al
-# final). Con tty real se frena con un Enter para dar tiempo a copiarlo.
+# Sin ~/.env local ni cifrado en el vault: avisar antes de arrancar.
 if [[ ! -f "$HOME/.env" && ! -f "$VAULT_ENV_AGE" ]]; then
     printf '  %s⚠ ~/.env con tus tokens: no esta en esta maquina ni en el vault.%s\n' "$C_WARN" "$C_RESET"
     printf '  %s  Si venis de otra maquina, copialo ahora a ~/.env (o alla corre env-save\n' "$C_DIM"
@@ -1249,7 +1153,6 @@ fi
 gb_sub 40 "git $(git --version | cut -d' ' -f3)"
 log "git $(git --version | cut -d' ' -f3) OK" "OK"
 
-# Detectar distro
 if has_cmd apt; then
     PKG_MANAGER="apt"
     PKG_INSTALL="sudo apt install -y"
@@ -1283,10 +1186,8 @@ elif [[ "$PKG_MANAGER" == "none" ]]; then
 else
     # El selector y (en dnf) el sudo del update piden pantalla: pausamos la barra.
     gb_pause
-    # Resuelve que herramientas instalar (--tools / --all-tools / menu / red de seguridad)
     select_tools
-    # Juntamos aca la otra decision del usuario: shell por defecto. Se PREGUNTA
-    # ahora (pegado al selector) pero se APLICA luego en [4/7] con _apply_default_shell.
+    # El shell por defecto se pregunta aca y se aplica en [4/7].
     _ask_default_shell
 
     if [[ ${#SELECTED_TOOLS[@]} -eq 0 ]]; then
@@ -1294,37 +1195,26 @@ else
         log "No se selecciono ninguna herramienta, saltando instalacion" "SKIP"
     else
         if [[ "$DRY_RUN" == false ]]; then
-            # sudo/update: puede pedir contrasena y escupe su salida -> fuera de la barra.
-            # OJO: PKG_UPDATE lleva '|| true' adentro (dnf check-update sale con 100
-            # cuando HAY updates); expandirlo sin comillas pasaria '||' y 'true' como
-            # argumentos literales a dnf, no como operadores. Por eso va via bash -c.
+            # PKG_UPDATE lleva '|| true' adentro: va via bash -c para que sea un operador.
             printf '  %sActualizando fuentes (puede pedir contraseña sudo)...%s\n' "$C_DIM" "$C_RESET"
             bash -c "$PKG_UPDATE" 2>&1 | tail -1 || true
         fi
 
-        # Dependencias base (curl/wget/unzip): varias herramientas las necesitan
-        # para descargarse. Se instalan primero y solo si faltan (no estan en el menu).
         ensure_base_deps
 
-        # Retomamos la barra global ya con el sudo resuelto. Recorre lo seleccionado
-        # actualizando el sub-avance del paso [2/7]. Anti-choclo: lo "ya instalado"
-        # va al log; lo NUEVO scrollea arriba como hito (gb_note). El ruido de dnf/git
-        # de install_tool sale entre medio pero la barra se redibuja despues.
+        # Lo ya instalado va al log; lo nuevo se anota arriba de la barra.
         gb_step 2 "Instalando paquetes"
         local_total=${#SELECTED_TOOLS[@]}
         _done=0 _already=0 _new=0
         for _tool_id in "${SELECTED_TOOLS[@]}"; do
-            # OJO: _done=$((...)) y no ((_done++)) — con 'set -e', ((x++)) devuelve
-            # exit 1 cuando x vale 0 y abortaria el script.
+            # No ((_done++)): con set -e devuelve 1 cuando vale 0 y aborta.
             _done=$((_done + 1))
             gb_sub $(( _done * 100 / local_total )) "$_tool_id"
             if tool_installed "$_tool_id"; then
-                # Ya presente: al log, no a pantalla.
                 echo "[$(date +%H:%M:%S)][SKIP] $_tool_id ya instalado" >> "$LOG_FILE" 2>/dev/null || true
                 _already=$((_already + 1))
             else
-                # install_tool puede escupir salida propia (dnf/curl): pausamos la
-                # barra para no descuadrarla, instalamos, y la barra vuelve sola.
+                # install_tool imprime salida propia: se pausa la barra.
                 gb_pause
                 install_tool "$_tool_id"
                 _new=$((_new + 1))
@@ -1350,12 +1240,7 @@ DIRS=(
     "$HOME/.cache"
     "$HOME/.ssh"
 )
-# Carpetas de configuracion de una herramienta puntual: solo si se la quiere.
-# Sin el gate quedaba un ~/.config/lazygit vacio en el home de quien nunca
-# eligio lazygit (mismo criterio que las configs del paso [4/7]).
-# Va como if y no como 'want_tool x && DIRS+=(...)': con set -e la forma corta
-# no aborta (el && no es el ultimo comando) pero deja $? en 1, y eso envenena
-# cualquier chequeo posterior de rc.
+# Como 'if': 'want_tool x && ...' deja $? en 1 y envenena chequeos posteriores.
 if want_tool lazygit; then
     DIRS+=("$HOME/.config/lazygit")
 fi
@@ -1363,8 +1248,6 @@ fi
 for _c in personal work cei_walle; do DIRS+=("$HOME/repositorios/$_c"); done
 unset _c
 
-# La barra global avanza por carpeta; abajo se ve que hace (crear/validar).
-# El "ya existe" va al log; solo se cuentan. Fallos se muestran (gb_note vía log).
 _dirs_new=0 _dirs_had=0
 _dirs_total=${#DIRS[@]}; _dirs_i=0
 for dir in "${DIRS[@]}"; do
@@ -1380,8 +1263,7 @@ for dir in "${DIRS[@]}"; do
     fi
 done
 unset _dirs_total _dirs_i
-# Permisos seguros (.ssh 700, .env 600): exito garantizado -> al log. El fallo,
-# como siempre en run_step, se muestra en pantalla igual.
+# Permisos de .ssh y .env, en silencio.
 _QUIET_STEPS=1
 run_step "Permisos ~/.ssh" chmod 700 "$HOME/.ssh"
 if [[ -f "$HOME/.env" ]]; then
@@ -1391,7 +1273,6 @@ _QUIET_STEPS=0
 
 log "${_dirs_new} carpetas creadas · ${_dirs_had} ya existían · permisos aplicados" "OK"
 
-# Advertencia de .env (fuera del modo silencioso: es un aviso, no un paso exitoso)
 if [[ ! -f "$HOME/.env" && -f "$VAULT_ENV_AGE" ]]; then
     log "~/.env no existe — se restaura desde el vault (env/env.age) con las claves SSH" "INFO"
 elif [[ ! -f "$HOME/.env" ]]; then
@@ -1427,10 +1308,8 @@ copy_dotfile() {
     [[ -d "$dst_dir" ]] || mkdir -p "$dst_dir"
 
     if [[ "$mode" == "link" ]]; then
-        # OJO: el rm debe respetar --dry-run. Si se borra aca pero el ln se
-        # saltea por DryRun, el symlink desaparece sin recrearse (rompe ~/.bashrc).
+        # El rm respeta --dry-run: si no, el symlink se borra sin recrearse.
         if [[ "$DRY_RUN" == true ]]; then
-            # Respeta el modo silencioso (paso [4/7] colapsado): al log, no a pantalla.
             if [[ "$_QUIET_STEPS" == 1 ]]; then
                 echo "[$(date +%H:%M:%S)][SKIP] [DryRun] Symlink $1 → $dst" >> "$LOG_FILE" 2>/dev/null || true
                 _QUIET_OK=$((_QUIET_OK + 1))
@@ -1446,10 +1325,8 @@ copy_dotfile() {
     fi
 }
 
-# link_dir <src-relativo> <dst> — symlink de DIRECTORIO completo (copy_dotfile
-# solo maneja archivos). Idempotente: si ya apunta al repo, no hace nada. Si el
-# destino es un directorio real, se borra antes de linkear (sin backup: el
-# repo es el historial).
+# link_dir <src-relativo> <dst> — symlink de directorio, idempotente. Un directorio
+# real en el destino se reemplaza.
 link_dir() {
     local src="$1" dst="$2"
     [[ "$src" == /* ]] || src="$REPO_ROOT/$src"
@@ -1468,13 +1345,11 @@ link_dir() {
         fi
         return
     fi
-    # Ya apunta al lugar correcto: contar y seguir (al log, no a pantalla).
     if [[ -L "$dst" && "$(readlink -f "$dst" 2>/dev/null)" == "$(readlink -f "$src")" ]]; then
         echo "[$(date +%H:%M:%S)][SKIP] $dst ya apunta a $src" >> "$LOG_FILE" 2>/dev/null || true
         [[ "$_QUIET_STEPS" == 1 ]] && _QUIET_OK=$((_QUIET_OK + 1))
         return
     fi
-    # Directorio real preexistente: se reemplaza por el symlink (sin backup).
     if [[ -d "$dst" && ! -L "$dst" ]]; then
         run_step "Quitar $dst (se reemplaza por symlink)" rm -rf "$dst"
     fi
@@ -1483,26 +1358,20 @@ link_dir() {
     run_step "Symlink dir $1 → $dst" ln -s "$src" "$dst"
 }
 
-# Colapsar el ruido: los symlinks/copias van al log; solo se muestra un resumen
-# (y cualquier fallo). Se desactiva antes de las claves SSH (que piden passphrase).
+# Symlinks y copias van al log; se muestra solo un resumen y los fallos.
 _QUIET_STEPS=1; _QUIET_OK=0
 
 gb_sub 15 "symlinks de shell y git"
-# Shell (symlinks: editar en el repo se ve al instante)
-# bash es el shell base de cualquier Linux: su config va siempre.
 copy_dotfile "shell/bashrc"         "$HOME/.bashrc"        "link"
 copy_dotfile "shell/bash_profile"   "$HOME/.bash_profile"  "link"
-# zsh solo si el usuario lo tiene o lo eligio: sin zsh instalado estos symlinks
-# son huerfanos (nadie los lee) y ensucian el home de quien nunca pidio zsh.
 if want_tool zsh; then
     copy_dotfile "shell/zshrc"      "$HOME/.zshrc"         "link"
     copy_dotfile "shell/zprofile"   "$HOME/.zprofile"      "link"
 fi
 
-# Git ignore (publico)
 copy_dotfile "git/ignore"           "$HOME/.config/git/ignore"    "link"
 
-# Git config principal + identidades (vault privado): contiene namespaces y emails
+# Git config e identidades (vault).
 if [[ -d "$VAULT_DIR/git" ]]; then
     copy_dotfile "$VAULT_DIR/git/config"           "$HOME/.gitconfig"            "link"
     for _s in personal work cei_walle; do
@@ -1528,18 +1397,14 @@ else
     WARNINGS+=("~/.ssh/config no aplicado — sin vault")
 fi
 
-# rclone.conf (vault privado): contiene el token de iCloud Drive.
-# Se COPIA (no symlink) porque rclone reescribe el archivo al refrescar el
-# token de Apple, y un symlink ensuciaria el working tree del vault. El token
-# 2FA caduca cada tanto: si rclone pide reautenticar, corre 'rclone config'
-# y luego 'cp ~/.config/rclone/rclone.conf <vault>/rclone/' para reversionarlo.
+# Se copia: rclone reescribe el archivo al refrescar el token. Si pide reautenticar,
+# correr 'rclone config' y copiar el resultado de vuelta al vault.
 if [[ -f "$VAULT_DIR/rclone/rclone.conf" ]]; then
     copy_dotfile "$VAULT_DIR/rclone/rclone.conf"  "$HOME/.config/rclone/rclone.conf"
     run_step "Permisos ~/.config/rclone/rclone.conf" chmod 600 "$HOME/.config/rclone/rclone.conf"
 fi
 
-# Pausa del modo silencioso para las claves SSH (piden passphrase, deben verse).
-# Se reactiva después para la segunda tanda; el resumen total va al cierre del paso.
+# Las claves SSH piden passphrase: fuera del modo silencioso.
 _QUIET_STEPS=0
 
 gb_sub 40 "claves SSH"
@@ -1548,15 +1413,12 @@ SSH_KEYS_DIR="$VAULT_DIR/ssh/keys"
 SSH_KEYS_OK=0
 if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
     if [[ "$DRY_RUN" == true ]]; then
-        # En dry-run NO pedir passphrase (era un efecto secundario real): solo simular.
+        # En dry-run no se pide passphrase.
         for age_file in "$SSH_KEYS_DIR"/*.age; do
             log "[DryRun] Desencriptar $(basename "$age_file" .age) → ~/.ssh/" "SKIP"
         done
     elif has_cmd age; then
-        # Optimizacion + anti-choclo: si TODAS las claves privadas ya existen, ni
-        # tocamos age. Si falta alguna, age pide la passphrase POR CADA UNA (age
-        # siempre lee del /dev/tty, ignora stdin/pipe — no se puede pasar por
-        # variable). Los "ya existe" van al log; en pantalla solo un resumen.
+        # Si no falta ninguna clave privada no se invoca age.
         _keys_missing=0 _keys_new=0
         for age_file in "$SSH_KEYS_DIR"/*.age; do
             [[ -f "$HOME/.ssh/$(basename "$age_file" .age)" ]] || _keys_missing=$((_keys_missing + 1))
@@ -1568,10 +1430,7 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
                 SSH_KEYS_OK=$((SSH_KEYS_OK + 1))
             done
         else
-            # Interaccion: pausar la barra para que age pida la passphrase (por su
-            # cuenta, en el tty) sin descuadre. age NO acepta la passphrase por
-            # pipe/variable — la lee siempre de /dev/tty — asi que la pide una vez
-            # POR CADA clave faltante. Normalmente falta 0-1, no molesta.
+            # age lee la passphrase de /dev/tty, una vez por clave faltante.
             gb_pause
             printf '  %sDesencriptando claves SSH que faltan (%d)...%s\n' "$C_DIM" "$_keys_missing" "$C_RESET"
             for age_file in "$SSH_KEYS_DIR"/*.age; do
@@ -1592,7 +1451,7 @@ if [[ -d "$SSH_KEYS_DIR" ]] && ls "$SSH_KEYS_DIR"/*.age &>/dev/null; then
             done
         fi
 
-        # Copiar claves publicas (silencioso: al log, solo cuenta)
+        # Claves publicas.
         for pub_file in "$SSH_KEYS_DIR"/*.pub; do
             [[ -f "$pub_file" ]] || continue
             dst_pub="$HOME/.ssh/$(basename "$pub_file")"
@@ -1611,9 +1470,7 @@ else
     log "No hay claves .age en ssh/keys/, saltando" "SKIP"
 fi
 
-# ~/.env (cifrado con age en el vault: env/env.age, lo sube env-save). Solo se
-# restaura si FALTA: nunca pisa un ~/.env local, que puede tener tokens mas
-# nuevos que el vault.
+# ~/.env solo se restaura si falta: el local puede tener tokens mas nuevos.
 if [[ ! -f "$VAULT_ENV_AGE" ]]; then
     echo "[$(date +%H:%M:%S)][SKIP] No hay env/env.age en el vault" >> "$LOG_FILE" 2>/dev/null || true
 elif [[ -f "$HOME/.env" ]]; then
@@ -1634,12 +1491,8 @@ else
     fi
 fi
 
-# Boveda de Obsidian: es un repo PRIVADO del usuario (no de este repo), asi que la
-# URL no se versiona aca: sale de OBSIDIAN_REPO en ~/.env (con el alias SSH del
-# perfil, p. ej. git@github.com-<perfil>:<ns>/obsidian.git). Se clona en
-# ~/obsidian (OBSIDIAN_DIR la cambia) solo si Obsidian esta elegido/instalado, la
-# variable existe y la carpeta no existe todavia. Va despues de las claves SSH. La
-# identidad git sale sola de la URL (includeIf hasconfig del vault).
+# Boveda de Obsidian: repo privado cuya URL sale de OBSIDIAN_REPO en ~/.env.
+# Se clona en ~/obsidian (OBSIDIAN_DIR) si no existe; va despues de las claves SSH.
 if want_tool obsidian; then
     _obs_repo="${OBSIDIAN_REPO:-}"
     if [[ -z "$_obs_repo" && -f "$HOME/.env" ]]; then
@@ -1660,36 +1513,23 @@ if want_tool obsidian; then
     fi
 fi
 
-# Segunda tanda de symlinks/configs simples: también al log (modo silencioso).
-# Se reactiva aca (se habia apagado para las claves SSH) y se cierra al final del
-# paso, sumando al mismo contador _QUIET_OK para el resumen.
+# Segunda tanda en modo silencioso.
 _QUIET_STEPS=1
 gb_sub 60 "configs de apps"
 
-# Editorconfig
 copy_dotfile ".editorconfig"        "$HOME/.editorconfig"        "link"
 
-# Neovim: la config completa (kickstart + plugins) vive versionada en nvim/.
-# Symlink de DIRECTORIO: ~/.config/nvim → <repo>/nvim, asi lazy.nvim escribe el
-# lazy-lock.json directo en el repo y cualquier ajuste se versiona al instante.
-# Gateado: sin esto, quien no eligio neovim se llevaba ~/.config/nvim apuntando
-# aca, y el dia que instalara nvim arrancaba con ESTA config en vez de la propia.
+# Symlink de directorio: lazy.nvim escribe lazy-lock.json directo en el repo.
 if want_tool neovim; then
     link_dir "nvim" "$HOME/.config/nvim"
 fi
 
-# yazi (file manager TUI): config en ~/.config/yazi (en Windows va a %APPDATA%,
-# ver bootstrap.ps1). Symlink: editar en el repo se versiona al instante. Solo
-# si yazi esta instalado (evita crear un symlink huerfano en maquinas sin yazi).
 if want_tool yazi; then
     copy_dotfile "yazi/yazi.toml"   "$HOME/.config/yazi/yazi.toml"  "link"
 fi
 
-# Firefox: la config de privacidad vive en firefox/ (user.js por perfil, excepciones
-# de cookies, zoom y el .desktop que fija el perfil). No es un copy_dotfile: los
-# perfiles tienen carpetas aleatorias y hay que resolverlos por nombre, asi que lo
-# hace firefox/aplicar-perfiles.sh. Sale 3 cuando algo quedo sin aplicar (perfil
-# sin crear, Firefox abierto): es una advertencia, no un fallo.
+# Los perfiles tienen carpetas aleatorias: los resuelve firefox/aplicar-perfiles.sh.
+# Sale 3 si algo quedo sin aplicar (advertencia, no fallo).
 if want_tool firefox; then
     _ff_args=()
     if [[ "$DRY_RUN" == true ]]; then _ff_args=(--dry-run); fi
@@ -1714,35 +1554,21 @@ if want_tool firefox; then
     unset _ff_args _ff_rc _ff_out _ff_linea
 fi
 
-# Fontconfig: fuerza los emoji a color en Chrome/Chromium. Chrome en Linux NO usa
-# el alias generico "emoji" de fontconfig; hace un match por cobertura de glifo,
-# donde Symbola y Noto Emoji (monocromaticas) ganan y los emoji salen en B/N.
-# El fonts.conf las desprioriza para que gane Noto Color Emoji. Symlink: editarlo
-# en el repo se versiona al instante.
-# Gateado por Chrome/Chromium: es una preferencia de fuentes de TODO el sistema
-# (con rejectfont adentro), no algo que corresponda imponerle a quien no tiene
-# el navegador cuyo bug arregla.
+# Fuerza los emoji a color en Chrome (ver .claude/rules/fontconfig.md). Solo con
+# Chrome/Chromium: es una preferencia de fuentes de todo el sistema.
 if want_tool chrome || has_cmd chromium; then
     copy_dotfile "fontconfig/fonts.conf"  "$HOME/.config/fontconfig/fonts.conf"  "link"
 fi
 
-# Claude Code: settings.json va por symlink (editarlo en el repo o via /config se
-# versiona al instante; un '/model' tambien escribe a traves del symlink: revisar el
-# diff antes de commitear). settings.local.json es por-maquina y no se toca;
-# statusline.sh no se copia, el settings.json lo referencia desde el repo. Gateado por
-# want_tool (ver la nota de CLAUDE.md abajo).
+# settings.json por symlink (un /model tambien escribe ahi: revisar el diff).
+# settings.local.json es por maquina; statusline.sh se referencia desde el repo.
 if want_tool claude; then
     copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
-    # CLAUDE.md global: reglas para TODOS los proyectos (commits, etc). Symlink para
-    # que sea portable en cada instalacion. Las reglas del repo dotfiles viven en el AGENTS.md de la raiz.
+    # Reglas globales para todos los proyectos.
     copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
-    # Subagentes propios (equipo estandar): carpeta entera, para que agregar uno
-    # sea crear un archivo en el repo.
     link_dir ".claude/agents"                    "$HOME/.claude/agents"
 fi
-# El MISMO archivo rige para los otros agentes de IA: Codex y opencode leen
-# AGENTS.md (en ~/.codex y ~/.config/opencode). Fuente unica: editar el
-# CLAUDE.md global es editar las reglas de todos. Solo si el CLI esta instalado.
+# Codex y opencode leen el mismo archivo como AGENTS.md.
 if want_tool codex; then
     copy_dotfile ".claude/CLAUDE.md"         "$HOME/.codex/AGENTS.md"       "link"
 fi
@@ -1750,8 +1576,6 @@ if want_tool opencode; then
     copy_dotfile ".claude/CLAUDE.md"         "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md"  "link"
 fi
 
-# Tema oh-my-posh claude-code — solo si oh-my-posh se tiene o se eligio (es el
-# unico que lee ~/.config/oh-my-posh/themes; sin el es un archivo muerto).
 _omp_themes_dst="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes"
 _omp_src="$REPO_ROOT/shell/themes/claude-code.omp.json"
 if [[ -f "$_omp_src" ]] && want_tool oh-my-posh; then
@@ -1761,47 +1585,30 @@ if [[ -f "$_omp_src" ]] && want_tool oh-my-posh; then
 fi
 unset _omp_themes_dst _omp_src
 
-# Ulauncher (lanzador estilo Spotlight) — solo si esta instalado.
-# settings.json y shortcuts.json van por symlink: editarlos por la GUI se
-# versiona al instante (mismo criterio que .claude/settings.json).
-# El atajo Ctrl+Space NO se cablea aca: vive en gnome/media-keys.dconf y lo
-# aplica el bloque de GNOME (dconf load). En Wayland el hotkey interno de
-# Ulauncher no funciona, por eso lo dispara un atajo de GNOME -> ulauncher-toggle.
-# El autostart se copia (no symlink) a ~/.config/autostart: GNOME reescribe ese
-# .desktop si se togglea desde la GUI de "Aplicaciones al inicio".
+# Ulauncher: settings y shortcuts por symlink. El atajo vive en gnome/media-keys.dconf.
+# El autostart se copia: GNOME reescribe ese .desktop.
 if want_tool ulauncher; then
     copy_dotfile "ulauncher/settings.json"   "$HOME/.config/ulauncher/settings.json"   "link"
     copy_dotfile "ulauncher/shortcuts.json"  "$HOME/.config/ulauncher/shortcuts.json"  "link"
     copy_dotfile "ulauncher/autostart.desktop" "$HOME/.config/autostart/ulauncher.desktop"
-    # Temas Liquid Glass vendorizados: sin este symlink, el theme-name de
-    # settings.json apunta a un tema inexistente y Ulauncher cae al default.
+    # Sin este symlink el theme-name apunta a un tema inexistente.
     link_dir "ulauncher/user-themes" "$HOME/.config/ulauncher/user-themes"
 fi
 
-# OpenLogi (config del mouse Logitech MX) — solo si esta instalado. El config.toml
-# va por symlink: editarlo por la GUI se versiona al instante. OJO: el archivo
-# tiene el serial del mouse y el unit_id del receptor incrustados en las claves,
-# asi que es best-effort (sirve con el mismo mouse; si cambia, OpenLogi regenera).
+# El config.toml lleva el serial del mouse: sirve solo con el mismo mouse.
 if want_tool openlogi; then
     copy_dotfile "openlogi/config.toml" "$HOME/.config/openlogi/config.toml" "link"
 fi
 
-# VS Code — NO se symlinkea ~/.config/Code/User/settings.json: con Settings Sync, la
-# primera sincronizacion en una maquina nueva pisa el archivo con el perfil synced,
-# de-symlinkea el destino y puede meter datos privados (paso: trajo credenciales de un
-# server interno). Las 2 claves de telemetria (vscode/settings.json) se setean a mano
-# UNA vez y Settings Sync las propaga; no van a ignoredSettings porque quedarian
-# prendidas en las demas maquinas.
+# No se symlinkea settings.json: Settings Sync pisa el archivo y puede traer datos
+# privados. Las claves de telemetria se setean a mano una vez.
 if want_tool vscode; then
     log "  VS Code: aplica a mano las 2 claves de telemetria (ver vscode/settings.json); con Settings Sync activo se propagan solas al resto de tus maquinas" "INFO"
     WARNINGS+=("VS Code: telemetria no se symlinkea (choca con Settings Sync) — aplicar vscode/settings.json a mano")
 fi
 
-# Google Chrome — deduplicar "Web" en Ajustes > Aplicaciones predeterminadas y el "Abrir
-# con" de Nautilus: el .rpm instala dos .desktop con x-scheme-handler/http(s) y GNOME
-# ignora NoDisplay. Se crea un override local de com.google.Chrome.desktop sin
-# scheme-handlers y con Hidden=true (ese si se respeta) en ~/.local/share/applications.
-# Detalle: docs/notas-tecnicas.md. Si Google unifica los .desktop, se borra el override.
+# Chrome instala dos .desktop con scheme-handlers y aparece duplicado en "Web".
+# Override local sin scheme-handlers y con Hidden=true (.claude/rules/chrome-predeterminado.md).
 _chrome_sys_desktop="/usr/share/applications/com.google.Chrome.desktop"
 _chrome_override="$HOME/.local/share/applications/com.google.Chrome.desktop"
 if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys_desktop" ]]; then
@@ -1819,11 +1626,7 @@ if has_cmd rpm && rpm -q google-chrome-stable &>/dev/null && [[ -f "$_chrome_sys
 fi
 unset _chrome_sys_desktop _chrome_override
 
-# Google Maps — mismo patron: kf6-kguiaddons (dependencia transitiva de KDE)
-# instala google-maps-geo-handler.desktop (NoDisplay, solo maneja
-# x-scheme-handler/geo) junto a org.gnome.Maps.desktop, que YA declara ese
-# mismo esquema. Es redundante del todo (Mapas sigue abriendo enlaces geo: sin
-# el), asi que el override es directo: copia + Hidden=true, sin tocar mimetypes.
+# Mismo caso: google-maps-geo-handler.desktop duplica a org.gnome.Maps. Override con Hidden=true.
 _maps_sys_desktop="/usr/share/applications/google-maps-geo-handler.desktop"
 _maps_override="$HOME/.local/share/applications/google-maps-geo-handler.desktop"
 if [[ -f "$_maps_sys_desktop" ]]; then
@@ -1840,10 +1643,7 @@ if [[ -f "$_maps_sys_desktop" ]]; then
 fi
 unset _maps_sys_desktop _maps_override
 
-# Ptyxis — terminal por defecto en Fedora. La config vive en dconf (no en un
-# archivo), asi que no se puede symlinkear: se restaura con 'dconf load'. Cuenta
-# dentro del modo silencioso (aun activo): un dconf load mas hacia el resumen.
-# El dump versionado se actualiza con el helper 'ptyxis-save' (ver bashrc).
+# La config de Ptyxis vive en dconf: se restaura con 'dconf load' (ptyxis-save la vuelca).
 _ptyxis_dump="$REPO_ROOT/terminal/ptyxis.dconf"
 if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
     run_step "Restaurar config de Ptyxis (dconf load)" \
@@ -1851,14 +1651,8 @@ if has_cmd ptyxis && has_cmd dconf && [[ -f "$_ptyxis_dump" ]]; then
 fi
 unset _ptyxis_dump
 
-# Ptyxis — override del .desktop para que los lanzadores abran VENTANA NUEVA.
-# El .desktop del sistema trae 'Exec=ptyxis' + DBusActivatable=true: eso no crea
-# ventana, manda 'activate' a la instancia viva y esa presenta su ventana YA
-# abierta. Si esa ventana esta en otro escritorio, GNOME (prevencion de robo de
-# foco) no cambia de workspace y solo notifica «Terminal esta preparada», asi que
-# desde Ulauncher/menu parece que no abre nada. El override fuerza
-# '--new-window' y quita DBusActivatable (con activacion D-Bus el Exec se
-# ignora). El atajo de teclado se arregla aparte, en gnome/media-keys.dconf.
+# Override del .desktop con --new-window y sin DBusActivatable: el del sistema solo
+# activa la ventana ya abierta (docs/notas-tecnicas.md).
 _ptyxis_sys_desktop="/usr/share/applications/org.gnome.Ptyxis.desktop"
 _ptyxis_override="$HOME/.local/share/applications/org.gnome.Ptyxis.desktop"
 if has_cmd ptyxis && [[ -f "$_ptyxis_sys_desktop" ]]; then
@@ -1875,16 +1669,11 @@ if has_cmd ptyxis && [[ -f "$_ptyxis_sys_desktop" ]]; then
 fi
 unset _ptyxis_sys_desktop _ptyxis_override
 
-# Cierre del modo silencioso del paso [4/7]: resumen total de symlinks/configs.
-# Lo que sigue (shell por defecto / GNOME) tiene su propia salida.
 _QUIET_STEPS=0
 gb_sub 75 "configs aplicadas"
 log "${_QUIET_OK} archivos aplicados (symlinks/configs/dconf)   (detalle en el log)" "INFO"
 
-# El shell por defecto (bash/zsh) se PREGUNTA arriba, junto al selector de
-# herramientas (ver _ask_default_shell mas abajo, llamado en [2/7]), y se APLICA
-# aca en silencio: para entonces zsh ya esta instalado y su .zshrc copiado. Asi
-# el usuario toma todas las decisiones al arranque y el resto corre solo.
+# Aplica el shell elegido en _ask_default_shell.
 _apply_default_shell() {
     [[ -n "${DEFAULT_SHELL_TARGET:-}" ]] || return 0   # no se eligio nada
     has_cmd chsh || { log "chsh no disponible — shell por defecto sin cambios" "SKIP"; return 0; }
@@ -1900,7 +1689,6 @@ _apply_default_shell() {
         return 0
     fi
     if chsh -s "$DEFAULT_SHELL_TARGET"; then
-        # Hito notable: scrollea arriba de la barra.
         gb_note "$C_OK" "$I_OK" "shell por defecto → $(basename "$DEFAULT_SHELL_TARGET") (efectivo al reloguear)"
     else
         log "No se pudo cambiar el shell (chsh fallo)" "WARN"
@@ -1909,14 +1697,8 @@ _apply_default_shell() {
 }
 _apply_default_shell
 
-# GNOME — atajos, dock, extensiones y favoritos (solo si corre GNOME).
-# Las extensiones de Fedora vienen como paquetes; primero se instalan, despues
-# se aplican los dumps versionados. La config se actualiza con 'gnome-save'.
+# GNOME: se instalan las extensiones y despues se cargan los dumps (gnome-save los vuelca).
 if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
-    # Todo este bloque se colapsa: instalar extensiones + cargar los dumps dconf es
-    # ruidoso (hasta ~10 lineas) y siempre exitoso. Va al log con barra de progreso;
-    # solo se muestra una linea de resumen (y cualquier fallo, que run_step siempre
-    # imprime). Mismo patron que [2/7] y las validaciones de [6/7].
     _QUIET_STEPS=1; _QUIET_OK=0
     _gnome_ext_new=0
 
@@ -1948,13 +1730,11 @@ if has_cmd dconf && [[ -d "$REPO_ROOT/gnome" ]] && [[ "${XDG_CURRENT_DESKTOP:-}"
         _file="$REPO_ROOT/gnome/${_entry##*:}"
         _gnome_i=$((_gnome_i + 1))
         [[ -f "$_file" ]] || continue
-        # Tramo final del paso [4/7]: de 75% a 100% repartido entre los dconf de GNOME.
         gb_sub $(( 75 + _gnome_i * 25 / _gnome_total )) "GNOME: ${_entry##*:}"
         run_step "Restaurar GNOME: ${_entry##*:}" \
             bash -c "dconf load '$_path' < '$_file'"
     done
     _QUIET_STEPS=0
-    # Resumen al log (con barra activa no se imprime; queda la traza).
     if (( _gnome_ext_new > 0 )); then
         log "GNOME restaurado: ${_gnome_total} ajustes · ${_gnome_ext_new} extensiones nuevas   (detalle en el log)" "INFO"
     else
@@ -1969,9 +1749,7 @@ fi
 
 gb_step 5 "Configuración AWS SSO"
 
-# Si no vino --with-aws pero es una sesion interactiva, preguntar: así el
-# instalador GUÍA (en vez de exigir conocer el flag de antemano). En headless
-# o con el flag ausente y sin tty, se saltea igual que antes.
+# Sin --with-aws y con tty: preguntar.
 if [[ "$WITH_AWS" != true ]] && [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
     gb_pause
     printf '\n  %b▶ Claude Code con Bedrock (AWS SSO)%b\n' "$C_BAR" "$C_RESET" > /dev/tty
@@ -1987,18 +1765,14 @@ if [[ "$WITH_AWS" != true ]]; then
     log "  Podés configurarlo luego con: bootstrap --with-aws" "INFO"
 else
     gb_pause   # el login SSO abre navegador y es interactivo
-    # Datos de la org (cuenta, portal SSO, rol) NO se versionan: son infra
-    # privada. Se leen de ~/.env. Sin ellos no hay nada que preconfigurar.
+    # Los datos de la org son infra privada: se leen de ~/.env.
     [[ -f "$HOME/.env" ]] && { set -a; . "$HOME/.env"; set +a; }
     : "${AWS_SSO_START_URL:=}" "${AWS_SSO_ACCOUNT_ID:=}"
     : "${AWS_SSO_ROLE_NAME:=Bedrock_Access}" "${AWS_SSO_REGION:=us-east-1}"
-    # Nombre del perfil (y de la sso-session) que se escribe en ~/.aws/config. Es
-    # el mismo que consume claude-smg. Cada usuario pone el suyo en ~/.env
-    # (AWS_SSO_PROFILE=elteruel); fallback a CLAUDE_SMG_AWS_PROFILE (compat) y 'default'.
+    # Nombre del perfil y de la sso-session; el mismo que usa claude-smg.
     AWS_SSO_PROFILE="${AWS_SSO_PROFILE:-${CLAUDE_SMG_AWS_PROFILE:-default}}"
 
-    # Faltan datos obligatorios y hay tty -> pedirlos y persistirlos al ~/.env
-    # (así claude-smg y futuras corridas ya los tienen; la org no se versiona).
+    # Faltan datos y hay tty: pedirlos y guardarlos en ~/.env.
     if [[ -z "$AWS_SSO_ACCOUNT_ID" || -z "$AWS_SSO_START_URL" ]] \
        && [[ -e /dev/tty ]] && { : < /dev/tty; } 2>/dev/null; then
         log "Faltan datos de AWS SSO en ~/.env — te los pido ahora" "INFO"
@@ -2017,8 +1791,7 @@ else
 
         # Persistir solo las claves que aún no estén en ~/.env (evita duplicados).
         if [[ -n "$AWS_SSO_START_URL" && -n "$AWS_SSO_ACCOUNT_ID" ]]; then
-            # umask 077 + chmod: el paso 3 (permisos) ya paso; si el archivo
-            # nace aca, quedaba 644 legible por cualquier usuario.
+            # umask 077: si el archivo nace aca no debe quedar legible por otros.
             _env="$HOME/.env"; ( umask 077; touch "$_env" ); chmod 600 "$_env"; _aws_add=""
             grep -q '^AWS_SSO_START_URL='  "$_env" || _aws_add+="AWS_SSO_START_URL=$AWS_SSO_START_URL"$'\n'
             grep -q '^AWS_SSO_ACCOUNT_ID=' "$_env" || _aws_add+="AWS_SSO_ACCOUNT_ID=$AWS_SSO_ACCOUNT_ID"$'\n'
@@ -2034,17 +1807,13 @@ else
     fi
 
     if ! has_cmd aws; then
-        # No es un error raro: 'aws' es opt-in en el selector y puede no haberse
-        # marcado. Avisar como instalarla en vez de reportar "error inesperado".
         log "AWS CLI no instalada (no se marco 'aws' en el selector) — salteo la config SSO" "WARN"
         WARNINGS+=("AWS CLI ausente: corre 'bash bootstrap.sh --tools=aws --with-aws' para instalarla y configurar SSO")
     elif [[ -z "$AWS_SSO_ACCOUNT_ID" || -z "$AWS_SSO_START_URL" ]]; then
         log "Faltan AWS_SSO_START_URL / AWS_SSO_ACCOUNT_ID en ~/.env — salteo preconfig SSO" "WARN"
         WARNINGS+=("AWS SSO sin preconfigurar: defini AWS_SSO_START_URL, AWS_SSO_ACCOUNT_ID (y opcional AWS_SSO_ROLE_NAME) en ~/.env")
     else
-        # Escribo ~/.aws/config con formato sso-session: habilita el flujo PKCE
-        # (login por navegador sin codigo de 6 digitos). 'aws configure set' no
-        # sabe escribir bloques [sso-session], por eso se escribe el archivo.
+        # Se escribe el archivo: 'aws configure set' no sabe crear bloques [sso-session].
         log "Configurando perfil AWS SSO '$AWS_SSO_PROFILE' (formato sso-session/PKCE)..." "INFO"
         mkdir -p "$HOME/.aws"
         # AWS nombra distinto el perfil default ([default]) y los nombrados
@@ -2108,7 +1877,6 @@ AWSCFG
         log "" "INFO"
 
         if [[ "$DRY_RUN" == false ]]; then
-            # Intentar login SSO (abre navegador automáticamente)
             if aws sso login --profile "$AWS_SSO_PROFILE"; then
                 log "AWS SSO login completado exitosamente" "OK"
             else
@@ -2134,11 +1902,7 @@ if [[ -f "$TEST_SCRIPT" ]]; then
     if [[ "$DRY_RUN" == true ]]; then
         log "[DryRun] bash $TEST_SCRIPT" "SKIP"
     else
-        # Anti-choclo: la salida completa (~90 [OK]) va al log. En pantalla solo
-        # el resumen (PASS/FAIL/WARN) y, si hay fallos, las lineas [FAIL].
-        # OJO: el '|| TEST_EXIT=$?' es obligatorio — el test sale con 1 si hay
-        # FAILs y, sin el guard, 'set -e' abortaria el bootstrap ACA mismo,
-        # sin mostrar los fallos ni el resumen final.
+        # La salida completa va al log. El '|| TEST_EXIT=$?' evita que set -e aborte si hay FAILs.
         TEST_EXIT=0
         _test_out="$(bash "$TEST_SCRIPT" 2>&1)" || TEST_EXIT=$?
         printf '%s\n' "$_test_out" >> "$LOG_FILE" 2>/dev/null || true
@@ -2152,7 +1916,6 @@ if [[ -f "$TEST_SCRIPT" ]]; then
             done
             WARNINGS+=("Validaciones post-bootstrap: ${_f} fallo(s) — ver log")
         else
-            # Hito notable: queda escrito arriba de la barra.
             gb_note "$C_OK" "$I_OK" "${_p:-todas} validaciones OK   (detalle en el log)"
         fi
         unset _test_out _p _f
@@ -2165,26 +1928,22 @@ fi
 # 8. RESUMEN FINAL
 # ==============================================================================
 
-# Cierra la barra global al 100% y la limpia: lo que sigue es el resumen final.
 gb_step 7 "Finalizando"
 gb_sub 100 "escribiendo resumen"
 gb_end
 echo "[$(date +%H:%M:%S)] === [7/7] Resumen final ===" >> "$LOG_FILE" 2>/dev/null || true
 
-# Titular segun resultado
 if [[ ${#ERRORS[@]} -eq 0 ]]; then
     printf '  %b%s✓ Bootstrap completado%b\n' "$C_BOLD" "$C_OK" "$C_RESET"
 else
     printf '  %b%s✗ Bootstrap terminó con %d error(es)%b\n' "$C_BOLD" "$C_ERROR" "${#ERRORS[@]}" "$C_RESET"
 fi
 
-# Linea de hitos (lo que efectivamente se hizo)
 printf '\n    %b✓%b %s nuevas   %b✓%b %s configs   %b✓%b %s claves SSH\n' \
     "$C_OK" "$C_RESET" "${_new:-0}" \
     "$C_OK" "$C_RESET" "${_QUIET_OK:-0}" \
     "$C_OK" "$C_RESET" "${SSH_KEYS_OK:-0}"
 
-# Warnings/errores destacados (siempre visibles)
 if [[ ${#WARNINGS[@]} -gt 0 ]]; then
     printf '\n  %b⚠ Advertencias (%d):%b\n' "$C_WARN" "${#WARNINGS[@]}" "$C_RESET"
     for w in "${WARNINGS[@]}"; do printf '    %b·%b %s\n' "$C_WARN" "$C_RESET" "$w"; done

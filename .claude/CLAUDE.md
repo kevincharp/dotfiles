@@ -63,6 +63,9 @@ nunca se crea como carpeta hermana suelta del repo.
   genéricos (`data`, `result`, `handler`).
 - **Dependencias:** preguntar antes de sumar una nueva; si ya hay una que
   resuelve el caso, usar esa.
+- **Dependencias dentro del proyecto:** declaradas en el manifiesto y con el
+  lock commiteado; nunca `npm install -g` ni `pip install` fuera de un entorno
+  virtual para algo que el código importa.
 - **Si un intento falla:** deshacer solo tus cambios, por archivo, antes de
   probar otro enfoque; nunca `git reset`/`checkout` sobre trabajo ajeno sin
   commitear.

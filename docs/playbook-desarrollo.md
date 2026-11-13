@@ -6,7 +6,7 @@ columna **Hoy en Claude Code** y es lo único que se reescribe si cambio de
 herramienta. Equipo y molde de agentes: [`molde-agente.md`](molde-agente.md).
 Cada proyecto lleva su `AGENTS.md`, copiado de
 [`plantilla-agents-proyecto.md`](plantilla-agents-proyecto.md). Los agentes
-(`explorador`, `builder`, `revisor`, `devops`, `seguridad`) están en
+(`explorer`, `builder`, `reviewer`, `devops`, `security`) están en
 `.claude/agents/`; se usan pidiéndole a la sesión que delegue en ellos por
 nombre.
 
@@ -41,7 +41,7 @@ fin de semana.
 - **Quién la escribe:** el glosario y las decisiones salen de la entrevista
   previa a la especificación; el README lo toca el Builder solo si cambia
   cómo se corre o se prueba; la arquitectura y los diagramas, por hito (no por
-  ticket); el Revisor comprueba que la documentación coincida con el código.
+  ticket); el Reviewer comprueba que la documentación coincida con el código.
 - **Diagramas:** uno por flujo importante, no uno por funcionalidad.
 - **Refactor:** solo si algo se repite 3 veces y con los tests en verde, en un
   commit aparte. Nunca mezclado con una funcionalidad.
@@ -77,7 +77,7 @@ limpio, nunca en el que escribió el código.
 | El agente hace cosas que no pedí | Pararlo y repetir el límite: solo lo del ticket | `/simplify` |
 | La sesión se puso larga y confusa | Cerrar y abrir otra con un resumen corto | `/ask-matt` indica cuándo cortar |
 | Antes de cada commit | Simplificar el cambio | `/simplify` |
-| Antes de mergear una rama | Revisión en contexto limpio | `/code-review`, agente `revisor` |
+| Antes de mergear una rama | Revisión en contexto limpio | `/code-review`, agente `reviewer` |
 | Cambio de riesgo (login, pagos, algo expuesto) | Auditoría de seguridad profunda | `claude-security`, `security-audit-skill` |
 | Antes de publicar | Tests en verde y deploy con revisión previa | `all-deploy` |
 | Siento que falta algo para que quede perfecto | Releer la definición de hecho; si se cumple, está terminado | — |
@@ -90,8 +90,8 @@ nueva", "sin refactor".
 | El cambio es… | Pasa por… |
 |---|---|
 | Un botón, texto, estilo | Builder, tests, simplificar, mirarlo en el navegador |
-| Una funcionalidad normal | Lo anterior y Revisor con checklist |
-| Login, pagos, permisos, algo expuesto | Lo anterior y Seguridad |
+| Una funcionalidad normal | Lo anterior y Reviewer con checklist |
+| Login, pagos, permisos, algo expuesto | Lo anterior y Security |
 
 Lo repetible va con código (linter, tests, hooks) antes que con un agente: da
 siempre el mismo resultado. La experiencia de usuario la juzgo yo, con capturas

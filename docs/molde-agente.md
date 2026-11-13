@@ -10,7 +10,7 @@ herramienta es un adaptador fino que copia estos campos (ver al final).
 
 Solo si se cumplen **las dos**:
 
-1. Necesita permisos, herramientas o contexto distintos (p. ej. un revisor que
+1. Necesita permisos, herramientas o contexto distintos (p. ej. un reviewer que
    **no puede editar** y arranca con contexto limpio).
 2. Un error se repitió 3 veces y ni una línea de checklist ni un chequeo
    automático (linter, test, hook) lo habría evitado.
@@ -37,15 +37,15 @@ resumen. Es lo que evita que se pierda información entre agentes.
 
 | Agente | Qué lo distingue | Edita |
 |---|---|---|
-| Orquestador | Conversa conmigo y delega; lee resúmenes, no diffs | No |
-| Explorador | Contexto aparte; investiga y resume | No |
+| Orchestrator | Conversa conmigo y delega; lee resúmenes, no diffs | No |
+| Explorer | Contexto aparte; investiga y resume | No |
 | Builder | Implementa un ticket con TDD | Código |
-| Revisor | Contexto limpio; checklist | No |
+| Reviewer | Contexto limpio; checklist | No |
 | DevOps | Acciones hacia afuera; confirma antes de cada una | Solo infra y deploy |
-| Seguridad | Auditoría profunda, a demanda en cambios de riesgo | No |
-| Documentador (opcional) | Solo `docs/` y `.md`; por hito, no por ticket | Solo documentación |
+| Security | Auditoría profunda, a demanda en cambios de riesgo | No |
+| Documenter (opcional) | Solo `docs/` y `.md`; por hito, no por ticket | Solo documentación |
 
-El Documentador entra únicamente si al cerrar hitos nadie documenta. Mientras
+El Documenter entra únicamente si al cerrar hitos nadie documenta. Mientras
 tanto lo hace el Builder como última tarea del hito.
 
 Frontend y backend **no son agentes**: son secciones del `AGENTS.md` del

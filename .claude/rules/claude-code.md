@@ -27,7 +27,7 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   `.claude/CLAUDE.md` cuenta como `CLAUDE.md` del proyecto y, sin el import,
   Claude Code ignoraría el `AGENTS.md`. No agregarle contenido.
 - `.claude/agents/` → **symlink de carpeta** a `~/.claude/agents/`: subagentes
-  propios (explorador, builder, revisor, devops, seguridad). Agregar uno es
+  propios (explorer, builder, reviewer, devops, security). Agregar uno es
   crear un archivo. Molde, equipo y formato en otras herramientas:
   [`docs/molde-agente.md`](../../docs/molde-agente.md); flujo de uso:
   [`docs/playbook-desarrollo.md`](../../docs/playbook-desarrollo.md); plantilla del

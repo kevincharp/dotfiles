@@ -71,9 +71,9 @@ chocaba con el flujo de tickets. Para diseño web, instalar `taste-skill` o
 `verify_project.py` se pueden rescatar del historial si hacen falta.
 
 `thermos` también se eliminó (2026-11-11): su doble revisión ya la cubren
-`/code-review`, `/simplify` y los agentes `revisor` y `seguridad`; sus dos
+`/code-review`, `/simplify` y los agentes `reviewer` y `security`; sus dos
 criterios propios (archivos de más de 1000 líneas, cambios del entorno local)
-pasaron al checklist del `revisor`. El original sigue en `cursor/plugins`.
+pasaron al checklist del `reviewer`. El original sigue en `cursor/plugins`.
 
 `the-architect` se desinstaló y se quitó su marketplace (`soyenriquerocha`):
 se solapa con `superpowers` y la experiencia de uso fue mala. Sigue en las

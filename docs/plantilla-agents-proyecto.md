@@ -5,7 +5,7 @@ opencode, así que no hay que mantener un archivo por herramienta. Las reglas
 generales (commits, comentarios, secretos) ya viven en el archivo global; este
 lleva solo lo propio del proyecto.
 
-Lo usan sobre todo el Builder y el Revisor ([`molde-agente.md`](molde-agente.md)):
+Lo usan sobre todo el Builder y el Reviewer ([`molde-agente.md`](molde-agente.md)):
 sin los comandos de test, el Builder adivina cómo probar el código.
 
 **Verificado:** Claude Code lee un `AGENTS.md` de proyecto aunque exista el

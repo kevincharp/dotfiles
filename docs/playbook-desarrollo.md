@@ -77,7 +77,8 @@ El ambiente bajo depende de dónde se publica:
 | Vercel o Cloudflare | Preview automático de cada rama, en su propia URL | Al mergear a `main` |
 | Servidor propio (Docker) | Pre fijo: se actualiza solo con cada merge a `main` | Promoviendo a mano la misma imagen ya probada en pre |
 
-En las dos: el CI corre en la rama y bloquea el merge si falla; el preview o pre
+En las dos: el CI (plantillas `git/ci-github.yml` y `git/ci-gitlab.yml`: busca
+secretos, y corre linter, tests y build) bloquea el merge si falla; el preview o pre
 usa su propia base de datos y claves de prueba, nunca las de producción; y
 volver atrás es republicar la versión anterior. Un cambio que lleva semanas se
 mergea por partes, apagado detrás de un interruptor, en vez de dejar la rama

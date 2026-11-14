@@ -97,7 +97,8 @@ más de un ticket en curso a la vez.
   mínimo (qué es, cómo correr, cómo probar): corto y concreto, sin emojis ni
   listas de "características" infladas.
 - Si el proyecto tiene lógica, llevar **tests y un workflow de CI** que los corra
-  desde el primer commit; no darlo por terminado si fallan.
+  desde el primer commit; no darlo por terminado si fallan. El CI parte de la
+  plantilla de dotfiles: `~/.dotfiles/git/ci-github.yml` o `ci-gitlab.yml`.
 
 ## Secretos
 

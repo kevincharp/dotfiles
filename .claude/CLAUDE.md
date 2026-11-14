@@ -27,25 +27,24 @@ crea el bootstrap). Editar acá rige para todos.
 - No commitear archivos ajenos al cambio (stagear por path, no `git add -A` a
   ciegas).
 
-## Worktrees (trabajo en paralelo con varios agentes)
+## Worktrees (tickets en paralelo)
 
 `~/repositorios/<contexto>/` tiene **una entrada por repositorio**: un worktree
-nunca se crea como carpeta hermana suelta del repo.
+nunca se crea como carpeta hermana suelta del repo. Solo hace falta cuando hay
+más de un ticket en curso a la vez.
 
-- **Ruta:** `~/repositorios/<contexto>/<proyecto>-worktrees/<rol>/`, dentro de la
-  misma carpeta de contexto (así sigue aplicando la identidad git). El repo
-  principal queda en `~/repositorios/<contexto>/<proyecto>/`.
-- **Ramas:** `agent/<rol>` por worktree, e `integration` para unir el trabajo.
+- **Uno por ticket:** `~/repositorios/<contexto>/<proyecto>-worktrees/<ticket>/`,
+  en la rama `tipo/descripcion` del ticket y dentro de la misma carpeta de
+  contexto (así sigue aplicando la identidad git). Sin worktrees por
+  especialidad ni rama `integration`.
+- **Se crea al empezar el ticket y se borra al mergearlo** (`git worktree
+  remove`). Arranca sin dependencias: instalarlas desde el lock.
 - **Artefactos** (AppImage, zips, binarios de prueba) en
   `<proyecto>-worktrees/artefactos/`, **nunca en `/tmp`** (es tmpfs: se vacía al
   reiniciar).
 - **Efímeros** (diagnóstico, verificación): prefijo `tmp-` en la misma carpeta, y
   `git worktree remove` al terminar.
-- **No mover un worktree con una sesión de agente abierta adentro**: cerrar todas
-  antes de `git worktree move`. Acertar la ruta al crearlo evita moverlo después.
-- **Mover cuesta caro:** las sesiones de Claude Code se guardan por ruta (el
-  `--continue` pierde las conversaciones) y en proyectos Rust hay que hacer
-  `cargo clean` en el worktree movido (`target/` guarda rutas absolutas).
+- **No mover ni borrar un worktree con una sesión de agente abierta adentro.**
 - **Peso:** cada worktree trae su propio `node_modules` y `target/`. Con muchos
   de Rust, considerar un `CARGO_TARGET_DIR` compartido. Al revisar el proyecto,
   mirar `git worktree list` y los tamaños.

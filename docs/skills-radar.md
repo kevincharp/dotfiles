@@ -84,6 +84,7 @@ sistemática, en vez de ir agregando uno por uno a mano. Sin decidir todavía.
 | Nombre | Funcionalidad | Caso de uso | Estado | Repo |
 |---|---|---|---|---|
 | `context7` | MCP de Upstash, docs actualizadas de librerías | Se preguntó dos veces si instalar, nunca se contestó | 📋 | `github.com/upstash/context7` |
+| `playwright` | MCP de Microsoft: el agente abre un navegador, saca capturas y lee la consola | Proyectos con frontend; lo usa el agente `reviewer`. Sin probar todavía | 📦 | Oficial (`claude-plugins-official`), `github.com/microsoft/playwright-mcp` |
 
 ## Multimedia / Video
 

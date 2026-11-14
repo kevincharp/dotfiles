@@ -80,6 +80,10 @@ más de un ticket en curso a la vez.
 - Crearlos bajo la **carpeta de contexto** que corresponda en `~/repositorios/`
   (la carpeta define qué identidad git aplica). Si el contexto no se deduce del
   pedido, **preguntar antes de crear nada**.
+- **Stack:** primero una entrevista corta (quién lo usa, dónde se publica, si
+  guarda datos, si hay login y de quién); el stack sale de
+  `~/.dotfiles/docs/stacks.md` y, si no encaja, se proponen dos opciones con su
+  motivo. Nada que el usuario no conozca entra sin explicárselo antes.
 - Inicializar con **`ginit <perfil>`** — nunca `git init` pelado: aplica la
   identidad del vault y deja un `.gitignore` base (plantilla
   `git/gitignore-proyecto` de los dotfiles). Al clonar: `gclone <url> [dir]`

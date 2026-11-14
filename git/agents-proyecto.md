@@ -13,6 +13,12 @@
 
 <Lenguaje, framework, base de datos, dónde se publica.>
 
+## Ramas y ambientes
+
+- Ramas: <una rama corta por ticket | directo en `main`>
+- Producción: <dónde corre y qué la actualiza>
+- Ambiente bajo: <preview por rama | pre fijo | no hay>
+
 ## Definición de hecho
 
 1. Cumple los criterios de aceptación del ticket.

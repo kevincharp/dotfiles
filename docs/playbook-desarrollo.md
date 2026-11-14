@@ -59,6 +59,23 @@ fin de semana.
 Una sesión por ticket, no una por proyecto. La revisión siempre en contexto
 limpio, nunca en el que escribió el código.
 
+## Arrancar un proyecto
+
+1. `ginit <perfil>` en la carpeta de contexto que corresponda.
+2. Abrir una sesión y contar la idea.
+3. **Entrevista corta, de a una pregunta, sobre mi situación y no sobre
+   tecnologías:** quién lo usa, dónde se publica, si guarda datos, si hay login
+   y de quién (empresa o personal).
+4. **Stack:** el agente lo elige de [`stacks.md`](stacks.md); si no encaja,
+   propone dos opciones con su motivo y yo elijo. Explica cada pieza que no
+   conozca antes de usarla.
+5. Completar el `AGENTS.md` del proyecto (cómo correr, stack, ramas y ambientes).
+6. Seguir con la especificación y los tickets.
+
+En un proyecto ya iniciado no hay entrevista sobre la idea: el agente lee el
+código, informa el stack que ya tiene y propone cambios sin aplicarlos hasta que
+los apruebe.
+
 ## Ramas y ambientes
 
 Una sola rama de larga vida (*trunk-based*): `main` es producción. Cada ticket

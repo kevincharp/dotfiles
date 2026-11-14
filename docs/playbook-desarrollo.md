@@ -63,8 +63,8 @@ limpio, nunca en el que escribió el código.
 
 Una sola rama de larga vida (*trunk-based*): `main` es producción. Cada ticket
 va en una rama corta `tipo/descripcion` que vuelve a `main` en horas o días. No
-hay rama `dev`: se desincroniza y obliga a mantener dos líneas. Un proyecto
-chico sin deploy va directo en `main`.
+hay rama `dev`: se desincroniza y obliga a mantener dos líneas. Si un proyecto
+se sale de esto, lo dice su `AGENTS.md`.
 
 El ambiente bajo depende de dónde se publica:
 

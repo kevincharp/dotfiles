@@ -1,0 +1,44 @@
+# Base de dotfiles: va en .github/workflows/ci.yml. Completar los <huecos> con
+# los comandos del AGENTS.md del proyecto y borrar esta línea.
+name: CI
+
+"on":
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secretos:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # gitleaks revisa todo el historial
+      - name: Buscar secretos
+        run: >
+          docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.1
+          git /repo --redact --no-banner
+
+  chequeos:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      # <Configurar el lenguaje con su acción oficial, fijada por SHA.>
+      - name: Instalar dependencias desde el lock
+        run: <comando>
+      - name: Linter
+        run: <comando>
+      - name: Tests
+        run: <comando>
+      - name: Build
+        run: <comando>

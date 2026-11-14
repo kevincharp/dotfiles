@@ -1,0 +1,32 @@
+# Base de dotfiles: va en .gitlab-ci.yml. Completar los <huecos> con los
+# comandos del AGENTS.md del proyecto y borrar esta línea.
+stages:
+  - secretos
+  - chequeos
+
+# Corre en cada merge request y en main.
+.cuando:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+secretos:
+  stage: secretos
+  extends: .cuando
+  image:
+    name: ghcr.io/gitleaks/gitleaks:v8.30.1
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: 0 # gitleaks revisa todo el historial
+  script:
+    - gitleaks git --redact --no-banner
+
+chequeos:
+  stage: chequeos
+  extends: .cuando
+  image: <imagen del lenguaje, con versión fija>
+  script:
+    - <instalar dependencias desde el lock>
+    - <linter>
+    - <tests>
+    - <build>

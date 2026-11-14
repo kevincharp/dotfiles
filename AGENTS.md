@@ -10,8 +10,8 @@ enlazado donde aplica.
 ## Reglas del repo
 
 (Commits, push, ramas, idioma y secretos: rigen las reglas del CLAUDE.md
-**global** — commits granulares sin pedir permiso, nunca pushear, sin ramas
-salvo pedido.)
+**global** — commits granulares sin pedir permiso, nunca pushear. Este repo no
+tiene deploy: se commitea directo en `main`.)
 
 **Sin backups:** bootstrap y uninstall no respaldan ni restauran nada. El repo
 (y el vault) es el historial: un archivo o carpeta real en el destino de un

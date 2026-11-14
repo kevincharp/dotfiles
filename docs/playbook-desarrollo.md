@@ -59,6 +59,26 @@ fin de semana.
 Una sesión por ticket, no una por proyecto. La revisión siempre en contexto
 limpio, nunca en el que escribió el código.
 
+## Ramas y ambientes
+
+Una sola rama de larga vida (*trunk-based*): `main` es producción. Cada ticket
+va en una rama corta `tipo/descripcion` que vuelve a `main` en horas o días. No
+hay rama `dev`: se desincroniza y obliga a mantener dos líneas. Un proyecto
+chico sin deploy va directo en `main`.
+
+El ambiente bajo depende de dónde se publica:
+
+| Destino | Ambiente bajo | Cómo llega a producción |
+|---|---|---|
+| Vercel o Cloudflare | Preview automático de cada rama, en su propia URL | Al mergear a `main` |
+| Servidor propio (Docker) | Pre fijo: se actualiza solo con cada merge a `main` | Promoviendo a mano la misma imagen ya probada en pre |
+
+En las dos: el CI corre en la rama y bloquea el merge si falla; el preview o pre
+usa su propia base de datos y claves de prueba, nunca las de producción; y
+volver atrás es republicar la versión anterior. Un cambio que lleva semanas se
+mergea por partes, apagado detrás de un interruptor, en vez de dejar la rama
+abierta.
+
 ## Si pasa X, hago Y
 
 | Si… | Entonces… | Hoy en Claude Code |
@@ -68,7 +88,7 @@ limpio, nunca en el que escribió el código.
 | Es mediano | Especificación → tickets con dependencias → un ticket por vez | `/to-spec`, `/to-tickets`, `/implement` |
 | Tengo un bug mío | Anotarlo como ticket; si es chico, diagnosticarlo ahora | `/triage`, `diagnosing-bugs` |
 | Me llega un bug o pedido de otro | Pasarlo por triage | `/triage` |
-| Quiero una funcionalidad | Ticket primero, nunca directo al código | `/to-tickets` |
+| Quiero una funcionalidad | Ticket primero, nunca directo al código; después su rama | `/to-tickets` |
 | Hay varios tickets y no sé cuál | El que menos bloquea, o el más chico que funcione de punta a punta | — |
 | Se me ocurre una mejora en el medio | Backlog | — |
 | Quiero refactorizar | ¿Se repite 3 veces? Si no, no | `/simplify` |
@@ -77,7 +97,7 @@ limpio, nunca en el que escribió el código.
 | El agente hace cosas que no pedí | Pararlo y repetir el límite: solo lo del ticket | `/simplify` |
 | La sesión se puso larga y confusa | Cerrar y abrir otra con un resumen corto | `/ask-matt` indica cuándo cortar |
 | Antes de cada commit | Simplificar el cambio | `/simplify` |
-| Antes de mergear una rama | Revisión en contexto limpio | `/code-review`, agente `reviewer` |
+| Antes de mergear una rama | CI en verde, probarlo en el preview o en pre, y revisión en contexto limpio | `/code-review`, agente `reviewer` |
 | Cambio de riesgo (login, pagos, algo expuesto) | Auditoría de seguridad profunda | `claude-security`, `security-audit-skill` |
 | Antes de publicar | Tests en verde y deploy con revisión previa | `all-deploy` |
 | Siento que falta algo para que quede perfecto | Releer la definición de hecho; si se cumple, está terminado | — |

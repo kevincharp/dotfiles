@@ -11,7 +11,7 @@
 
 ## Stack
 
-<Lenguaje, framework, base de datos, dónde se publica.>
+<Lenguaje, framework, base de datos, dónde se publica. Partir de `docs/stacks.md` de los dotfiles.>
 
 ## Ramas y ambientes
 

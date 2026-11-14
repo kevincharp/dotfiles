@@ -66,6 +66,10 @@ va en una rama corta `tipo/descripcion` que vuelve a `main` en horas o días. No
 hay rama `dev`: se desincroniza y obliga a mantener dos líneas. Si un proyecto
 se sale de esto, lo dice su `AGENTS.md`.
 
+Dos tickets a la vez van cada uno en su worktree, con un Builder por ticket; el
+worktree se borra al mergear. Conviene elegir tickets que no toquen los mismos
+archivos.
+
 El ambiente bajo depende de dónde se publica:
 
 | Destino | Ambiente bajo | Cómo llega a producción |

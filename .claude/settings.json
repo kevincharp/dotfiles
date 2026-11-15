@@ -91,6 +91,16 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.dotfiles/.claude/hooks/leer-estado.sh"
+          }
+        ]
+      }
     ]
   }
 }

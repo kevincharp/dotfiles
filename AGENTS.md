@@ -18,6 +18,13 @@ tiene deploy: se commitea directo en `main`.)
 symlink se reemplaza sin copia previa. No reintroducir `BACKUP_DIR` ni
 `~/.local/backups/`.
 
+**Docs al día:** si un cambio contradice una regla o una nota
+(`.claude/rules/`, `docs/`), se actualiza en el mismo commit.
+
+**Estado de trabajo:** `STATUS.local.md` (no se commitea) guarda lo pendiente y
+las decisiones vigentes. Leerlo entero al empezar la sesión y reescribirlo al
+cerrarla. El diario es `git log`; no hay changelog aparte.
+
 ## Reglas de `set -e` (bootstrap/install/uninstall)
 
 Los scripts corren con `set -euo pipefail`; tres trampas ya nos mordieron y

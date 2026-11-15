@@ -37,7 +37,7 @@ resumen. Es lo que evita que se pierda información entre agentes.
 
 | Agente | Qué lo distingue | Edita |
 |---|---|---|
-| Orchestrator | Conversa conmigo y delega; lee resúmenes, no diffs | No |
+| Orchestrator | Conversa conmigo y delega; lee resúmenes, no diffs; commitea lo aprobado | No |
 | Explorer | Contexto aparte; investiga y resume | No |
 | Builder | Implementa un ticket con TDD | Código |
 | Reviewer | Contexto limpio; checklist | No |
@@ -58,14 +58,14 @@ distintos y el contexto se llena con las dos cosas.
 - **Se usa:** hay un ticket con criterios de aceptación. **No:** idea sin
   ticket, o refactor que no está en el ticket.
 - **Recibe:** el ticket y las reglas del `AGENTS.md` del proyecto.
-- **Puede:** leer y editar código, correr tests. **No puede:** commitear sin
-  que pase la definición de hecho, tocar `docs/` salvo el README.
+- **Puede:** leer y editar código, correr tests. **No puede:** commitear (lo hace
+  el Orchestrator tras la revisión), tocar `docs/` salvo el README.
 - **Nunca:** agrega lo que no está en el ticket, cambia un test para que pase,
   hace refactor mezclado con funcionalidad, escribe documentación nueva.
 - **Devuelve:** qué cambió (archivos), qué decidió por su cuenta, qué dejó
   fuera. Máximo 10 líneas.
 - **Hecho cuando:** cumple los criterios, los tests pasan, pasó la
-  simplificación y está commiteado.
+  simplificación y el cambio está listo para commitear.
 
 ## Adaptadores por herramienta
 

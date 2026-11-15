@@ -34,6 +34,15 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   `AGENTS.md` de cada proyecto:
   [`docs/plantilla-agents-proyecto.md`](../../docs/plantilla-agents-proyecto.md).
 - `settings.json` → **symlink** (cambios se versionan al instante).
+- `.claude/hooks/` → scripts de hooks, registrados en `settings.json` con
+  `bash ~/.dotfiles/.claude/hooks/<script>`: `bloquear-push.sh` (`PreToolUse` en
+  Bash; frena cualquier `git push`, junto con el `deny` de `permissions`) y
+  `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto).
+  Solo rigen en Claude Code; en Codex y opencode las mismas reglas son texto. En
+  Windows necesitan bash (sin verificar). `skillOverrides` apaga
+  `/auto-mode-setup`: guarda su resultado en `~/.claude/settings.json`, que acá
+  es este archivo versionado y público; `autoMode` no se lee de
+  `settings.local.json` ni del `settings.json` del proyecto.
 - **Los plugins ya viajan solos, gratis:** `/plugin marketplace add` y
   `/plugin install` escriben `extraKnownMarketplaces` y `enabledPlugins` **dentro
   de `settings.json`**, o sea del archivo versionado. Registrar y habilitar un

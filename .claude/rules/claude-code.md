@@ -40,7 +40,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   librerías fuera del proyecto: `npm`/`pnpm -g` y `pip` sin la ruta de un
   entorno virtual en el mismo comando) y
   `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto).
-  Solo rigen en Claude Code; en Codex y opencode las mismas reglas son texto. En
+  `permissions.deny` también incluye `Artifact`: los informes visuales se escriben como
+  archivo local y nunca se publican en claude.ai. Solo rigen en Claude Code; en Codex y opencode las mismas reglas son texto. En
   Windows necesitan bash (sin verificar). `skillOverrides` apaga
   `/auto-mode-setup`: guarda su resultado en `~/.claude/settings.json`, que acá
   es este archivo versionado y público; `autoMode` no se lee de

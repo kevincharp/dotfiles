@@ -47,4 +47,6 @@ proyecto no tiene backend.>
   Backlog). Leerlo entero al empezar la sesión y reescribirlo al cerrarla.
 - `CHANGELOG.local.md`: diario con fecha, lo nuevo arriba (qué se hizo, qué se
   decidió y por qué, qué se descartó). Leer solo las últimas entradas.
+- Las especificaciones y los planes de trabajo van en `*.local.md` (por ejemplo
+  `SPEC.local.md`, `PLAN.local.md`), nunca en `docs/`.
 - Los archivos `*.local.md` no se commitean.

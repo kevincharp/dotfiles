@@ -31,7 +31,7 @@ proyectos nuevos; los ya creados no se tocan.
 
 El `AGENTS.md` se publica con el repo, así que lleva solo lo útil para quien lo
 lee. El estado de trabajo y el diario (`STATUS.local.md`, `CHANGELOG.local.md`,
-con el backlog adentro) son del agente y de quien trabaja con él: el
+con el backlog adentro) y las especificaciones y planes de trabajo son del agente y de quien trabaja con él: el
 `.gitignore` base ignora todo `*.local.md`. La sección "Dónde va cada cosa" de la
 plantilla se lo indica al agente. Nada de eso se crea solo: lo escribe el agente
 la primera vez que lo necesita.

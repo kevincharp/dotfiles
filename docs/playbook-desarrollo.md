@@ -47,6 +47,9 @@ fin de semana.
   commit aparte. Nunca mezclado con una funcionalidad.
 - **Optimización:** solo con una medición que muestre el problema.
 - **Pulido:** máximo 2 rondas por ticket; a la tercera se commitea y se sigue.
+- **Especificaciones y planes de trabajo:** archivos `*.local.md`, descartables;
+  no se commitean ni van a `docs/`. Un proyecto chico no los lleva: si una skill
+  de planificación propone uno, se le dice que no.
 
 ## Flujo según el tamaño
 

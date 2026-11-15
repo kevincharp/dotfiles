@@ -115,6 +115,7 @@ abierta.
 | Se me ocurre una mejora en el medio | Backlog | — |
 | Quiero refactorizar | ¿Se repite 3 veces? Si no, no | `/simplify` |
 | Quiero documentar o diagramar | ¿Entra en el presupuesto? Si no, backlog | `diagram-design` para el principal |
+| Necesito entender algo abstracto (base de datos, arquitectura, infra) o elegir entre opciones visuales | Pedir un informe visual en HTML (`*.local.html`), descartable y sin commitear; en el trabajo, siempre archivo local, nunca artefacto publicado | — |
 | No entiendo lo que escribió el agente | Parar y preguntarle qué hace y por qué, antes de commitear | — |
 | El agente hace cosas que no pedí | Pararlo y repetir el límite: solo lo del ticket | `/simplify` |
 | La sesión se puso larga y confusa | Cerrar y abrir otra con un resumen corto | `/ask-matt` indica cuándo cortar |
@@ -123,6 +124,9 @@ abierta.
 | Cambio de riesgo (login, pagos, algo expuesto) | Auditoría de seguridad profunda | `claude-security`, `security-audit-skill` |
 | Antes de publicar | Tests en verde y deploy con revisión previa | `all-deploy` |
 | Siento que falta algo para que quede perfecto | Releer la definición de hecho; si se cumple, está terminado | — |
+
+Los informes visuales sirven para decidir y entender, no para documentar: lo que
+queda en el repo sigue en Markdown.
 
 Al pedir cosas al agente, con límite: "solo lo del ticket", "sin documentación
 nueva", "sin refactor".

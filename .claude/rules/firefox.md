@@ -34,11 +34,11 @@ perfil predeterminado que se mueve, borrado al cerrar):
   línea al `user.js`, confirmar que existe (`about:config`) y después que se
   aplicó (`about:support` → "Preferencias modificadas", que muestra solo un
   subconjunto).
-- **`Aplicaciones` no borra cookies al cerrar** (`user-aplicaciones.js`): el
-  borrado se llevó incluso los sitios con excepción "Permitir" y cada apertura
-  pedía login. `Personal` sí las borra y las excepciones de
-  `excepciones-cookies.txt` ahí funcionan (verificado con GitHub y MercadoLibre);
-  si algún día se pierden sesiones, diagnóstico en las notas técnicas.
+- **Cookies al cerrar:** `Personal` las borra y las excepciones de
+  `excepciones-cookies.txt` funcionan (verificado con GitHub y MercadoLibre).
+  `Aplicaciones` hereda el mismo borrado de `user.js`; falta confirmar cerrando
+  Firefox que las sesiones de Teams y Outlook sobreviven. Si se pierden,
+  diagnóstico en las notas técnicas.
 - **`$BROWSER` = `firefox-personal` (solo Linux):** `aplicar-perfiles.sh` enlaza
   `~/.local/bin/firefox-personal` -> `firefox/abrir-personal.sh`, y bashrc/zshrc
   lo exportan como `BROWSER`. Abre las URLs de la terminal (`aws sso login`,

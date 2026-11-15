@@ -87,7 +87,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.dotfiles/.claude/hooks/bloquear-push.sh"
+            "command": "bash ~/.dotfiles/.claude/hooks/bloquear-comandos.sh"
           }
         ]
       }

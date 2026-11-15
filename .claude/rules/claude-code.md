@@ -35,8 +35,10 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   [`docs/plantilla-agents-proyecto.md`](../../docs/plantilla-agents-proyecto.md).
 - `settings.json` → **symlink** (cambios se versionan al instante).
 - `.claude/hooks/` → scripts de hooks, registrados en `settings.json` con
-  `bash ~/.dotfiles/.claude/hooks/<script>`: `bloquear-push.sh` (`PreToolUse` en
-  Bash; frena cualquier `git push`, junto con el `deny` de `permissions`) y
+  `bash ~/.dotfiles/.claude/hooks/<script>`: `bloquear-comandos.sh` (`PreToolUse`
+  en Bash; frena `git push`, junto con el `deny` de `permissions`, y las
+  librerías fuera del proyecto: `npm`/`pnpm -g` y `pip` sin la ruta de un
+  entorno virtual en el mismo comando) y
   `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto).
   Solo rigen en Claude Code; en Codex y opencode las mismas reglas son texto. En
   Windows necesitan bash (sin verificar). `skillOverrides` apaga

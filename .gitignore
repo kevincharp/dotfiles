@@ -2,6 +2,7 @@
 .env
 .DS_Store
 *.local.md
+*.local.html
 
 # Ulauncher genera este CSS en runtime por cada tema (wrapper que importa
 # theme.css). Es por-maquina y se regenera solo: no se versiona.

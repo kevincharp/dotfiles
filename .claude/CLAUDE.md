@@ -84,6 +84,10 @@ más de un ticket en curso a la vez.
   guarda datos, si hay login y de quién); el stack sale de
   `~/.dotfiles/docs/stacks.md` y, si no encaja, se proponen dos opciones con su
   motivo. Nada que el usuario no conozca entra sin explicárselo antes.
+- **Especificaciones y planes de trabajo** (también los que generan las skills de
+  planificación): archivos `*.local.md` en la raíz, nunca en `docs/` ni
+  commiteados. Un proyecto chico (landing, script) va en una sesión, sin plan por
+  tareas ni scripts de prueba que nadie pidió.
 - Inicializar con **`ginit <perfil>`** — nunca `git init` pelado: aplica la
   identidad del vault y deja un `.gitignore` base (plantilla
   `git/gitignore-proyecto` de los dotfiles). Al clonar: `gclone <url> [dir]`

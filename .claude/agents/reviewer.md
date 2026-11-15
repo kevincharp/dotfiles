@@ -41,9 +41,9 @@ El diff y el ticket (criterios de aceptación y fuera de alcance).
 - Aprobar con dudas sin decirlas.
 
 ## Devuelve
-Máximo 15 líneas: veredicto (aprobado / cambios necesarios), lista de problemas
-con `ruta:línea` y cuál es bloqueante. Lo que sea mejora opcional va aparte,
-marcado como tal.
+Un resumen que se lea de un vistazo: veredicto (aprobado / cambios necesarios),
+cada problema en una línea con `ruta:línea` y cuál es bloqueante. Lo que sea
+mejora opcional va aparte, marcado como tal.
 
 ## Hecho cuando
 Cada punto del checklist tiene un resultado.

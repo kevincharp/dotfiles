@@ -97,5 +97,5 @@ regla nueva de área va a su archivo, no acá.
 
 - Sintaxis: `bash -n shell/bashrc`, `zsh -n shell/zshrc`.
 - `bash test-bootstrap.sh` tras cambios en shells/symlinks (verifica paridad).
-- Tras tocar `nvim/`: prueba headless contra un fixture (ver la sección de
-  Neovim) y `:checkhealth` para las dependencias externas.
+- Tras tocar `nvim/`: prueba headless contra un fixture (ver
+  `.claude/rules/neovim.md`) y `:checkhealth` para las dependencias externas.

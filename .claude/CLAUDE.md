@@ -63,8 +63,8 @@ más de un ticket en curso a la vez.
 - **Sin defensas imaginarias:** nada de validaciones ni manejo de errores para
   casos que no pueden ocurrir, ni docstrings en todo; nombres del dominio, no
   genéricos (`data`, `result`, `handler`).
-- **Dependencias:** preguntar antes de sumar una nueva; si ya hay una que
-  resuelve el caso, usar esa.
+- **Dependencias:** preguntar antes de sumar una nueva, con dos líneas sobre qué
+  resuelve y qué alternativa hay; si ya hay una que resuelve el caso, usar esa.
 - **Dependencias dentro del proyecto:** declaradas en el manifiesto y con el
   lock commiteado; nunca `npm install -g` ni `pip install` fuera de un entorno
   virtual para algo que el código importa.
@@ -83,7 +83,9 @@ más de un ticket en curso a la vez.
 - **Stack:** primero una entrevista corta (quién lo usa, dónde se publica, si
   guarda datos, si hay login y de quién); el stack sale de
   `~/.dotfiles/docs/stacks.md` y, si no encaja, se proponen dos opciones con su
-  motivo. Nada que el usuario no conozca entra sin explicárselo antes.
+  motivo. Nada que el usuario no conozca entra sin explicárselo antes. Antes de
+  diseñar, la entrevista de contenido y de 3 a 5 sitios de referencia
+  (`~/.dotfiles/docs/playbook-desarrollo.md`).
 - **Especificaciones y planes de trabajo** (también los que generan las skills de
   planificación): archivos `*.local.md` en la raíz, nunca en `docs/` ni
   commiteados. Un proyecto chico (landing, script) va en una sesión, sin plan por
@@ -106,7 +108,9 @@ más de un ticket en curso a la vez.
   listas de "características" infladas.
 - Si el proyecto tiene lógica, llevar **tests y un workflow de CI** que los corra
   desde el primer commit; no darlo por terminado si fallan. El CI parte de la
-  plantilla de dotfiles: `~/.dotfiles/git/ci-github.yml` o `ci-gitlab.yml`.
+  plantilla de dotfiles: `~/.dotfiles/git/ci-github.yml` o `ci-gitlab.yml`. Una
+  landing sin lógica propia no lleva pruebas, solo el trabajo de secretos
+  (`~/.dotfiles/docs/stacks.md`).
 
 ## Secretos
 

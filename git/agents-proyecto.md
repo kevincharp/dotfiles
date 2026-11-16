@@ -13,6 +13,11 @@
 
 <Lenguaje, framework, base de datos, dónde se publica. Partir de `docs/stacks.md` de los dotfiles.>
 
+## Referencias de diseño
+
+<De 3 a 5 sitios y de cuál sale cada decisión visual. Borrar la sección si el
+proyecto no tiene interfaz.>
+
 ## Ramas y ambientes
 
 - Ramas: <una rama corta por ticket | directo en `main`>
@@ -49,4 +54,7 @@ proyecto no tiene backend.>
   decidió y por qué, qué se descartó). Leer solo las últimas entradas.
 - Las especificaciones y los planes de trabajo van en `*.local.md` (por ejemplo
   `SPEC.local.md`, `PLAN.local.md`), nunca en `docs/`.
+- `BRIEF.local.md`: lo que pidió el cliente (plantilla `git/brief-cliente.md` de
+  los dotfiles).
+- `material-cliente/`: originales del cliente, no se commitea.
 - Los archivos `*.local.md` no se commitean.

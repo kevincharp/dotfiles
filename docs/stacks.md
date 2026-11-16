@@ -23,15 +23,69 @@ proyectos.
 
 Es un borrador: cada fila se confirma con el primer proyecto real que la use.
 
+## Librerías: cuándo sí
+
+No se evitan: se justifican. Antes de sumar una, el agente me dice en dos líneas
+qué resuelve, qué alternativa hay sin ella y cuánto pesa o cuánto hay que
+mantenerla.
+
+- **Sí:** lo difícil de hacer bien a mano (calendarios, mapas, gráficos,
+  accesibilidad de ventanas y menús, autenticación), con una librería mantenida
+  y más chica que escribirlo uno mismo.
+- **No:** lo que el navegador ya hace (diseño, animaciones, formularios), o lo
+  que obliga a sumar un paso de compilación a una página simple.
+- **Íconos y logos:** nunca dibujados a mano. Se copian al proyecto solo los SVG
+  que se usan, de una librería de íconos cuya licencia lo permita, en
+  `img/iconos/` y con su archivo de licencia al lado: sin dependencia ni
+  compilación. Los logos de marcas (WhatsApp, Instagram) son los oficiales.
+  Antes de fijar una librería de íconos se verifica su licencia y que esté
+  mantenida.
+
 ## Landing o portfolio
 
-- Archivos: `index.html`, `css/`, `js/` (si hace falta), `img/`. Sin `package.json`.
+- Base: `index.html`, `css/` y `js/` (si hace falta). Sin `package.json`.
 - CSS moderno nativo: variables, anidado, container queries.
 - Seguridad mínima: sin scripts de terceros que no hagan falta; cabeceras
   (CSP, `X-Content-Type-Options`, `Referrer-Policy`) configuradas en la
   plataforma (`_headers` en Cloudflare Pages, `vercel.json` en Vercel).
 - Un formulario de contacto necesita un backend aparte: se decide cuando haga falta.
-- CI: alcanza con el trabajo `secretos` de la plantilla.
+- **Pruebas:** una landing sin lógica propia no lleva pruebas ni scripts de
+  verificación: se revisa en el navegador, en celular y en compu. El CI es solo
+  el trabajo `secretos` de la plantilla. Si hay un comportamiento que no se
+  puede revisar a ojo (un formulario, un cálculo), una prueba chica de
+  Playwright, y solo si la pido.
+
+### Carpetas y material
+
+```
+proyecto/
+├── material-cliente/   originales que manda el cliente, tal cual; git los
+│   ├── logo/           ignora (pesan y tienen derechos de uso)
+│   ├── fotos/
+│   └── videos/
+├── img/                versiones listas para la web; estas sí se commitean
+│   ├── marca/          logo y favicon
+│   ├── iconos/         SVG con su licencia
+│   └── fotos/
+├── video/              MP4 H.264 listos para la web
+├── css/
+├── js/
+└── index.html
+```
+
+El agente deja en `img/` y `video/` las versiones optimizadas y no toca los
+originales. Los videos se piden en MP4 H.264.
+
+### Secciones y comportamientos por defecto (negocio local)
+
+Borrador: sale de la primera landing hecha con este flujo y se ajusta con cada una.
+
+- Secciones: portada con una frase y un botón de contacto, servicios o clases
+  con precios, "sobre mí", horarios y ubicación con mapa, preguntas
+  frecuentes, contacto y pie de página.
+- Comportamientos: pensada primero para el celular, botón flotante de
+  WhatsApp con mensaje prefijado, imágenes con texto alternativo y respeto de
+  "reducir movimiento" en las animaciones.
 
 ## App con datos
 
@@ -70,4 +124,4 @@ que ya tienen los proyectos del trabajo.
 ## Fuera por ahora
 
 Frameworks de frontend, Tailwind y TypeScript en el navegador: se evalúan si un
-proyecto los pide.
+proyecto los pide, con el criterio de "Librerías: cuándo sí".

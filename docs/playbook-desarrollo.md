@@ -91,31 +91,66 @@ los apruebe.
 
 ## Trabajo con clientes
 
-**Estado:** borrador sin probar; se ajusta con el primer cliente real. Si ya hay
-cliente, el flujo empieza en la etapa 1; si no, en la 0.
+**Estado:** borrador sin probar; se ajusta con el primer cliente real. El repo
+`negocio` está por crear.
+
+### El tablero
+
+Los posibles clientes y los clientes viven como tickets de GitHub Issues en un
+repo privado, `negocio`, uno solo. **Un posible cliente es un ticket, no un
+repo.** Cuando acepta la propuesta, el ticket se cierra como "convertido" con el
+enlace al repo de su proyecto, que tiene sus propios tickets de desarrollo. Un
+cambio en la misma página es un ticket de ese repo; un proyecto nuevo del mismo
+cliente es un ticket nuevo en `negocio`. Si no acepta, el ticket se cierra como
+"perdido" con el motivo anotado.
+
+El ticket se da de alta a mano ("Nuevo cliente", con rubro, origen, qué pidió,
+canal y urgencia) y sigue abierto, con subtareas, mientras sea un posible
+cliente. Todo lo que pasa se documenta como comentario.
+
+### Cómo trabaja el agente con el tablero
+
+En una sesión abierta en `negocio`: al empezar lista los tickets abiertos, elige
+el más urgente y propone la próxima acción con un borrador. No envía nada por su
+cuenta: reviso, copio y mando yo. Lo que le cuento (respuestas del cliente,
+decisiones) lo documenta en el ticket y crea la subtarea siguiente. La próxima
+acción sale de esta tabla, no se inventa:
+
+| Estado del ticket | Próxima acción |
+|---|---|
+| Nuevo | Contestar con las preguntas (caso B del mapa de decisiones) |
+| Contactado | Esperar la respuesta; un único recordatorio a los 7 días |
+| Brief | Completar lo que falta: referencias, obras, fotos, plazo y presupuesto |
+| Propuesta | Armar las direcciones y la propuesta, y enviarla |
+| Enviada | Esperar la aceptación por escrito; un recordatorio |
+| Aceptado | Crear el repo del proyecto y arrancar; cerrar el ticket como "convertido" |
+| Perdido | Cerrar con el motivo anotado |
+
+### Las etapas
 
 | Etapa | Qué pasa | Quién |
 |---|---|---|
-| 0. Prospección | Elegir de 5 a 10 negocios con web floja o sin web, anotados en `PROSPECTOS.local.md` | Yo |
+| 0. Prospección | Elegir de 5 a 10 negocios con web floja o sin web; cada uno es un ticket "Prospecto" en `negocio` | Yo |
 | 0b. Propuesta en frío | Auditoría de lo comprobable (capturas en celular y compu, HTTPS, si se ve bien en el celular, botón de contacto) y una dirección mejorada, antes y después, en una página HTML local | Agente |
 | 0c. Contacto | Mensaje corto y personal, de a uno | Yo (el agente redacta) |
-| 1. Brief | El cliente cuenta qué quiere y trae sus referencias; se completa `BRIEF.local.md` | Cliente y agente |
+| 1. Brief | El cliente cuenta qué quiere y trae sus referencias; queda en el ticket y, al aceptar, en `BRIEF.local.md` del proyecto | Cliente y agente |
 | 2. Propuesta | 2 o 3 direcciones lado a lado, cada una con su referencia, y la oferta | Agente |
 | 3. Construcción | El flujo de desarrollo de este playbook, con enlace de vista previa | Agente |
 | 4. Ronda de cambios | El cliente comenta; el agente devuelve una lista numerada y el cliente la confirma antes de tocar código | Cliente, yo y agente |
 | 5. Aprobación | El cliente aprueba la lista final; las rondas tienen un tope acordado de antemano | Cliente |
 | 6. Entrega | Publicación y traspaso | Yo, con `devops` |
 
-La lista de cada ronda vive en `STATUS.local.md`, en una sección "Ronda N".
+Cada ronda es un ticket "Ronda N" en el repo del proyecto, con una casilla por
+cambio.
 
-Lo que sale hacia el cliente:
+### Lo que sale hacia el cliente
 
 - El HTML de propuesta se manda como archivo o enlace privado, nunca como
   artefacto publicado.
 - Las auditorías dicen solo lo comprobable; no se inventan defectos.
-- Los datos de clientes y prospectos van en `*.local.md`, nunca en el repo ni en
-  búsquedas. Una propuesta en frío no se publica con la marca del negocio en un
-  enlace abierto.
+- Los datos de clientes y prospectos van en tickets del repo privado `negocio` o
+  en `*.local.md`; nunca en un repo público ni en búsquedas. Una propuesta en
+  frío no se publica con la marca del negocio en un enlace abierto.
 - Mi oferta (qué incluye, precio, rondas y plazo) y mi nicho los defino yo y
   viven fuera de los dotfiles, que son públicos.
 - Los contactos en frío se mandan de a uno y personalizados. La normativa de

@@ -73,6 +73,10 @@
   "skillOverrides": {
     "auto-mode-setup": "off"
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "theme": "auto",
   "permissions": {
     "deny": [

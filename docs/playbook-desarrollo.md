@@ -89,6 +89,38 @@ En un proyecto ya iniciado no hay entrevista sobre la idea: el agente lee el
 código, informa el stack que ya tiene y propone cambios sin aplicarlos hasta que
 los apruebe.
 
+## Trabajo con clientes
+
+**Estado:** borrador sin probar; se ajusta con el primer cliente real. Si ya hay
+cliente, el flujo empieza en la etapa 1; si no, en la 0.
+
+| Etapa | Qué pasa | Quién |
+|---|---|---|
+| 0. Prospección | Elegir de 5 a 10 negocios con web floja o sin web, anotados en `PROSPECTOS.local.md` | Yo |
+| 0b. Propuesta en frío | Auditoría de lo comprobable (capturas en celular y compu, HTTPS, si se ve bien en el celular, botón de contacto) y una dirección mejorada, antes y después, en una página HTML local | Agente |
+| 0c. Contacto | Mensaje corto y personal, de a uno | Yo (el agente redacta) |
+| 1. Brief | El cliente cuenta qué quiere y trae sus referencias; se completa `BRIEF.local.md` | Cliente y agente |
+| 2. Propuesta | 2 o 3 direcciones lado a lado, cada una con su referencia, y la oferta | Agente |
+| 3. Construcción | El flujo de desarrollo de este playbook, con enlace de vista previa | Agente |
+| 4. Ronda de cambios | El cliente comenta; el agente devuelve una lista numerada y el cliente la confirma antes de tocar código | Cliente, yo y agente |
+| 5. Aprobación | El cliente aprueba la lista final; las rondas tienen un tope acordado de antemano | Cliente |
+| 6. Entrega | Publicación y traspaso | Yo, con `devops` |
+
+La lista de cada ronda vive en `STATUS.local.md`, en una sección "Ronda N".
+
+Lo que sale hacia el cliente:
+
+- El HTML de propuesta se manda como archivo o enlace privado, nunca como
+  artefacto publicado.
+- Las auditorías dicen solo lo comprobable; no se inventan defectos.
+- Los datos de clientes y prospectos van en `*.local.md`, nunca en el repo ni en
+  búsquedas. Una propuesta en frío no se publica con la marca del negocio en un
+  enlace abierto.
+- Mi oferta (qué incluye, precio, rondas y plazo) y mi nicho los defino yo y
+  viven fuera de los dotfiles, que son públicos.
+- Los contactos en frío se mandan de a uno y personalizados. La normativa de
+  contacto comercial está por verificar.
+
 ## Ramas y ambientes
 
 Una sola rama de larga vida (*trunk-based*): `main` es producción. Cada ticket

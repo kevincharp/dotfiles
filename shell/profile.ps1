@@ -1142,6 +1142,45 @@ function aduser {
       Format-List
 }
 
+<#
+.SYNOPSIS datos y miembros directos de un grupo de AD (requiere RSAT); acepta nombre exacto o con comodín *
+.EXAMPLE adgroup SMG-TEC-web-app-clientes-afiliados-devs
+.EXAMPLE adgroup 'SMG-TEC-web-app-clientes-afiliados-*'
+.EXAMPLE adgroup 'Gitlab Corporativo' -SoloConteo
+#>
+function adgroup {
+    param(
+        [Parameter(Mandatory=$true)][string]$Grupo,
+        [switch]$SoloConteo
+    )
+    $patron = $Grupo -replace "'", "''"
+    $grupos = Get-ADGroup -Properties Description,ManagedBy,whenCreated `
+        -Filter "sAMAccountName -like '$patron' -or Name -like '$patron'"
+    if (-not $grupos) { Write-Host "Ningún grupo con nombre $Grupo" -ForegroundColor DarkYellow; return }
+    $ficha = foreach ($g in $grupos | Sort-Object Name) {
+        # memberOf (y no la propiedad Member del grupo) para no toparse con el tope de valores por consulta en grupos grandes
+        $miembros = @(Get-ADObject -LDAPFilter "(memberOf=$($g.DistinguishedName))" -Properties sAMAccountName,displayName)
+        [pscustomobject]@{
+            Grupo       = $g.Name
+            Descripcion = $g.Description
+            Responsable = $g.ManagedBy -replace '^CN=(.+?),(OU|CN|DC)=.*', '$1'
+            Creado      = $g.whenCreated
+            Miembros    = $miembros.Count
+            _Detalle    = $miembros
+        }
+    }
+    if (@($ficha).Count -gt 1) {
+        $ficha | Format-Table Grupo,Miembros,Responsable,Creado,Descripcion -AutoSize
+        return
+    }
+    $ficha | Format-List Grupo,Descripcion,Responsable,Creado,Miembros
+    if (-not $SoloConteo) {
+        $ficha._Detalle | Sort-Object displayName |
+          Select-Object @{n='Usuario'; e={ $_.sAMAccountName }}, @{n='Nombre'; e={ $_.displayName }}, @{n='Tipo'; e={ $_.objectClass }} |
+          Format-Table -AutoSize
+    }
+}
+
 # ==============================================================================
 # GIT — CLONE + PERFILES DE IDENTIDAD
 # ==============================================================================

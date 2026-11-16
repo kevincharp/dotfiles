@@ -72,8 +72,18 @@ limpio, nunca en el que escribió el código.
 4. **Stack:** el agente lo elige de [`stacks.md`](stacks.md); si no encaja,
    propone dos opciones con su motivo y yo elijo. Explica cada pieza que no
    conozca antes de usarla.
-5. Completar el `AGENTS.md` del proyecto (cómo correr, stack, ramas y ambientes).
-6. Seguir con la especificación y los tickets.
+5. **Entrevista de contenido, antes de diseñar,** también de a una pregunta,
+   para juntar todos los datos: logo, colores, tipografía, fotos y videos (con
+   permiso de uso; los videos en MP4 H.264), precios y horarios confirmados por
+   escrito, dirección, redes, formas de pago y quién escribe el "sobre mí". Con
+   un cliente se usa [`git/brief-cliente.md`](../git/brief-cliente.md).
+6. **Referencias de diseño:** pedir de 3 a 5 sitios que me gusten o le gusten al
+   cliente, de cualquier rubro. Recién después se proponen las direcciones de
+   diseño, y cada una dice de cuál sale. Al empezar, comprobar qué herramientas
+   web tiene la sesión: si no hay búsqueda, las referencias las pongo yo.
+7. Completar el `AGENTS.md` del proyecto **antes de escribir código** (cómo
+   correr, stack, referencias, ramas y ambientes).
+8. Seguir con la especificación y los tickets.
 
 En un proyecto ya iniciado no hay entrevista sobre la idea: el agente lee el
 código, informa el stack que ya tiene y propone cambios sin aplicarlos hasta que
@@ -134,6 +144,14 @@ queda en el repo sigue en Markdown.
 
 Al pedir cosas al agente, con límite: "solo lo del ticket", "sin documentación
 nueva", "sin refactor".
+
+## Detalles de oficio
+
+- **Servidor de prueba:** en un puerto libre y cerrado al terminar: uno que queda
+  abierto rompe las pruebas siguientes.
+- **Video:** correr `ffprobe` sobre cada archivo antes de prometerlo en la
+  página. El ffmpeg que trae Fedora no decodifica HEVC, así que los videos se
+  piden en MP4 H.264.
 
 ## Revisión según el riesgo
 

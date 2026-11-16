@@ -48,3 +48,6 @@ Thumbs.db
 .claude/settings.local.json
 *.local.md
 *.local.html
+
+# Material que manda el cliente: pesado y con derechos de uso
+material-cliente/

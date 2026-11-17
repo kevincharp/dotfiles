@@ -91,8 +91,7 @@ los apruebe.
 
 ## Trabajo con clientes
 
-**Estado:** borrador sin probar; se ajusta con el primer cliente real. El repo
-`dashboard-clients` está por crear.
+**Estado:** borrador sin probar; se ajusta con el primer cliente real.
 
 ### El tablero
 

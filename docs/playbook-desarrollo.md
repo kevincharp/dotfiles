@@ -119,10 +119,10 @@ acción sale de esta tabla, no se inventa:
 | Estado del ticket | Próxima acción |
 |---|---|
 | Nuevo | Contestar con las preguntas (caso B del mapa de decisiones) |
-| Contactado | Esperar la respuesta; un único recordatorio a los 7 días |
-| Brief | Completar lo que falta: referencias, obras, fotos, plazo y presupuesto |
-| Propuesta | Armar las direcciones y la propuesta, y enviarla |
-| Enviada | Esperar la aceptación por escrito; un recordatorio |
+| Contactado | Esperar la respuesta o pedir lo que falta; un único recordatorio a los 7 días |
+| Relevado | Ya está la información (referencias, obras, fotos, plazo y presupuesto): armar las direcciones y la propuesta |
+| Cotizado | Revisar la propuesta y enviarla |
+| Enviado | Esperar la aceptación por escrito; un recordatorio |
 | Aceptado | Crear el repo del proyecto y arrancar; cerrar el ticket como "convertido" |
 | Perdido | Cerrar con el motivo anotado |
 

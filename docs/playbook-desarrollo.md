@@ -92,16 +92,16 @@ los apruebe.
 ## Trabajo con clientes
 
 **Estado:** borrador sin probar; se ajusta con el primer cliente real. El repo
-`negocio` está por crear.
+`dashboard-clients` está por crear.
 
 ### El tablero
 
 Los posibles clientes y los clientes viven como tickets de GitHub Issues en un
-repo privado, `negocio`, uno solo. **Un posible cliente es un ticket, no un
+repo privado, `dashboard-clients`, uno solo. **Un posible cliente es un ticket, no un
 repo.** Cuando acepta la propuesta, el ticket se cierra como "convertido" con el
 enlace al repo de su proyecto, que tiene sus propios tickets de desarrollo. Un
 cambio en la misma página es un ticket de ese repo; un proyecto nuevo del mismo
-cliente es un ticket nuevo en `negocio`. Si no acepta, el ticket se cierra como
+cliente es un ticket nuevo en `dashboard-clients`. Si no acepta, el ticket se cierra como
 "perdido" con el motivo anotado.
 
 El ticket se da de alta a mano ("Nuevo cliente", con rubro, origen, qué pidió,
@@ -110,7 +110,7 @@ cliente. Todo lo que pasa se documenta como comentario.
 
 ### Cómo trabaja el agente con el tablero
 
-En una sesión abierta en `negocio`: al empezar lista los tickets abiertos, elige
+En una sesión abierta en `dashboard-clients`: al empezar lista los tickets abiertos, elige
 el más urgente y propone la próxima acción con un borrador. No envía nada por su
 cuenta: reviso, copio y mando yo. Lo que le cuento (respuestas del cliente,
 decisiones) lo documenta en el ticket y crea la subtarea siguiente. La próxima
@@ -130,7 +130,7 @@ acción sale de esta tabla, no se inventa:
 
 | Etapa | Qué pasa | Quién |
 |---|---|---|
-| 0. Prospección | Elegir de 5 a 10 negocios con web floja o sin web; cada uno es un ticket "Prospecto" en `negocio` | Yo |
+| 0. Prospección | Elegir de 5 a 10 negocios con web floja o sin web; cada uno es un ticket "Prospecto" en `dashboard-clients` | Yo |
 | 0b. Propuesta en frío | Auditoría de lo comprobable (capturas en celular y compu, HTTPS, si se ve bien en el celular, botón de contacto) y una dirección mejorada, antes y después, en una página HTML local | Agente |
 | 0c. Contacto | Mensaje corto y personal, de a uno | Yo (el agente redacta) |
 | 1. Brief | El cliente cuenta qué quiere y trae sus referencias; queda en el ticket y, al aceptar, en `BRIEF.local.md` del proyecto | Cliente y agente |
@@ -148,7 +148,7 @@ cambio.
 - El HTML de propuesta se manda como archivo o enlace privado, nunca como
   artefacto publicado.
 - Las auditorías dicen solo lo comprobable; no se inventan defectos.
-- Los datos de clientes y prospectos van en tickets del repo privado `negocio` o
+- Los datos de clientes y prospectos van en tickets del repo privado `dashboard-clients` o
   en `*.local.md`; nunca en un repo público ni en búsquedas. Una propuesta en
   frío no se publica con la marca del negocio en un enlace abierto.
 - Mi oferta (qué incluye, precio, rondas y plazo) y mi nicho los defino yo y

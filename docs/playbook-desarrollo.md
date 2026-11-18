@@ -106,16 +106,19 @@ cliente es un ticket nuevo en `dashboard-clients`.
   cliente" (nombre, descripción, canal, fuente, rubro y datos de contacto). El
   formulario lo asigna a mí y le pone la etiqueta `inbound`; si es un prospecto en
   frío, la cambio a `prospect`.
-- **Los pasos** son sus sub-issues, de tipo **Task**. Los crea
-  `scripts/crear-pasos.sh` del repo: contestar al cliente, completar el brief,
-  armar direcciones y propuesta, enviar la propuesta, esperar la aceptación y, si
-  acepta, crear el repo del proyecto.
+- **Los pasos** son sus sub-issues, de tipo **Task**, y se crean solos al abrir
+  el ticket: contestar al cliente, completar el brief, armar direcciones y
+  propuesta, y enviar la propuesta. Esperar la respuesta no es un paso: es la
+  columna Esperando.
+- **El campo Propuesta** (Pendiente, Aprobada, Rechazada, Cancelada) dice cómo
+  terminó. Con Aprobada se crea la tarea de crear el repo del proyecto; con
+  Rechazada o Cancelada el cliente se cierra.
 - **El estado** se ve en el project "Dashboard Clients", en cuatro columnas: Por
   hacer, En curso (me toca a mí), Esperando (le toca al cliente) y Hecho. Cambia
-  solo al cerrar los pasos: el primero lo pasa a En curso, enviar la propuesta a
-  Esperando, y aceptar o rechazar a Hecho. Lo hace un workflow de GitHub Actions
-  del repo, con un token personal guardado como secreto; también se puede mover
-  la tarjeta a mano.
+  solo: el primer paso cerrado lo pasa a En curso, enviar la propuesta a
+  Esperando, y crear el repo (o rechazar o cancelar) a Hecho. Lo hace un
+  workflow de GitHub Actions del repo, con un token personal guardado como
+  secreto; también se puede mover la tarjeta a mano.
 - **Se cierra** desde el ticket: "Completed" si se convirtió en proyecto, "Not
   planned" si no avanzó. Todo lo que pasa se documenta como comentario.
 

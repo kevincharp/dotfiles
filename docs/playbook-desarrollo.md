@@ -111,7 +111,11 @@ cliente es un ticket nuevo en `dashboard-clients`.
   armar direcciones y propuesta, enviar la propuesta, esperar la aceptación y, si
   acepta, crear el repo del proyecto.
 - **El estado** se ve en el project "Dashboard Clients", en cuatro columnas: Por
-  hacer, En curso (me toca a mí), Esperando (le toca al cliente) y Hecho.
+  hacer, En curso (me toca a mí), Esperando (le toca al cliente) y Hecho. Cambia
+  solo al cerrar los pasos: el primero lo pasa a En curso, enviar la propuesta a
+  Esperando, y aceptar o rechazar a Hecho. Lo hace un workflow de GitHub Actions
+  del repo, con un token personal guardado como secreto; también se puede mover
+  la tarjeta a mano.
 - **Se cierra** desde el ticket: "Completed" si se convirtió en proyecto, "Not
   planned" si no avanzó. Todo lo que pasa se documenta como comentario.
 

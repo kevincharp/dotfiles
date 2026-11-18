@@ -103,8 +103,8 @@ cambio en la misma página es un ticket de ese repo; un proyecto nuevo del mismo
 cliente es un ticket nuevo en `dashboard-clients`. Si no acepta, el ticket se cierra como
 "perdido" con el motivo anotado.
 
-El ticket se da de alta a mano ("Nuevo cliente", con rubro, origen, qué pidió,
-canal y urgencia) y sigue abierto, con subtareas, mientras sea un posible
+El ticket se da de alta a mano con el formulario "Nuevo cliente" (nombre,
+descripción, canal, fuente, rubro y datos de contacto) y sigue abierto, con subtareas, mientras sea un posible
 cliente. Todo lo que pasa se documenta como comentario.
 
 ### Cómo trabaja el agente con el tablero

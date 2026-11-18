@@ -96,34 +96,33 @@ los apruebe.
 ### El tablero
 
 Los posibles clientes y los clientes viven como tickets de GitHub Issues en un
-repo privado, `dashboard-clients`, uno solo. **Un posible cliente es un ticket, no un
-repo.** Cuando acepta la propuesta, el ticket se cierra como "convertido" con el
-enlace al repo de su proyecto, que tiene sus propios tickets de desarrollo. Un
+repo privado, `dashboard-clients`, uno solo. **Un posible cliente es un ticket, no
+un repo.** Cuando acepta la propuesta, el ticket se cierra como "convertido" con
+el enlace al repo de su proyecto, que tiene sus propios tickets de desarrollo. Un
 cambio en la misma página es un ticket de ese repo; un proyecto nuevo del mismo
-cliente es un ticket nuevo en `dashboard-clients`. Si no acepta, el ticket se cierra como
-"perdido" con el motivo anotado.
+cliente es un ticket nuevo en `dashboard-clients`.
 
-El ticket se da de alta a mano con el formulario "Nuevo cliente" (nombre,
-descripción, canal, fuente, rubro y datos de contacto) y sigue abierto, con subtareas, mientras sea un posible
-cliente. Todo lo que pasa se documenta como comentario.
+- **El ticket** es de tipo **Client** y se da de alta con el formulario "Nuevo
+  cliente" (nombre, descripción, canal, fuente, rubro y datos de contacto). El
+  formulario lo asigna a mí y le pone la etiqueta `inbound`; si es un prospecto en
+  frío, la cambio a `prospect`.
+- **Los pasos** son sus sub-issues, de tipo **Task**. Los crea
+  `scripts/crear-pasos.sh` del repo: contestar al cliente, completar el brief,
+  armar direcciones y propuesta, enviar la propuesta, esperar la aceptación y, si
+  acepta, crear el repo del proyecto.
+- **El estado** se ve en el project "Dashboard Clients", en cuatro columnas: Por
+  hacer, En curso (me toca a mí), Esperando (le toca al cliente) y Hecho.
+- **Se cierra** desde el ticket: "Completed" si se convirtió en proyecto, "Not
+  planned" si no avanzó. Todo lo que pasa se documenta como comentario.
 
 ### Cómo trabaja el agente con el tablero
 
-En una sesión abierta en `dashboard-clients`: al empezar lista los tickets abiertos, elige
-el más urgente y propone la próxima acción con un borrador. No envía nada por su
-cuenta: reviso, copio y mando yo. Lo que le cuento (respuestas del cliente,
-decisiones) lo documenta en el ticket y crea la subtarea siguiente. La próxima
-acción sale de esta tabla, no se inventa:
-
-| Estado del ticket | Próxima acción |
-|---|---|
-| Nuevo | Contestar con las preguntas (caso B del mapa de decisiones) |
-| Contactado | Esperar la respuesta o pedir lo que falta; un único recordatorio a los 7 días |
-| Relevado | Ya está la información (referencias, obras, fotos, plazo y presupuesto): armar las direcciones y la propuesta |
-| Cotizado | Revisar la propuesta y enviarla |
-| Enviado | Esperar la aceptación por escrito; un recordatorio |
-| Aceptado | Crear el repo del proyecto y arrancar; cerrar el ticket como "convertido" |
-| Perdido | Cerrar con el motivo anotado |
+En una sesión abierta en `dashboard-clients`: al empezar lista los tickets de
+cliente abiertos, crea los pasos de los que no los tienen, elige el más urgente y
+propone la próxima acción, que es **el primer paso abierto**, con un borrador. No
+envía nada por su cuenta: reviso, copio y mando yo. Lo que le cuento (respuestas
+del cliente, decisiones) lo documenta en el ticket, y cierra un paso solo cuando
+yo digo que está hecho.
 
 ### Las etapas
 

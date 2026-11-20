@@ -43,6 +43,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   `formatear.sh` (`PostToolUse` en Edit/Write; corre el formateador que el
   proyecto ya tenga configurado — Prettier, ruff, rustfmt — sobre el archivo
   recién tocado; mejor esfuerzo, nunca bloquea).
+  `attribution` vacío (`commit`, `pr`) y `sessionUrl: false` quitan la coautoría
+  y el tráiler `Claude-Session:` de commits y PR.
   `permissions.deny` también incluye `Artifact`: los informes visuales se escriben como
   archivo local y nunca se publican en claude.ai. Solo rigen en Claude Code; en Codex y opencode las mismas reglas son texto. En
   Windows necesitan bash (sin verificar). `skillOverrides` apaga

@@ -75,7 +75,8 @@
   },
   "attribution": {
     "commit": "",
-    "pr": ""
+    "pr": "",
+    "sessionUrl": false
   },
   "theme": "auto",
   "permissions": {

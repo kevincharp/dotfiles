@@ -41,6 +41,11 @@ sección si el proyecto no tiene frontend.>
 <Reglas propias: estructura, manejo de datos, errores. Borrar la sección si el
 proyecto no tiene backend.>
 
+## Errores repetidos
+
+<Vacío al crear el proyecto. Cuando el agente se equivoca 2 veces en lo mismo,
+se anota acá en una línea: qué pasó y qué hacer en su lugar.>
+
 ## Fuera de alcance
 
 <Lo que este proyecto NO va a hacer, para que nadie lo agregue.>

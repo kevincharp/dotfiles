@@ -203,6 +203,7 @@ abierta.
 | Quiero documentar o diagramar | ¿Entra en el presupuesto? Si no, backlog | `diagram-design` para el principal |
 | Necesito entender algo abstracto (base de datos, arquitectura, infra) o elegir entre opciones visuales | Pedir un informe visual en HTML (`*.local.html`), descartable y sin commitear; siempre archivo local: el `deny` de `Artifact` en la configuración global impide publicarlo | — |
 | No entiendo lo que escribió el agente | Parar y preguntarle qué hace y por qué, antes de commitear | — |
+| El agente se equivoca 2 veces en lo mismo | Anotarlo en "Errores repetidos" del `AGENTS.md` del proyecto | — |
 | El agente hace cosas que no pedí | Pararlo y repetir el límite: solo lo del ticket | `/simplify` |
 | La sesión se puso larga y confusa | Cerrar y abrir otra con un resumen corto | `/ask-matt` indica cuándo cortar |
 | Antes de cada commit | Simplificar el cambio | `/simplify` |

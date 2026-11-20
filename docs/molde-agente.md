@@ -40,6 +40,7 @@ resumen. Es lo que evita que se pierda información entre agentes.
 | Orchestrator | Conversa conmigo y delega; lee resúmenes, no diffs; commitea lo aprobado | No |
 | Explorer | Contexto aparte; investiga y resume | No |
 | Builder | Implementa un ticket con TDD | Código |
+| Verifier | Corre la app y compara contra `plan.md`; nunca arregla | No |
 | Reviewer | Contexto limpio; checklist | No |
 | DevOps | Acciones hacia afuera; confirma antes de cada una | Solo infra y deploy |
 | Security | Auditoría profunda, a demanda en cambios de riesgo | No |

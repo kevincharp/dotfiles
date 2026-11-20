@@ -207,6 +207,7 @@ abierta.
 | El agente hace cosas que no pedí | Pararlo y repetir el límite: solo lo del ticket | `/simplify` |
 | La sesión se puso larga y confusa | Cerrar y abrir otra con un resumen corto | `/ask-matt` indica cuándo cortar |
 | Antes de cada commit | Simplificar el cambio | `/simplify` |
+| Terminé de implementar un ticket | Correr el verifier antes del reviewer, para confirmar que el comportamiento real coincide con `plan.md` o los criterios | agente `verifier` |
 | Antes de mergear una rama | CI en verde, probarlo en el preview o en pre, y revisión en contexto limpio | `/code-review`, agente `reviewer` |
 | Cambio de riesgo (login, pagos, algo expuesto) | Auditoría de seguridad profunda | `claude-security`, `security-audit-skill` |
 | Antes de publicar | Tests en verde y deploy con revisión previa | agente `devops`; `all-deploy` si lo habilitás con `/bibliotecario` |

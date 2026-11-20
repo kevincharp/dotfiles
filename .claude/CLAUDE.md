@@ -71,6 +71,10 @@ más de un ticket en curso a la vez.
 - **Dependencias dentro del proyecto:** declaradas en el manifiesto y con el
   lock commiteado; nunca `npm install -g` ni `pip install` fuera de un entorno
   virtual para algo que el código importa.
+- **Clon limpio:** quien clone el repo tiene que poder correrlo siguiendo el
+  README, sin instalar nada global salvo el runtime (Node, Python…) o Docker.
+  Servicios como bases de datos van en un `docker compose` del proyecto, no
+  instalados en la máquina.
 - **Si un intento falla:** deshacer solo tus cambios, por archivo, antes de
   probar otro enfoque; nunca `git reset`/`checkout` sobre trabajo ajeno sin
   commitear.

@@ -38,7 +38,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   `bash ~/.dotfiles/.claude/hooks/<script>`: `bloquear-comandos.sh` (`PreToolUse`
   en Bash; frena `git push`, junto con el `deny` de `permissions`, y las
   librerías fuera del proyecto: `npm`/`pnpm -g` y `pip` sin la ruta de un
-  entorno virtual en el mismo comando),
+  entorno virtual en el mismo comando; necesita `jq` para ignorar el texto
+  entre comillas, y sin él un mensaje de commit que diga "push" se bloquea),
   `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto) y
   `formatear.sh` (`PostToolUse` en Edit/Write; corre el formateador que el
   proyecto ya tenga configurado — Prettier, ruff, rustfmt — sobre el archivo

@@ -80,6 +80,8 @@ $WINGET_PACKAGES = @(
     # Compilador C para los parsers: 'zig cc', sin instalar Visual Studio.
     @{ Id='zig.zig';                        Name='Zig (compilador C)';      Optional=$false; Key='zig';              Group='core'   }
     @{ Id='junegunn.fzf';                   Name='fzf';                     Optional=$false; Key='fzf';              Group='core'   }
+    # Los hooks de Claude Code leen el comando con jq; sin jq bloquean de mas.
+    @{ Id='jqlang.jq';                      Name='jq';                      Optional=$false; Key='jq';               Group='core'   }
     @{ Id='JanDeDobbeleer.OhMyPosh';        Name='Oh My Posh';              Optional=$false; Key='oh-my-posh';       Group='shell'  }
     @{ Id='ajeetdsouza.zoxide';             Name='zoxide';                  Optional=$false; Key='zoxide';           Group='shell'  }
     @{ Id='JesseDuffield.lazygit';          Name='LazyGit';                 Optional=$false; Key='lazygit';          Group='shell'  }

@@ -736,6 +736,58 @@ else
 fi
 unset _ff_sh
 
+# ==============================================================================
+# 17. HARNESS DE CLAUDE CODE: agentes, skills y hooks
+# ------------------------------------------------------------------------------
+# Chequeo estructural, no evals de comportamiento (eso necesitaria tareas
+# curadas y presupuesto de API): valida que lo que Claude Code carga en cada
+# sesion (agentes, skills propias, hooks registrados, marketplace) tenga el
+# formato minimo que exige, para no descubrirlo recien al usarlo.
+# ==============================================================================
+
+section "17. Harness de Claude Code"
+
+for _f in "$_repo_root"/.claude/agents/*.md; do
+    [[ -f "$_f" ]] || continue
+    if grep -q '^name:' "$_f" && grep -q '^description:' "$_f"; then
+        test_ok "agente $(basename "$_f" .md): frontmatter completo"
+    else
+        test_fail "agente $(basename "$_f" .md)" "falta 'name:' o 'description:' en el frontmatter"
+    fi
+done
+
+for _f in "$_repo_root"/claude-skills/*/SKILL.md; do
+    [[ -f "$_f" ]] || continue
+    _skill="$(basename "$(dirname "$_f")")"
+    if grep -q '^name:' "$_f" && grep -q '^description:' "$_f"; then
+        test_ok "skill $_skill: frontmatter completo"
+    else
+        test_fail "skill $_skill" "falta 'name:' o 'description:' en el frontmatter"
+    fi
+done
+
+_mp="$_repo_root/.claude-plugin/marketplace.json"
+if has_cmd jq && jq empty "$_mp" 2>/dev/null; then
+    test_ok "marketplace.json: JSON valido"
+else
+    test_fail "marketplace.json" "JSON invalido o sin jq para chequearlo"
+fi
+
+_settings="$_repo_root/.claude/settings.json"
+while IFS= read -r _hook; do
+    [[ -z "$_hook" ]] && continue
+    _script="${_hook#bash }"
+    _script="${_script/#\~/$HOME}"
+    if [[ ! -f "$_script" ]]; then
+        test_fail "hook $_hook" "el script no existe"
+    elif bash -n "$_script" 2>/dev/null; then
+        test_ok "hook $(basename "$_script"): sintaxis valida"
+    else
+        test_fail "hook $(basename "$_script")" "error de sintaxis (bash -n)"
+    fi
+done < <(has_cmd jq && jq -r '.hooks[][] | .hooks[]?.command' "$_settings" 2>/dev/null)
+unset _f _skill _mp _settings _hook _script
+
 unset _repo_root
 
 # ==============================================================================

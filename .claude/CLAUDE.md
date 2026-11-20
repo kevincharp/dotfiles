@@ -76,7 +76,9 @@ más de un ticket en curso a la vez.
   commitear.
 - **Antes del commit, pasar `/simplify`** sobre el cambio (Claude Code); en otros
   agentes, releer el diff buscando lo mismo: duplicación, código de más y
-  comentarios que sobran.
+  comentarios que sobran. Con agentes solo si el cambio es grande por criterio
+  (varios archivos, una función o módulo nuevo, lógica delicada), no por número
+  de líneas.
 
 ## Proyectos nuevos
 

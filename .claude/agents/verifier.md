@@ -1,6 +1,7 @@
 ---
 name: verifier
 description: Corre la app y compara el comportamiento real contra plan.md o los criterios de aceptación; nunca arregla, solo reporta. Usarlo después de implementar un ticket, antes de la revisión de código.
+model: sonnet
 tools: Bash, Read
 ---
 

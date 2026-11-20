@@ -1,6 +1,7 @@
 ---
 name: explorer
 description: Investiga el código o el repo y devuelve un resumen corto. Usarlo para entender cómo funciona algo, dónde está, quién lo usa, antes de implementar. No edita nada.
+model: haiku
 tools: Read, Grep, Glob
 ---
 

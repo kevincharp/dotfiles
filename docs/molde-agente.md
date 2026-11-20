@@ -80,6 +80,11 @@ En las tres, el cuerpo del agente (sus instrucciones) es texto libre y es lo
 único que se copia tal cual; lo que cambia es el encabezado. Verificado en la
 documentación de cada una.
 
+- **Modelo por agente (Claude Code):** explorer `haiku`; builder, verifier y
+  devops `sonnet`; reviewer y security `inherit`, el de la sesión. Nunca `opus`
+  fijo: con `claude-smg` la cuenta de la empresa no lo tiene (el tope es
+  Sonnet), y `inherit` da Opus en casa y Sonnet allá. Los alias `haiku` y
+  `sonnet` los resuelve `claude-smg` a los modelos de Bedrock.
 - **Los permisos no se traducen igual.** Claude Code los impone con `tools` y
   opencode con `permission` (`edit: deny`), pero en Codex `sandbox_mode` no se
   puede fijar por agente: "no editar" queda como instrucción, no como bloqueo.

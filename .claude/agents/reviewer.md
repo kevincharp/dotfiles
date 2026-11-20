@@ -1,6 +1,7 @@
 ---
 name: reviewer
 description: Revisa un cambio ya hecho contra los criterios del ticket, con contexto limpio y sin editar. Usarlo antes de commitear o mergear, siempre en una sesión distinta a la que escribió el código.
+model: inherit
 tools: Read, Grep, Glob, Bash
 ---
 

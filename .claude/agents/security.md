@@ -1,6 +1,7 @@
 ---
 name: security
 description: Auditoría de seguridad profunda de un cambio o del repo, en solo lectura. Usarlo en cambios de riesgo (login, permisos, pagos, algo expuesto a internet) o antes de publicar; no para cada commit.
+model: inherit
 tools: Read, Grep, Glob, Bash
 ---
 

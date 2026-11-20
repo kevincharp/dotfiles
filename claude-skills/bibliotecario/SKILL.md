@@ -32,6 +32,7 @@ Solo se recomienda lo que aparece en estas fuentes. No recomendar de memoria.
 | Marketplaces | Qué se puede instalar con un comando | `~/.claude/plugins/marketplaces/*/.claude-plugin/marketplace.json` |
 | Evaluaciones del usuario | Qué descartó, pausó o ya eligió, y por qué | `~/.dotfiles/docs/skills-radar.md` y `~/.dotfiles/docs/agent-skills-catalogo.md` |
 | Estrellas de GitHub | Repos guardados, por lista | consulta de abajo |
+| Catálogo abierto (skills.sh) | Skills de terceros rankeadas por instalaciones, para lo que no está guardado en ninguna fuente anterior | `npx skills find <consulta>` (o ver https://skills.sh/) |
 
 Listas de estrellas (primero los nombres, después solo las que tocan el tema):
 
@@ -75,8 +76,8 @@ seguir con las otras fuentes.
 Respondé, por ejemplo: "instalá X e Y, y analicemos el repo Z".
 ```
 
-- **Fuente** dice de dónde salió la fila (`marketplace <nombre>`, `radar`).
-  Una fila sin fuente no va.
+- **Fuente** dice de dónde salió la fila (`marketplace <nombre>`, `radar`,
+  `skills.sh`). Una fila sin fuente no va.
 - **Recomendación**: `sí`, `opcional` o `alternativa a <otro>`.
 - Un repo con estrella que no está en ningún marketplace va en la segunda
   tabla: no se instala con un comando.

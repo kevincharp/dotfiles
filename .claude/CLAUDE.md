@@ -20,6 +20,9 @@ crea el bootstrap). Editar acá rige para todos.
 - **Ramas:** `main` es producción: cada ticket va en una rama corta
   `tipo/descripcion` creada desde `main` (crearla sin pedir permiso), sin ramas
   `dev` de larga vida.
+- **Sin ramas apiladas:** si el ticket anterior no está mergeado en `main`,
+  pedirle al usuario el merge antes de empezar el siguiente; no ramar desde otra
+  rama de ticket.
 - El merge a `main` lo hace el usuario, igual que el push.
 - No reescribir historial ya publicado (rebase/amend de commits pusheados) ni
   usar `--force`; si un push forzado fuera imprescindible, `--force-with-lease`

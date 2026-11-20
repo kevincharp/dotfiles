@@ -38,8 +38,11 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   `bash ~/.dotfiles/.claude/hooks/<script>`: `bloquear-comandos.sh` (`PreToolUse`
   en Bash; frena `git push`, junto con el `deny` de `permissions`, y las
   librerías fuera del proyecto: `npm`/`pnpm -g` y `pip` sin la ruta de un
-  entorno virtual en el mismo comando) y
-  `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto).
+  entorno virtual en el mismo comando),
+  `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto) y
+  `formatear.sh` (`PostToolUse` en Edit/Write; corre el formateador que el
+  proyecto ya tenga configurado — Prettier, ruff, rustfmt — sobre el archivo
+  recién tocado; mejor esfuerzo, nunca bloquea).
   `permissions.deny` también incluye `Artifact`: los informes visuales se escriben como
   archivo local y nunca se publican en claude.ai. Solo rigen en Claude Code; en Codex y opencode las mismas reglas son texto. En
   Windows necesitan bash (sin verificar). `skillOverrides` apaga

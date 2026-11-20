@@ -106,6 +106,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.dotfiles/.claude/hooks/formatear.sh"
+          }
+        ]
+      }
     ]
   }
 }

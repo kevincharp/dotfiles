@@ -6,7 +6,7 @@ columna **Hoy en Claude Code** y es lo único que se reescribe si cambio de
 herramienta. Equipo y molde de agentes: [`molde-agente.md`](molde-agente.md).
 Cada proyecto lleva su `AGENTS.md`, copiado de
 [`plantilla-agents-proyecto.md`](plantilla-agents-proyecto.md). Los agentes
-(`explorer`, `builder`, `reviewer`, `devops`, `security`) están en
+(`explorer`, `builder`, `verifier`, `reviewer`, `devops`, `security`) están en
 `.claude/agents/`; se usan pidiéndole a la sesión que delegue en ellos por
 nombre.
 

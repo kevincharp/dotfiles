@@ -3,6 +3,8 @@
 .DS_Store
 *.local.md
 *.local.html
+# Notas crudas de la skill deep-research.
+research_notes/
 
 # Ulauncher genera este CSS en runtime por cada tema (wrapper que importa
 # theme.css). Es por-maquina y se regenera solo: no se versiona.

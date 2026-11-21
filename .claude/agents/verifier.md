@@ -28,7 +28,10 @@ El plan o los criterios de aceptación, y cómo levantar el proyecto (del
 
 ## Devuelve
 Por cada paso del plan: qué se esperaba, qué pasó, coincide o no. Al final, un
-veredicto: comportamiento conforme al plan o no.
+veredicto: comportamiento conforme al plan o no, y un bloque "Cómo probarlo vos"
+con los pasos manuales exactos para que el usuario lo compruebe antes de abrir
+el siguiente ticket.
 
 ## Hecho cuando
-Cada paso del plan tiene su resultado registrado.
+Cada paso del plan tiene su resultado registrado y los pasos de prueba manual
+están escritos.

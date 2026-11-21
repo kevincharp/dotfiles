@@ -355,6 +355,10 @@ GNOME asocia mal algunos `.desktop`.
   dominio de Microsoft en la lista.
 - `privacy.clearOnShutdown_v2.siteSettings = false` es lo que evita que el
   borrado se lleve las propias excepciones.
+- `privacy.clearOnShutdown_v2.browsingHistoryAndDownloads` va en `false` y
+  explícito: su valor por defecto con el borrado activo es `true`, así que
+  quitar la línea no alcanza. Con `true`, Firefox descarta los archivos de sesión
+  al cerrar (se perdieron pestañas y un grupo de pestañas, sin copia posible).
 - **El borrado al cerrar solo respeta excepciones de tipo
   `persist-data-on-shutdown`** (`Sanitizer.sys.mjs`,
   `maybeSanitizeSessionPrincipals`), no las `cookie`; por eso el script inserta

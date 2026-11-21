@@ -63,7 +63,7 @@ user_pref("extensions.formautofill.creditCards.enabled", false);
 
 // --- Borrado al cerrar (las excepciones de cookies "Permitir" se conservan) ---
 user_pref("privacy.sanitize.sanitizeOnShutdown", true);
-user_pref("privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", true);
+user_pref("privacy.clearOnShutdown_v2.browsingHistoryAndDownloads", false);   // con true Firefox descarta la sesión y los grupos de pestañas
 user_pref("privacy.clearOnShutdown_v2.cookiesAndStorage", true);
 user_pref("privacy.clearOnShutdown_v2.cache", true);
 user_pref("privacy.clearOnShutdown_v2.formdata", true);

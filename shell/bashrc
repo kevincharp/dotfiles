@@ -251,7 +251,10 @@ alias mkdirp='mkdir -p'
 # EZA / LS ALIASES (con fallback a ls nativo)
 # ==============================================================================
 
-if command -v eza &>/dev/null; then
+# Los shells de Claude Code (CLAUDECODE=1) usan el ls común: eza se colgó ahí.
+if [[ -n ${CLAUDECODE:-} ]]; then
+    :
+elif command -v eza &>/dev/null; then
     alias ls='eza --icons --group-directories-first'
     alias la='eza --icons --group-directories-first -a'
     alias ll='eza --icons --group-directories-first -la --git'

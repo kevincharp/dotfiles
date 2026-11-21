@@ -106,7 +106,9 @@ El primer push se hace cuando se cumple todo esto:
    `*.local.md`.
 6. **Historial aplanado:** un solo commit, `feat: versión inicial`; el historial
    previo queda en la etiqueta local `historial-previo`, que nunca se pushea.
-7. **gitleaks** sobre el commit aplanado, sin hallazgos sin justificar.
+7. **gitleaks** sobre el commit aplanado, sin hallazgos sin justificar. Las
+   huellas de `.gitleaksignore` llevan el hash del commit: tras aplanar se
+   regeneran.
 8. **Identidad** del perfil correcto en el commit, y remoto con `gremote`.
 
 Excepción: si alguien más tiene que trabajar en el proyecto antes del MVP, se

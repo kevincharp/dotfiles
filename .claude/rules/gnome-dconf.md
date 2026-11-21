@@ -20,3 +20,7 @@ Editar el `.dconf` a mano no aplica nada hasta hacer `*-load`.
 sin eso, la activación D-Bus reutiliza una ventana en otro escritorio y GNOME
 no cambia de workspace — parece que el atajo no hace nada. Por qué:
 [`docs/notas-tecnicas.md`](../../docs/notas-tecnicas.md#ptyxis-por-qué---new-window-es-obligatorio).
+
+**`Super+E` abre Archivos con `nautilus --new-window`** (`custom5`; la clave `home`
+quedó vacía para no pisarlo): Nautilus es de instancia única y, sin eso, reutiliza
+su ventana de otro escritorio.

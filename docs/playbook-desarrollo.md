@@ -89,6 +89,29 @@ En un proyecto ya iniciado no hay entrevista sobre la idea: el agente lee el
 código, informa el stack que ya tiene y propone cambios sin aplicarlos hasta que
 los apruebe.
 
+## Antes del primer push
+
+Un proyecto nuevo vive en local hasta tener un MVP armado; el historial de esa
+etapa es borrador y se publica aplanado. Mientras tanto, rigen las mismas
+reglas (rama por ticket, commits granulares) y se respalda con
+`git bundle create ../<proyecto>.bundle --all` al cerrar cada ticket.
+
+El primer push se hace cuando se cumple todo esto:
+
+1. **MVP:** hace lo principal y lo probé a mano.
+2. **Clon limpio:** un clon desde el bundle arranca siguiendo el README.
+3. **Pruebas y CI** (si tiene lógica) pasan en local.
+4. **README y `AGENTS.md`** completos: cómo correr, cómo probar, stack.
+5. **Sin ruido:** `.gitignore` completo y los registros de proceso fuera, en
+   `*.local.md`.
+6. **Historial aplanado:** un solo commit, `feat: versión inicial`; el historial
+   previo queda en la etiqueta local `historial-previo`, que nunca se pushea.
+7. **gitleaks** sobre el commit aplanado, sin hallazgos sin justificar.
+8. **Identidad** del perfil correcto en el commit, y remoto con `gremote`.
+
+Excepción: si alguien más tiene que trabajar en el proyecto antes del MVP, se
+pushea antes, con los puntos 2 a 8.
+
 ## Trabajo con clientes
 
 **Estado:** borrador sin probar; se ajusta con el primer cliente real.

@@ -141,6 +141,9 @@ más de un ticket en curso a la vez.
 ## Preferencias
 
 - **Responder siempre en español.**
+- **Dudas sobre cómo trabajar con Claude Code o con agentes:** se resuelven con
+  fuentes primarias de Anthropic (documentación, blog de ingeniería), citadas,
+  no con opinión; si contradicen al harness, se propone el cambio.
 - Comentarios, docs y mensajes de commit **en español** (los identificadores
   del código siguen la convención del proyecto/lenguaje).
 - **Deploy: Vercel y Cloudflare son mis plataformas por defecto** (Cloudflare

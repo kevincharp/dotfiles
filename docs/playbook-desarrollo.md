@@ -56,7 +56,7 @@ fin de semana.
 | Tamaño | Ejemplo | Flujo |
 |---|---|---|
 | Chico | Un sitio estático, un script | Una sesión, sin tickets: idea → generar → pedidos de a uno → simplificar → commit → publicar |
-| Mediano | App con varias funciones | Entrevista → especificación → tickets con dependencias → un ticket por sesión → revisión → publicar |
+| Mediano | App con varias funciones | Entrevista → especificación → tickets con dependencias (marcando el corte del MVP) → un ticket por sesión → revisión → publicar |
 | Grande o confuso | No cabe en una sesión | Mapa de decisiones resueltas de a una, y después el flujo mediano |
 
 Una sesión por ticket, no una por proyecto. La revisión siempre en contexto
@@ -83,7 +83,9 @@ limpio, nunca en el que escribió el código.
    web tiene la sesión: si no hay búsqueda, las referencias las pongo yo.
 7. Completar el `AGENTS.md` del proyecto **antes de escribir código** (cómo
    correr, stack, referencias, ramas y ambientes).
-8. Seguir con la especificación y los tickets.
+8. Seguir con la especificación y los tickets. Al armarlos, marcar cuál es el
+   último del MVP (la versión más chica que ya le sirve a alguien): un milestone
+   `MVP` si van como GitHub Issues, o una marca en el ticket si son archivos.
 
 En un proyecto ya iniciado no hay entrevista sobre la idea: el agente lee el
 código, informa el stack que ya tiene y propone cambios sin aplicarlos hasta que

@@ -69,6 +69,9 @@ user_pref("privacy.clearOnShutdown_v2.cache", true);
 user_pref("privacy.clearOnShutdown_v2.formdata", true);
 user_pref("privacy.clearOnShutdown_v2.siteSettings", false);   // conservar permisos y excepciones
 
+// --- Al abrir: restaurar las pestañas y ventanas de la sesión anterior ---
+user_pref("browser.startup.page", 3);
+
 // --- IA: bloqueo general (equivale al interruptor "Bloquear mejoras de IA" de Ajustes) ---
 // Para habilitar algo (p. ej. traducciones locales): quitar estas lineas en AMBOS perfiles.
 user_pref("browser.ai.control.default", "blocked");

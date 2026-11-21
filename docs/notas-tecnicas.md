@@ -359,6 +359,9 @@ GNOME asocia mal algunos `.desktop`.
   explícito: su valor por defecto con el borrado activo es `true`, así que
   quitar la línea no alcanza. Con `true`, Firefox descarta los archivos de sesión
   al cerrar (se perdieron pestañas y un grupo de pestañas, sin copia posible).
+- `browser.startup.page = 3` (restaurar la sesión al abrir) va en `user.js`;
+  `user-aplicaciones.js` lo pisa con `1` (gana la última línea) para que las PWA
+  abran solo su ventana.
 - **El borrado al cerrar solo respeta excepciones de tipo
   `persist-data-on-shutdown`** (`Sanitizer.sys.mjs`,
   `maybeSanitizeSessionPrincipals`), no las `cookie`; por eso el script inserta

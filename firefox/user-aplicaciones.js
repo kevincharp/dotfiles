@@ -5,4 +5,5 @@ user_pref("sidebar.verticalTabs", true);
 user_pref("browser.toolbars.bookmarks.visibility", "never");
 user_pref("browser.tabs.inTitlebar", 1);
 user_pref("browser.startup.homepage", "chrome://browser/content/blanktab.html");
+user_pref("browser.startup.page", 1);   // las PWA abren solo su ventana, sin restaurar sesión
 user_pref("browser.newtabpage.enabled", false);

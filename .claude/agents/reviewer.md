@@ -44,7 +44,8 @@ El diff y el ticket (criterios de aceptación y fuera de alcance).
 ## Devuelve
 Un resumen que se lea de un vistazo: veredicto (aprobado / cambios necesarios),
 cada problema en una línea con `ruta:línea` y cuál es bloqueante. Lo que sea
-mejora opcional va aparte, marcado como tal.
+mejora opcional va aparte, marcado como tal. También aparte, lo que no se pudo
+leer o comprobar: sin eso, "sin problemas" no se distingue de "no lo revisé".
 
 ## Hecho cuando
 Cada punto del checklist tiene un resultado.

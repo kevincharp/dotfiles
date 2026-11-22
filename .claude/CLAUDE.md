@@ -37,7 +37,8 @@ crea el bootstrap). Editar acá rige para todos.
   hay código y `security` si toca login, permisos, pagos o algo expuesto.
 - El informe final termina con los comandos de merge, sin `git push`: cuándo
   se publica lo decide el usuario. Lo que se pueda decidir con estas reglas
-  ya viene decidido y contado, no preguntado.
+  ya viene decidido y contado, no preguntado. Nombra lo que no se pudo
+  verificar o correr: un paso omitido o fallido no se informa como conforme.
 - Se decide solo:
   - Observaciones de la revisión fuera del alcance: se suman a un ticket
     pendiente si encajan en él; si no, van como ticket nuevo al final de la

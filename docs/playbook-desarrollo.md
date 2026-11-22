@@ -225,6 +225,7 @@ abierta.
 | Me llega un bug o pedido de otro | Pasarlo por triage | `/triage` |
 | Quiero una funcionalidad | Ticket primero, nunca directo al código; después su rama | `/to-tickets` |
 | Hay varios tickets y no sé cuál | El que menos bloquea, o el más chico que funcione de punta a punta | — |
+| Quiero avanzar dos tickets a la vez | Solo si tocan archivos distintos y ninguno depende del otro: un worktree y una sesión por ticket; se mergean de a uno y el segundo se rebasa sobre `main` y se vuelve a verificar | — |
 | Se me ocurre una mejora en el medio | Backlog | — |
 | Quiero refactorizar | ¿Se repite 3 veces? Si no, no | `/simplify` |
 | Quiero documentar o diagramar | ¿Entra en el presupuesto? Si no, backlog | `diagram-design` para el principal |

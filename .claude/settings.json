@@ -16,6 +16,7 @@
     ]
   },
   "model": "sonnet",
+  "outputStyle": "Concise",
   "skillOverrides": {
     "auto-mode-setup": "off"
   },

@@ -41,9 +41,11 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   entorno virtual en el mismo comando; necesita `jq` para ignorar el texto
   entre comillas, y sin él un mensaje de commit que diga "push" se bloquea),
   `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto) y
-  `formatear.sh` (`PostToolUse` en Edit/Write; corre el formateador que el
-  proyecto ya tenga configurado — Prettier, ruff, rustfmt — sobre el archivo
-  recién tocado; mejor esfuerzo, nunca bloquea).
+  `formatear.sh` (`PostToolUse` en Edit/Write; corre Prettier, ruff o rustfmt sobre
+  el archivo recién tocado solo si el proyecto ya exige ese formato — el
+  comando aparece en su CI, `scripts/`, hooks de git o `package.json`; tenerlo
+  configurado no alcanza, porque reformatear un archivo que el proyecto no
+  formatea mete ruido en el diff; mejor esfuerzo, nunca bloquea).
   `attribution` vacío (`commit`, `pr`) y `sessionUrl: false` quitan la coautoría
   y el tráiler `Claude-Session:` de commits y PR.
   `permissions.deny` también incluye `Artifact`: los informes visuales se escriben como

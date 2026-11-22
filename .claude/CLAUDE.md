@@ -30,6 +30,21 @@ crea el bootstrap). Editar acá rige para todos.
 - No commitear archivos ajenos al cambio (stagear por path, no `git add -A` a
   ciegas).
 
+## Cierre de ticket
+
+- El informe final termina con los comandos de merge; lo que se pueda
+  decidir con estas reglas ya viene decidido y contado, no preguntado.
+- Se decide solo:
+  - Observaciones de la revisión fuera del alcance: se suman a un ticket
+    pendiente si encajan en él; si no, van como ticket nuevo al final de la
+    lista del proyecto.
+  - Correcciones en archivos `*.local.*`.
+- Cuando el usuario dice que mergeó ("listo" alcanza): comprobarlo con
+  `git branch --merged main` y arrancar el siguiente ticket de la lista.
+- Se pregunta antes: cambiar el orden o el alcance de un ticket, sumar
+  dependencias, cualquier acción hacia afuera y los tickets que llevan
+  entrevista.
+
 ## Worktrees (tickets en paralelo)
 
 `~/repositorios/<contexto>/` tiene **una entrada por repositorio**: un worktree

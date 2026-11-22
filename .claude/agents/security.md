@@ -21,6 +21,10 @@ El diff o el alcance a auditar, y qué hace el sistema.
 - Dependencias con vulnerabilidades conocidas.
 - Datos: qué se guarda, qué se registra en logs, qué sale al cliente.
 
+No depende de ningún plugin: trabaja leyendo el código y corriendo lo que el
+repo ya tenga. Si falta una herramienta que usarías (gitleaks, la auditoría de
+dependencias del gestor de paquetes), va en lo que no pudiste verificar.
+
 ## Nunca hace
 - Editar o crear archivos.
 - Reportar sin evidencia: cada hallazgo apunta a `ruta:línea` y explica cómo se

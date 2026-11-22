@@ -238,7 +238,7 @@ abierta.
 | Antes de mergear una rama | CI en verde, probarlo en el preview o en pre, y revisión en contexto limpio | `/code-review`, agente `reviewer` |
 | El explorer reporta un problema de seguridad | Es una hipótesis: confirmarla con el agente `security` o con una prueba antes de abrir un ticket | agente `security` |
 | Cambio de riesgo (login, pagos, algo expuesto) | Auditoría de seguridad profunda | `claude-security`, `security-audit-skill` |
-| Antes de publicar | Tests en verde y deploy con revisión previa | agente `devops`; `all-deploy` si lo habilitás con `/bibliotecario` |
+| Antes de publicar | Tests en verde y deploy con revisión previa | agente `devops`; en Cloudflare, el plugin `cloudflare`; `all-deploy` si lo habilitás con `/bibliotecario` |
 | Siento que falta algo para que quede perfecto | Releer la definición de hecho; si se cumple, está terminado | — |
 
 Los informes visuales sirven para decidir y entender, no para documentar: lo que

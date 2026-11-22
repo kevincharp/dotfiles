@@ -3,7 +3,56 @@
   "env": {
     "CLAUDE_CODE_ENABLE_AUTO_MODE": "1"
   },
-  "model": "claude-sonnet-5",
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "permissions": {
+    "deny": [
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Artifact"
+    ]
+  },
+  "model": "sonnet",
+  "skillOverrides": {
+    "auto-mode-setup": "off"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.dotfiles/.claude/hooks/bloquear-comandos.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.dotfiles/.claude/hooks/leer-estado.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.dotfiles/.claude/hooks/formatear.sh"
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "bash ~/.dotfiles/.claude/statusline.sh"
@@ -70,54 +119,5 @@
   },
   "tui": "fullscreen",
   "skipWorkflowUsageWarning": true,
-  "skillOverrides": {
-    "auto-mode-setup": "off"
-  },
-  "attribution": {
-    "commit": "",
-    "pr": "",
-    "sessionUrl": false
-  },
-  "theme": "auto",
-  "permissions": {
-    "deny": [
-      "Bash(git push)",
-      "Bash(git push *)",
-      "Artifact"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.dotfiles/.claude/hooks/bloquear-comandos.sh"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.dotfiles/.claude/hooks/leer-estado.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.dotfiles/.claude/hooks/formatear.sh"
-          }
-        ]
-      }
-    ]
-  }
+  "theme": "auto"
 }

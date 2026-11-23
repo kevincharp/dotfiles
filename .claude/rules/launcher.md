@@ -35,6 +35,11 @@ Ulauncher tiene tres piezas, versionadas distinto:
 - **Atajo `Ctrl+Space`** → NO va en `ulauncher/`. Vive en
   `gnome/media-keys.dconf` (`custom1` → `ulauncher-toggle`): en Wayland el
   hotkey interno de Ulauncher no funciona. Reversionar con `gnome-save`.
+- **Monitor:** `render-on-screen` va en `default-monitor` (el principal). Ulauncher
+  corre con `GDK_BACKEND=x11` y con "monitor del puntero" lee la posición del
+  puntero de XWayland, que no se actualiza fuera de ventanas X11: con dos
+  monitores se abría en el externo aunque el mouse estuviera en la notebook.
+  Cambiar la opción exige reiniciar Ulauncher.
 - **Autostart** (`ulauncher/autostart.desktop`) → **copia** (no symlink) a
   `~/.config/autostart/`: GNOME reescribe ese `.desktop` desde su GUI.
 - **Temas** (`ulauncher/user-themes/`) → **symlink**. Trae Liquid Glass

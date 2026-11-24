@@ -365,7 +365,9 @@ GNOME asocia mal algunos `.desktop`.
 - **El borrado al cerrar solo respeta excepciones de tipo
   `persist-data-on-shutdown`** (`Sanitizer.sys.mjs`,
   `maybeSanitizeSessionPrincipals`), no las `cookie`; por eso el script inserta
-  los dos tipos. Falta verificarlo en `Aplicaciones` cerrando Firefox.
+  los dos tipos. Si el perfil estaba abierto al correrlo, el script lo saltea y
+  quedan solo las `cookie`: las sesiones se borran al cerrar (pasó en
+  `Aplicaciones` el 24/11). Se comprueba contando `type` en `moz_perms`.
 - Diagnóstico que sirvió: copiar `cookies.sqlite*` a un tmp y listar
   `host, name, expiry` (sin valores) antes y después de cerrar. `expiry` está en ms.
 

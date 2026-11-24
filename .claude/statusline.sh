@@ -2,7 +2,7 @@
 # ==============================================================================
 #   statusline.sh — linea de estado de Claude Code
 #   Muestra: carpeta · rama git · cuenta · modelo · effort · fast · thinking ·
-#            contexto (% + tokens) · estilo · costo
+#            contexto (% + tokens) · estilo · costo · id de sesion
 #   - Carpeta: el PROYECTO y, si /cd movio el cwd afuera, tambien el cwd.
 #   - Cuenta: distingue Bedrock/SMG (claude-smg setea CLAUDE_CODE_USE_BEDROCK=1).
 #   - Colores: paleta Claude Code (256-color), espejo de LS_COLORS del bashrc.
@@ -24,7 +24,7 @@ SEP="$(c "$DIM") · ${RESET}"
 # COLRv1), el color queda solo en el texto que los sigue.
 I_DIR="📁"; I_DRIFT="⚠️"; I_BRANCH="🌿"; I_MODEL="🤖"
 I_ANTHROPIC="✨"; I_BEDROCK="☁️"; I_CTX="📊"; I_STYLE="🎨"
-I_FAST="🚀"; I_THINKING="🧠"; I_COST="💰"
+I_FAST="🚀"; I_THINKING="🧠"; I_COST="💰"; I_SESSION="🔖"
 
 # --- Lectura del JSON: jq si esta; si no (Git Bash), grep/sed ---
 # Las claves van estilo jq sin el punto inicial. Sin jq el parser recorta el JSON en cada
@@ -70,6 +70,7 @@ tok_out="$(_json_get num "$input" 'context_window.total_output_tokens')"
 fast="$(_json_get bool "$input" 'fast_mode')"
 thinking="$(_json_get bool "$input" 'thinking.enabled')"
 cost="$(_json_get num "$input" 'cost.total_cost_usd')"
+session_id="$(_json_get str "$input" 'session_id')"
 lines_added="$(_json_get num "$input" 'cost.total_lines_added')"
 lines_removed="$(_json_get num "$input" 'cost.total_lines_removed')"
 [[ -z "$model" ]] && model="?"
@@ -170,6 +171,8 @@ if [[ "$cost" =~ ^[0-9] ]]; then
     cost_fmt="$(LC_ALL=C printf '%.2f' "$cost" 2>/dev/null)"
     [[ -n "$cost_fmt" ]] && segs+=("${I_COST} $(c "$DIM")\$${cost_fmt}${RESET}")
 fi
+# Id de la sesion (8 caracteres): sirve para `claude --resume <id>` y para ubicar el .jsonl
+[[ -n "$session_id" ]] && segs+=("${I_SESSION} $(c "$DIM")${session_id:0:8}${RESET}")
 # Lineas +/- acumuladas de la sesion (cost.total_lines_added/removed): no es un
 # git diff --stat del repo, es lo que Claude fue escribiendo con Edit/Write.
 diff_seg=""

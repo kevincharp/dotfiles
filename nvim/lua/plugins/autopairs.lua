@@ -1,5 +1,5 @@
 -- ============================================================================
--- pares.lua — cerrar paréntesis, comillas y etiquetas solo
+-- autopairs.lua — cerrar paréntesis, comillas y etiquetas solo
 -- ============================================================================
 -- nvim-autopairs para (), [], {} y comillas; nvim-ts-autotag para etiquetas HTML/JSX.
 -- ============================================================================

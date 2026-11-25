@@ -1,5 +1,5 @@
 -- ============================================================================
--- formateo.lua — formateo automático al guardar (conform.nvim)
+-- formatting.lua — formateo automático al guardar (conform.nvim)
 -- ============================================================================
 -- Formateadores instalados vía Mason (lsp.lua). <leader>cf y no <leader>f: un atajo
 -- suelto bloquearía el grupo "buscar".

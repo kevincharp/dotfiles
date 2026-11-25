@@ -129,7 +129,7 @@ return {
       },
     }
 
-    -- Además de los servidores, Mason baja los formateadores de formateo.lua.
+    -- Además de los servidores, Mason baja los formateadores de formatting.lua.
     local ensure = vim.tbl_keys(servers)
     vim.list_extend(ensure, {
       'shellcheck', -- lo usa bashls

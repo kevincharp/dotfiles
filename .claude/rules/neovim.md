@@ -7,7 +7,7 @@ paths:
 
 Editor de código **principal** (VSCode queda como complemento para lo que nvim
 hace peor, no como reemplazo). Config propia estilo kickstart: `init.lua` +
-`lua/` (opciones, atajos, tipos-archivo, gestor) y **un archivo por plugin** en
+`lua/` (options, keymaps, filetypes, plugin-manager) y **un archivo por plugin** en
 `lua/plugins/`. Sumar un plugin = crear un archivo; sacarlo = borrarlo.
 
 - **Symlink de DIRECTORIO, con path distinto por SO:** Linux →
@@ -65,7 +65,7 @@ terminal) y **GNOME** (`Ctrl+Space` es Ulauncher).
 [`docs/notas-tecnicas.md`](../../docs/notas-tecnicas.md#treesitter-en-rama-main-no-master).
 
 - **Filetypes compuestos:** los compose se detectan como `yaml.docker-compose`
-  (ver `lua/tipos-archivo.lua`) para que les enganchen **los dos** servidores
+  (ver `lua/filetypes.lua`) para que les enganchen **los dos** servidores
   (yamlls con su esquema + docker_compose_language_service). conform resuelve
   por el filetype **entero** — nombrarlo tal cual en `formatters_by_ft`. Para
   treesitter, `vim.treesitter.language.get_lang()` traduce

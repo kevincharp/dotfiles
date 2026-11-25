@@ -1,5 +1,5 @@
 -- ============================================================================
--- tipos-archivo.lua — detección de tipo de archivo propia (vim.filetype.add)
+-- filetypes.lua — detección de tipo de archivo propia (vim.filetype.add)
 -- ============================================================================
 -- Se carga antes que los plugins: registrado tarde, el primer archivo ya se detectó sin
 -- estas reglas.

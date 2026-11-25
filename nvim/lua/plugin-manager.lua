@@ -1,5 +1,5 @@
 -- ============================================================================
--- gestor.lua — bootstrap de lazy.nvim (gestor de plugins)
+-- plugin-manager.lua — bootstrap de lazy.nvim (gestor de plugins)
 -- ============================================================================
 -- Se instala solo en el primer arranque. lazy-lock.json se versiona: actualizar con
 -- :Lazy sync y commitear el lock.

@@ -1,5 +1,5 @@
 -- ============================================================================
--- tema.lua — colorscheme: "Default Dark Modern" de VSCode (vscode.nvim)
+-- theme.lua — colorscheme: "Default Dark Modern" de VSCode (vscode.nvim)
 -- ============================================================================
 -- priority = 1000 y lazy = false: se aplica primero para que los demás plugins hereden
 -- sus colores.

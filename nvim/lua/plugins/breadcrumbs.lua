@@ -19,7 +19,7 @@ return {
           return false
         end
         local ft = vim.bo[buf].filetype
-        local excluidos = {
+        local excluded = {
           ['snacks_picker_list'] = true,
           ['snacks_picker_input'] = true,
           ['grug-far'] = true,
@@ -27,7 +27,7 @@ return {
           ['mason'] = true,
           ['help'] = true,
         }
-        if excluidos[ft] then return false end
+        if excluded[ft] then return false end
         return vim.bo[buf].buftype == '' and vim.api.nvim_buf_get_name(buf) ~= ''
       end,
     },

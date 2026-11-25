@@ -12,9 +12,9 @@ vim.g.maplocalleader = '\\'
 -- Habilita los íconos de los plugins (FiraCode Nerd Font en la terminal).
 vim.g.have_nerd_font = true
 
-require('opciones')
-require('atajos')
-require('tipos-archivo')
+require('options')
+require('keymaps')
+require('filetypes')
 
 -- Al final: lazy.nvim carga todo lua/plugins/.
-require('gestor')
+require('plugin-manager')

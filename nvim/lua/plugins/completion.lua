@@ -1,5 +1,5 @@
 -- ============================================================================
--- autocompletado.lua — menú de autocompletado (blink.cmp)
+-- completion.lua — menú de autocompletado (blink.cmp)
 -- ============================================================================
 -- Preset 'default': <C-n>/<C-p> navegan, <C-y> acepta, <C-e> cierra. <C-space> no llega
 -- a nvim en Linux: es el atajo global de Ulauncher.

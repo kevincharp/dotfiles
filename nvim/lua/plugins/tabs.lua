@@ -1,5 +1,5 @@
 -- ============================================================================
--- pestanas.lua — pestañas de archivos abiertos (bufferline)
+-- tabs.lua — pestañas de archivos abiertos (bufferline)
 -- ============================================================================
 -- ]b / [b redefinen los nativos para seguir el orden visual. Sin Shift+H/L (pisan
 -- nativos) ni Ctrl+PageUp/Down (los toma la terminal).
@@ -23,11 +23,11 @@ return {
       mode = 'buffers',
       diagnostics = 'nvim_lsp',
       diagnostics_indicator = function(_, _, diag)
-        local iconos = { error = '󰅚 ', warning = '󰀪 ' }
-        local partes = {}
-        if diag.error then table.insert(partes, iconos.error .. diag.error) end
-        if diag.warning then table.insert(partes, iconos.warning .. diag.warning) end
-        return table.concat(partes, ' ')
+        local glyphs = { error = '󰅚 ', warning = '󰀪 ' }
+        local parts = {}
+        if diag.error then table.insert(parts, glyphs.error .. diag.error) end
+        if diag.warning then table.insert(parts, glyphs.warning .. diag.warning) end
+        return table.concat(parts, ' ')
       end,
       -- Borra el buffer sin tocar el layout de ventanas.
       close_command = function(n) Snacks.bufdelete(n) end,

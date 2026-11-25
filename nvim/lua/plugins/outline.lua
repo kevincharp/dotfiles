@@ -1,5 +1,5 @@
 -- ============================================================================
--- esquema.lua — panel de estructura del archivo (aerial)
+-- outline.lua — panel de estructura del archivo (aerial)
 -- ============================================================================
 -- <leader>o abre el panel; dentro, <Enter> salta y o/zo/za despliegan y pliegan.
 -- ============================================================================

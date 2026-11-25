@@ -1,5 +1,5 @@
 -- ============================================================================
--- contexto.lua — sticky scroll: la función en la que estás, fija arriba
+-- context.lua — sticky scroll: la función en la que estás, fija arriba
 -- ============================================================================
 -- Muestra las líneas que abren el bloque actual. Sin [c: es nativo (diff).
 -- ============================================================================

@@ -1,5 +1,5 @@
 -- ============================================================================
--- sesiones.lua — retomar el proyecto donde lo dejaste (persistence.nvim)
+-- sessions.lua — retomar el proyecto donde lo dejaste (persistence.nvim)
 -- ============================================================================
 -- Guarda una sesión por directorio al salir; restaurar es manual. <leader>p y no
 -- <leader>q, que ya es "cerrar ventana".

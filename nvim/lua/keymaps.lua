@@ -1,5 +1,5 @@
 -- ============================================================================
--- atajos.lua — mapeos de teclado nativos (líder = espacio)
+-- keymaps.lua — mapeos de teclado nativos (líder = espacio)
 -- ============================================================================
 -- Atajos que no dependen de ningún plugin; cada plugin define los suyos.
 -- ============================================================================

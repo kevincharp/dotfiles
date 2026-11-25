@@ -1,5 +1,5 @@
 -- ============================================================================
--- opciones.lua — comportamiento base del editor (vim.opt)
+-- options.lua — comportamiento base del editor (vim.opt)
 -- ============================================================================
 
 local opt = vim.opt

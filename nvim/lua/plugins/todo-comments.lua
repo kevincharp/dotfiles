@@ -6,14 +6,14 @@
 
 -- El patrón lo arma el plugin para que lista y resaltado coincidan. vim.schedule: el
 -- setup del plugin es diferido y sin él la primera pulsación falla.
-local function buscar_pendientes(palabras)
+local function search_todos(keywords)
   vim.schedule(function()
     local cfg = require('todo-comments.config')
     Snacks.picker.grep({
-      search = cfg.search_regex(palabras),
+      search = cfg.search_regex(keywords),
       regex = true,
       live = false, -- el patrón ya está armado
-      title = palabras and 'Pendientes importantes' or 'Pendientes',
+      title = keywords and 'Pendientes importantes' or 'Pendientes',
     })
   end)
 end
@@ -25,12 +25,12 @@ return {
   keys = {
     {
       '<leader>st',
-      function() buscar_pendientes() end,
+      function() search_todos() end,
       desc = 'Pendientes del proyecto (TODO, FIXME…)',
     },
     {
       '<leader>sT',
-      function() buscar_pendientes({ 'TODO', 'FIX', 'FIXME' }) end,
+      function() search_todos({ 'TODO', 'FIX', 'FIXME' }) end,
       desc = 'Pendientes importantes (TODO / FIX / FIXME)',
     },
   },

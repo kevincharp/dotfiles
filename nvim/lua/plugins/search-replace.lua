@@ -1,5 +1,5 @@
 -- ============================================================================
--- buscar-reemplazar.lua — buscar y reemplazar en todo el proyecto (grug-far)
+-- search-replace.lua — buscar y reemplazar en todo el proyecto (grug-far)
 -- ============================================================================
 -- Dentro del panel manda el líder local: \r aplicar, \s sincronizar, \q a la quickfix,
 -- \c cerrar, g? ayuda.

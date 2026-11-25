@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.dotfiles/.claude/hooks/bloquear-comandos.sh"
+            "command": "bash ~/.dotfiles/.claude/hooks/block-commands.sh"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.dotfiles/.claude/hooks/leer-estado.sh"
+            "command": "bash ~/.dotfiles/.claude/hooks/read-status.sh"
           }
         ]
       }
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.dotfiles/.claude/hooks/formatear.sh"
+            "command": "bash ~/.dotfiles/.claude/hooks/format.sh"
           }
         ]
       }

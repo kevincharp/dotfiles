@@ -35,13 +35,13 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   [`docs/plantilla-agents-proyecto.md`](../../docs/plantilla-agents-proyecto.md).
 - `settings.json` → **symlink** (cambios se versionan al instante).
 - `.claude/hooks/` → scripts de hooks, registrados en `settings.json` con
-  `bash ~/.dotfiles/.claude/hooks/<script>`: `bloquear-comandos.sh` (`PreToolUse`
+  `bash ~/.dotfiles/.claude/hooks/<script>`: `block-commands.sh` (`PreToolUse`
   en Bash; frena `git push`, junto con el `deny` de `permissions`, y las
   librerías fuera del proyecto: `npm`/`pnpm -g` y `pip` sin la ruta de un
   entorno virtual en el mismo comando; necesita `jq` para ignorar el texto
   entre comillas, y sin él un mensaje de commit que diga "push" se bloquea),
-  `leer-estado.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto) y
-  `formatear.sh` (`PostToolUse` en Edit/Write; corre Prettier, ruff o rustfmt sobre
+  `read-status.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto) y
+  `format.sh` (`PostToolUse` en Edit/Write; corre Prettier, ruff o rustfmt sobre
   el archivo recién tocado solo si el proyecto ya exige ese formato — el
   comando aparece en su CI, `scripts/`, hooks de git o `package.json`; tenerlo
   configurado no alcanza, porque reformatear un archivo que el proyecto no

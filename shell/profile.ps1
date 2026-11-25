@@ -1083,6 +1083,28 @@ function killdev {
     foreach ($p in $devPorts) { killport $p }
 }
 
+<#
+.SYNOPSIS espeja ~/repositorios en el OneDrive de la empresa (respaldo manual)
+.EXAMPLE respaldar-repos
+#>
+function respaldar-repos {
+    if (-not $env:OneDriveCommercial) {
+        Write-Host 'No hay OneDrive de empresa ($env:OneDriveCommercial vacío)' -ForegroundColor Red
+        return
+    }
+    $origen  = Join-Path $HOME 'repositorios'
+    $destino = Join-Path $env:OneDriveCommercial 'Respaldos\repositorios'
+    # Solo lo regenerable queda afuera: .git y los *.local.md viajan.
+    # /MIR también borra en el destino lo que ya no existe en el origen.
+    robocopy $origen $destino /MIR /XD node_modules .venv target __pycache__ .next artefactos /R:1 /W:1 /NFL /NDL /NP
+    # robocopy: menos de 8 es éxito (1 = copió archivos).
+    if ($LASTEXITCODE -lt 8) {
+        Write-Host "Respaldo listo en $destino" -ForegroundColor Green
+    } else {
+        Write-Host "robocopy falló (código $LASTEXITCODE)" -ForegroundColor Red
+    }
+}
+
 # ==============================================================================
 # ACTIVE DIRECTORY (reemplazo de `net user <usuario> /domain`)
 # ==============================================================================
@@ -1980,7 +2002,7 @@ $global:__DotHelpCatMap = @{
     # navegación / archivos
     'open-here'='nav'; open='nav'; edit='nav'; mkdirp='nav'; rmrf='nav'; y='nav'
     # sistema / procesos
-    'update-all'='sistema'; port='sistema'; killport='sistema'; killdev='sistema'
+    'update-all'='sistema'; port='sistema'; killport='sistema'; killdev='sistema'; 'respaldar-repos'='sistema'
     # ssh
     'ssh-newkey'='ssh'
     # herramientas

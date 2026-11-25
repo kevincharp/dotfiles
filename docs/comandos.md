@@ -69,6 +69,7 @@ Requieren el vault (ahí viven los nombres y emails).
 | `port <puerto>` | Muestra qué proceso escucha en ese puerto |
 | `killport <puerto>` | Mata el proceso que escucha en ese puerto |
 | `killdev` | Mata lo que escuche en puertos comunes de dev (3000, 4200, 5173, 8080…) |
+| `respaldar-repos` *(Windows)* | Espeja `~/repositorios` en el OneDrive de la empresa (`Respaldos\repositorios`), sin lo regenerable (`node_modules`, `.venv`, `target`, artefactos…); a mano, cada tanto |
 | `update-all` | Actualiza lo que el gestor de paquetes no cubre (Linux: dnf+flatpak+npm+openlogi+Claude Code, y al final avisa —sin actualizar— si ya salió la próxima Fedora con el comando para migrar · Windows: winget+npm+Claude Code) |
 | `battery-limit [status\|on\|off]` *(Linux)* | Tope de carga ~80 % en Lenovo (conservation mode) |
 

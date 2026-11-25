@@ -96,7 +96,7 @@ los apruebe.
 Un proyecto nuevo vive en local hasta tener un MVP armado; el historial de esa
 etapa es borrador y se publica aplanado. Mientras tanto, rigen las mismas
 reglas (rama por ticket, commits granulares). El respaldo lo hace el usuario
-a mano, cada tanto (`respaldar-repos` en Windows copia `~/repositorios` al
+a mano, cada tanto (`backup-repos` en Windows copia `~/repositorios` al
 OneDrive).
 
 El primer push se hace cuando se cumple todo esto:

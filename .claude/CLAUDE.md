@@ -129,7 +129,7 @@ más de un ticket en curso a la vez.
 - **Primer push:** el proyecto vive en local hasta el MVP y se publica con el
   historial aplanado en un solo commit, cuando cumple la lista de "Antes del
   primer push" de `~/.dotfiles/docs/playbook-desarrollo.md`. El respaldo lo
-  hace el usuario a mano (`respaldar-repos` en Windows): no va en los comandos
+  hace el usuario a mano (`backup-repos` en Windows): no va en los comandos
   de merge.
 - Si un commit falla por identidad ausente (`useConfigOnly` está activo), es un
   perfil sin aplicar: corregir con `gset-profile <perfil>` — **no** setear

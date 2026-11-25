@@ -1085,21 +1085,21 @@ function killdev {
 
 <#
 .SYNOPSIS espeja ~/repositorios en el OneDrive de la empresa (respaldo manual)
-.EXAMPLE respaldar-repos
+.EXAMPLE backup-repos
 #>
-function respaldar-repos {
+function backup-repos {
     if (-not $env:OneDriveCommercial) {
         Write-Host 'No hay OneDrive de empresa ($env:OneDriveCommercial vacío)' -ForegroundColor Red
         return
     }
-    $origen  = Join-Path $HOME 'repositorios'
-    $destino = Join-Path $env:OneDriveCommercial 'Respaldos\repositorios'
+    $source = Join-Path $HOME 'repositorios'
+    $target = Join-Path $env:OneDriveCommercial 'Respaldos\repositorios'
     # Solo lo regenerable queda afuera: .git y los *.local.md viajan.
     # /MIR también borra en el destino lo que ya no existe en el origen.
-    robocopy $origen $destino /MIR /XD node_modules .venv target __pycache__ .next artefactos /R:1 /W:1 /NFL /NDL /NP
+    robocopy $source $target /MIR /XD node_modules .venv target __pycache__ .next artefactos /R:1 /W:1 /NFL /NDL /NP
     # robocopy: menos de 8 es éxito (1 = copió archivos).
     if ($LASTEXITCODE -lt 8) {
-        Write-Host "Respaldo listo en $destino" -ForegroundColor Green
+        Write-Host "Respaldo listo en $target" -ForegroundColor Green
     } else {
         Write-Host "robocopy falló (código $LASTEXITCODE)" -ForegroundColor Red
     }
@@ -2002,7 +2002,7 @@ $global:__DotHelpCatMap = @{
     # navegación / archivos
     'open-here'='nav'; open='nav'; edit='nav'; mkdirp='nav'; rmrf='nav'; y='nav'
     # sistema / procesos
-    'update-all'='sistema'; port='sistema'; killport='sistema'; killdev='sistema'; 'respaldar-repos'='sistema'
+    'update-all'='sistema'; port='sistema'; killport='sistema'; killdev='sistema'; 'backup-repos'='sistema'
     # ssh
     'ssh-newkey'='ssh'
     # herramientas

@@ -75,7 +75,7 @@ for _s in personal work cei_walle; do DOTFILES_TARGETS+=("$HOME/.gitconfig-$_s")
 unset _s
 
 # Catalogo de herramientas (TOOLS_CATALOG): de ahi salen los paquetes a quitar.
-source "$(dirname "${BASH_SOURCE[0]}")/catalogo.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/catalog.sh"
 
 # ==============================================================================
 # HELPERS
@@ -119,8 +119,8 @@ has_cmd() {
     command -v "$1" &>/dev/null
 }
 
-# pkg_presente <id> <comando> <paquete> - 0 si --remove-packages tiene algo que quitar.
-pkg_presente() {
+# pkg_present <id> <comando> <paquete> - 0 si --remove-packages tiene algo que quitar.
+pkg_present() {
     case "$1" in
         lazyssh|lazysql) [[ -f "$HOME/.local/bin/$1" ]] ;;
         samba)           has_cmd smbd ;;
@@ -174,7 +174,7 @@ if [[ "$REMOVE_PACKAGES" == true ]]; then
     log "Paquetes a desinstalar (--remove-packages):" "INFO"
     for entry in "${TOOLS_CATALOG[@]}"; do
         IFS='|' read -r id _ cmd pkg _ <<< "$entry"
-        if pkg_presente "$id" "$cmd" "$pkg"; then
+        if pkg_present "$id" "$cmd" "$pkg"; then
             prev "$id"
         fi
     done
@@ -208,11 +208,11 @@ done
 # Firefox: user.js de cada perfil y el .desktop que fija el perfil. No son
 # destinos fijos (las carpetas de perfil son aleatorias), los resuelve el script
 # del repo, y solo borra lo que lleva su marca. Los perfiles y sus datos no se tocan.
-if [[ -x "$DOTFILES_DIR/firefox/aplicar-perfiles.sh" ]]; then
+if [[ -x "$DOTFILES_DIR/firefox/apply-profiles.sh" ]]; then
     if [[ "$DRY_RUN" == true ]]; then
-        "$DOTFILES_DIR/firefox/aplicar-perfiles.sh" --quitar --dry-run || true
+        "$DOTFILES_DIR/firefox/apply-profiles.sh" --remove --dry-run || true
     else
-        "$DOTFILES_DIR/firefox/aplicar-perfiles.sh" --quitar || true
+        "$DOTFILES_DIR/firefox/apply-profiles.sh" --remove || true
     fi
 fi
 
@@ -244,7 +244,7 @@ else
             IFS='|' read -r id _ cmd pkg _ <<< "$entry"
             # Override local de Chrome que genera el bootstrap: se quita aunque no este el paquete.
             [[ "$id" == chrome ]] && rm -f "$HOME/.local/share/applications/com.google.Chrome.desktop"
-            pkg_presente "$id" "$cmd" "$pkg" || continue
+            pkg_present "$id" "$cmd" "$pkg" || continue
             case "$id" in
                 lazyssh|lazysql)
                     rm -f "$HOME/.local/bin/$id" && log "Removido: $id (~/.local/bin)" "OK"

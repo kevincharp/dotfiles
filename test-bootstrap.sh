@@ -158,7 +158,7 @@ section "3. Comandos en PATH"
 # Solo git es requisito duro. El resto sale del catalogo y es opt-in en el
 # selector: no haberlo marcado no es un fallo.
 REQUIRED_CMDS=(git)
-source "$(dirname "${BASH_SOURCE[0]}")/catalogo.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/catalog.sh"
 OPTIONAL_CMDS=()
 for _entry in "${TOOLS_CATALOG[@]}"; do
     _cmd="$(cut -d'|' -f3 <<< "$_entry")"
@@ -411,7 +411,7 @@ section "11. Funciones shell"
 # Lista compartida: cada funcion debe existir en bash Y (si hay zsh) en zsh.
 SHELL_FUNCTIONS=(gclone gset-profile ginit gremote gsw gsync gcoi gup gpsu \
                  port killport killdev claude-smg dothelp icloud-mount _load_dotenv \
-                 update-all _aviso_fedora_nueva clear-history battery-limit ssh-newkey vault-sync claude-clean env-save reload)
+                 update-all _new_fedora_notice clear-history battery-limit ssh-newkey vault-sync claude-clean env-save reload)
 
 # fn_in_file <funcion> <archivo> — 0 si la funcion esta definida ahi
 fn_in_file() {
@@ -495,7 +495,7 @@ _gated_sh=(
     'ulauncher/settings.json|ulauncher'
     'openlogi/config.toml|openlogi'
     'shell/zshrc|zsh'
-    'bash "$REPO_ROOT/firefox/aplicar-perfiles.sh"|firefox'
+    'bash "$REPO_ROOT/firefox/apply-profiles.sh"|firefox'
 )
 for _entry in "${_gated_sh[@]}"; do
     _pat="${_entry%%|*}"; _tool="${_entry##*|}"
@@ -656,20 +656,20 @@ done < <(grep -oP '(?:copy_dotfile|link_dir)\s+"[^"]+"\s+"\K[^"]+' "$_bs_sh")
 unset _target_block _dest _norm _check _bs_sh
 
 # ==============================================================================
-# 16. FIREFOX: aplicar-perfiles.sh contra un perfil de mentira
+# 16. FIREFOX: apply-profiles.sh contra un perfil de mentira
 # ------------------------------------------------------------------------------
 # El script resuelve los perfiles por nombre en "Profile Groups/*.sqlite" y
 # escribe user.js, excepciones de cookies, zoom y un .desktop. Se prueba con un
 # HOME y un FIREFOX_DIR temporales: nunca toca los perfiles reales.
 # ==============================================================================
 
-section "16. Firefox: aplicar-perfiles.sh"
+section "16. Firefox: apply-profiles.sh"
 
-_ff_sh="$_repo_root/firefox/aplicar-perfiles.sh"
+_ff_sh="$_repo_root/firefox/apply-profiles.sh"
 if bash -n "$_ff_sh" 2>/dev/null; then
-    test_ok "aplicar-perfiles.sh: sintaxis"
+    test_ok "apply-profiles.sh: sintaxis"
 else
-    test_fail "aplicar-perfiles.sh" "error de sintaxis"
+    test_fail "apply-profiles.sh" "error de sintaxis"
 fi
 
 if ! command -v sqlite3 &>/dev/null; then
@@ -683,7 +683,7 @@ else
         sqlite3 "$_ff_tmp/ff/$_p/content-prefs.sqlite" "CREATE TABLE settings (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE groups (id INTEGER PRIMARY KEY, name TEXT NOT NULL); CREATE TABLE prefs (id INTEGER PRIMARY KEY, groupID INTEGER, settingID INTEGER NOT NULL, value BLOB, timestamp INTEGER NOT NULL DEFAULT 0);"
     done
     printf '[Desktop Entry]\nExec=firefox %%u\n[Desktop Action a]\nExec=firefox --ProfileManager\n' > "$_ff_tmp/sistema.desktop"
-    _ff_env=(HOME="$_ff_tmp/home" FIREFOX_DIR="$_ff_tmp/ff" FIREFOX_DESKTOP_SISTEMA="$_ff_tmp/sistema.desktop")
+    _ff_env=(HOME="$_ff_tmp/home" FIREFOX_DIR="$_ff_tmp/ff" FIREFOX_SYSTEM_DESKTOP="$_ff_tmp/sistema.desktop")
 
     _rc=0; env "${_ff_env[@]}" bash "$_ff_sh" --dry-run >/dev/null 2>&1 || _rc=$?
     if [[ $_rc -eq 0 && ! -e "$_ff_tmp/ff/p1.Personal/user.js" ]]; then
@@ -703,7 +703,7 @@ else
         test_fail "user.js por perfil" "el espejo de interfaz no esta donde corresponde"
     fi
 
-    _n_rep=$(grep -c '^https' "$_repo_root/firefox/excepciones-cookies.txt")
+    _n_rep=$(grep -c '^https' "$_repo_root/firefox/cookie-exceptions.txt")
     _n_db=$(sqlite3 "$_ff_tmp/ff/p2.Apps/permissions.sqlite" "SELECT COUNT(*) FROM moz_perms WHERE type='cookie' AND permission=1;")
     [[ "$_n_rep" == "$_n_db" ]] && test_ok "excepciones de cookies cargadas ($_n_db)" \
         || test_fail "excepciones de cookies" "lista=$_n_rep, base=$_n_db"
@@ -727,9 +727,9 @@ else
     _rc=0; env "${_ff_env[@]}" bash "$_ff_sh" >/dev/null 2>&1 || _rc=$?
     [[ $_rc -eq 3 ]] && test_ok "perfil inexistente -> rc 3 (advertencia, no error)" || test_fail "perfil inexistente" "rc=$_rc, esperaba 3"
 
-    env "${_ff_env[@]}" bash "$_ff_sh" --quitar >/dev/null 2>&1 || true
+    env "${_ff_env[@]}" bash "$_ff_sh" --remove >/dev/null 2>&1 || true
     [[ ! -e "$_ff_tmp/ff/p1.Personal/user.js" && ! -e "$_d" ]] \
-        && test_ok "--quitar remueve user.js y .desktop generados" || test_fail "--quitar" "quedaron archivos"
+        && test_ok "--remove remueve user.js y .desktop generados" || test_fail "--remove" "quedaron archivos"
 
     rm -rf "$_ff_tmp"
     unset _ff_tmp _ff_env _p _rc _n_rep _n_db _d _antes

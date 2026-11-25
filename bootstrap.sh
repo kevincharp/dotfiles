@@ -259,7 +259,7 @@ ensure_base_deps() {
 }
 
 # Catalogo de herramientas (TOOLS_CATALOG, tool_field).
-source "$REPO_ROOT/catalogo.sh"
+source "$REPO_ROOT/catalog.sh"
 
 # tool_installed <id> — devuelve 0 si la herramienta ya esta presente
 tool_installed() {
@@ -1453,13 +1453,13 @@ if want_tool yazi; then
     copy_dotfile "yazi/yazi.toml"   "$HOME/.config/yazi/yazi.toml"  "link"
 fi
 
-# Los perfiles tienen carpetas aleatorias: los resuelve firefox/aplicar-perfiles.sh.
+# Los perfiles tienen carpetas aleatorias: los resuelve firefox/apply-profiles.sh.
 # Sale 3 si algo quedo sin aplicar (advertencia, no fallo).
 if want_tool firefox; then
     _ff_args=()
     if [[ "$DRY_RUN" == true ]]; then _ff_args=(--dry-run); fi
     _ff_rc=0
-    _ff_out="$(bash "$REPO_ROOT/firefox/aplicar-perfiles.sh" ${_ff_args[@]+"${_ff_args[@]}"} 2>&1)" || _ff_rc=$?
+    _ff_out="$(bash "$REPO_ROOT/firefox/apply-profiles.sh" ${_ff_args[@]+"${_ff_args[@]}"} 2>&1)" || _ff_rc=$?
     printf '%s\n' "$_ff_out" >> "$LOG_FILE" 2>/dev/null || true
     if [[ "$_ff_rc" -eq 0 ]]; then
         if [[ "$DRY_RUN" == true ]]; then
@@ -1473,8 +1473,8 @@ if want_tool firefox; then
             WARNINGS+=("${_ff_linea#*\[WARN\] }")
         done < <(grep -F '[WARN]' <<< "$_ff_out" || true)
     else
-        log "Firefox: aplicar-perfiles.sh fallo (rc=$_ff_rc)" "ERROR"
-        ERRORS+=("Firefox: aplicar-perfiles.sh fallo (rc=$_ff_rc)")
+        log "Firefox: apply-profiles.sh fallo (rc=$_ff_rc)" "ERROR"
+        ERRORS+=("Firefox: apply-profiles.sh fallo (rc=$_ff_rc)")
     fi
     unset _ff_args _ff_rc _ff_out _ff_linea
 fi

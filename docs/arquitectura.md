@@ -30,7 +30,7 @@ symlink se reemplaza (el repo y el vault son el historial).
 
 ### Catálogo de herramientas (Linux)
 
-`catalogo.sh` lista cada herramienta como `id|grupo|comando|paquete|descripcion`.
+`catalog.sh` lista cada herramienta como `id|grupo|comando|paquete|descripcion`.
 Lo cargan `bootstrap.sh`, `uninstall.sh` y `test-bootstrap.sh`, así que sumar una
 de paquete simple es agregar una línea. Las de instalación especial (COPR,
 binario, Flatpak) suman además su caso en `install_tool`. En Windows el catálogo

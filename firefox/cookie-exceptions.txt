@@ -1,5 +1,5 @@
 # Origenes con cookies siempre permitidas (no se borran al cerrar Firefox).
-# Una por linea; las lineas con # se ignoran. Se cargan con firefox/aplicar-perfiles.sh
+# Una por linea; las lineas con # se ignoran. Se cargan con firefox/apply-profiles.sh
 https://accounts.google.com
 https://github.com
 https://google.com

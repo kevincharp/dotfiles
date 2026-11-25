@@ -336,7 +336,7 @@ GNOME asocia mal algunos `.desktop`.
   `[InstallXXX] Default`) e `installs.ini` pasan a apuntar al **último perfil
   usado**. Abrir Teams dejaba `Default` en `Aplicaciones`, y Firefox lanzado
   desde Ulauncher abría ese perfil. Marcar "predeterminado" o quitar el selector
-  de arranque no alcanza. Solución: `aplicar-perfiles.sh` genera
+  de arranque no alcanza. Solución: `apply-profiles.sh` genera
   `~/.local/share/applications/org.mozilla.firefox.desktop` (copia del del
   sistema) con `-profile <ruta>` fijo; Ulauncher y el dock lanzan ese id. No cubre
   el `firefox` tipeado en terminal.
@@ -360,7 +360,7 @@ GNOME asocia mal algunos `.desktop`.
   quitar la línea no alcanza. Con `true`, Firefox descarta los archivos de sesión
   al cerrar (se perdieron pestañas y un grupo de pestañas, sin copia posible).
 - `browser.startup.page = 3` (restaurar la sesión al abrir) va en `user.js`;
-  `user-aplicaciones.js` lo pisa con `1` (gana la última línea) para que las PWA
+  `user-apps.js` lo pisa con `1` (gana la última línea) para que las PWA
   abran solo su ventana.
 - **El borrado al cerrar solo respeta excepciones de tipo
   `persist-data-on-shutdown`** (`Sanitizer.sys.mjs`,

@@ -107,7 +107,7 @@ alias vi='nvim'
 alias vim='nvim'
 alias nano='nvim'
 
-# $BROWSER: las URLs de la terminal abren en Firefox/Personal (symlink de firefox/aplicar-perfiles.sh).
+# $BROWSER: las URLs de la terminal abren en Firefox/Personal (symlink de firefox/apply-profiles.sh).
 if command -v firefox-personal &>/dev/null; then
     export BROWSER=firefox-personal
 fi
@@ -1539,9 +1539,9 @@ battery-limit() {
     esac
 }
 
-# --- [sistema] _aviso_fedora_nueva: avisa (sin actualizar) si ya salio la proxima Fedora ---
+# --- [sistema] _new_fedora_notice: avisa (sin actualizar) si ya salio la proxima Fedora ---
 # La proxima version esta publicada cuando su repo de releases responde 200.
-_aviso_fedora_nueva() {
+_new_fedora_notice() {
     local _ver_actual _ver_nueva _gnome _azul _violeta _gris _reset _ico_fedora _ico_gnome
     _ver_actual=$(. /etc/os-release 2>/dev/null && [[ "$ID" == fedora ]] && echo "$VERSION_ID")
     [[ -n "$_ver_actual" ]] || return 0
@@ -1628,7 +1628,7 @@ update-all() {
     fi
     echo "Listo. Nota: lazyssh y lazysql (binarios GitHub) y los instalados por curl"
     echo "(oh-my-posh, zoxide, opencode) se actualizan aparte."
-    _aviso_fedora_nueva
+    _new_fedora_notice
 }
 
 # ==============================================================================

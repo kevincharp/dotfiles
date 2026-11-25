@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# catalogo.sh - herramientas que maneja el bootstrap. Lo cargan bootstrap.sh,
+# catalog.sh - herramientas que maneja el bootstrap. Lo cargan bootstrap.sh,
 # uninstall.sh y test-bootstrap.sh.
 #
 # "id|grupo|comando|paquete|descripcion"

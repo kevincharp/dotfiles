@@ -84,7 +84,7 @@ regla nueva de área va a su archivo, no acá.
 | `install.ps1` (ASCII puro, PowerShell 5.1) | [`.claude/rules/install-ps1.md`](.claude/rules/install-ps1.md) | `install.ps1` |
 | dconf: Ptyxis y GNOME | [`.claude/rules/gnome-dconf.md`](.claude/rules/gnome-dconf.md) | `gnome/**`, `terminal/**` |
 | Ulauncher / Flow Launcher | [`.claude/rules/launcher.md`](.claude/rules/launcher.md) | `ulauncher/**`, `flowlauncher/**`, `gnome/media-keys.dconf` |
-| Claude Code, plugins y skills | [`.claude/rules/claude-code.md`](.claude/rules/claude-code.md) | `.claude/**`, `.claude-plugin/**`, `claude-skills/**`, `docs/agent-skills-catalogo.md`, `docs/skills-radar.md`, `AGENTS.md`, `CLAUDE.md` |
+| Claude Code, plugins y skills | [`.claude/rules/claude-code.md`](.claude/rules/claude-code.md) | `.claude/**`, `.claude-plugin/**`, `claude-skills/**`, `docs/agent-skills-catalogo.md`, `AGENTS.md`, `CLAUDE.md` |
 | Emojis a color en Chrome | [`.claude/rules/fontconfig.md`](.claude/rules/fontconfig.md) | `fontconfig/**` |
 | Override del `.desktop` de Chrome | [`.claude/rules/chrome-predeterminado.md`](.claude/rules/chrome-predeterminado.md) | `bootstrap.sh`, `uninstall.sh` |
 | Historial con fzf (flecha ↑) | [`.claude/rules/historial.md`](.claude/rules/historial.md) | `shell/**` |

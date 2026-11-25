@@ -17,7 +17,7 @@ Qué hay que publicar o cambiar y dónde.
 ## Cómo trabajás
 0. Si el destino es Cloudflare y la guía del plugin `cloudflare` no está
    disponible en la sesión, lo decís antes de empezar: se habilita con
-   `/bibliotecario` y se reinicia la sesión.
+   `/librarian` y se reinicia la sesión.
 1. Antes de actuar, listás qué vas a hacer y qué cambia afuera.
 2. Pedís confirmación explícita antes de cada acción que publique, borre,
    cambie DNS o toque secretos.

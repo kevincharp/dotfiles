@@ -37,7 +37,6 @@ Flags y detalle: [docs/instalacion.md](docs/instalacion.md).
 | [Playbook de desarrollo](docs/playbook-desarrollo.md) | Flujo de trabajo con agentes |
 | [Stacks base](docs/stacks.md) | Qué usar al arrancar cada tipo de proyecto |
 | [Catálogo de skills](docs/agent-skills-catalogo.md) | Plugins y skills habilitados |
-| [Radar de skills](docs/skills-radar.md) | Lo evaluado, instalado o no |
 | [Notas técnicas](docs/notas-tecnicas.md) | El porqué de las reglas de `AGENTS.md` |
 
 ## Desinstalar

@@ -54,9 +54,9 @@
       "category": "development"
     },
     {
-      "name": "bibliotecario",
-      "source": "./claude-skills/bibliotecario",
-      "description": "Recomienda skills, plugins y repositorios con estrella para el proyecto actual y los instala por proyecto tras confirmacion.",
+      "name": "librarian",
+      "source": "./claude-skills/librarian",
+      "description": "Recomienda skills, plugins y repositorios con estrella para el proyecto actual, evalua cada candidato en el momento y los instala por proyecto tras confirmacion.",
       "keywords": ["harness", "plugins", "skills", "catalogo"],
       "category": "development"
     }

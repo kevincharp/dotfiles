@@ -4,7 +4,6 @@ paths:
   - ".claude-plugin/**"
   - "claude-skills/**"
   - "docs/agent-skills-catalogo.md"
-  - "docs/skills-radar.md"
   - "AGENTS.md"
   - "CLAUDE.md"
 ---
@@ -83,10 +82,11 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
     upstream entra sin revisión — son repos de terceros.
 - **Catálogo de skills:** `docs/agent-skills-catalogo.md` documenta el detalle
   técnico de qué está **instalado** hoy y por qué (hooks, invocación,
-  solapamientos finos); `docs/skills-radar.md` es el panorama más amplio (todo
-  lo evaluado, instalado o no, por categoría funcional). **Actualizar el que
-  corresponda en el mismo commit** que toque `enabledPlugins` (`settings.json`)
-  o `.claude-plugin/marketplace.json`.
+  solapamientos finos). Lo evaluado y lo descartado no se documenta: lo evalúa
+  `librarian` en el momento sobre tus estrellas de GitHub, y los repos que
+  rechazás van a la lista **Descartados**. **Actualizar el catálogo en el mismo
+  commit** que toque `enabledPlugins` (`settings.json`) o
+  `.claude-plugin/marketplace.json`.
 - `statusline.sh` → **no se copia**; `settings.json` lo referencia desde el repo.
   Lo verifica la **sección 14 de `test-bootstrap.sh`**. Muestra proyecto vs. cwd
   cuando difieren (`/cd` mueve el cwd, no el proyecto de la sesión — detalle de

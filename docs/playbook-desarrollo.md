@@ -220,7 +220,7 @@ abierta.
 | Si… | Entonces… | Hoy en Claude Code |
 |---|---|---|
 | Tengo una idea de proyecto | Ubicarme en el flujo y afilar la idea con una entrevista | `/ask-matt`, `/grill-with-docs` |
-| Es chico | Una sesión, sin tickets | La skill de diseño que sugiera `/bibliotecario` |
+| Es chico | Una sesión, sin tickets | La skill de diseño que sugiera `/librarian` |
 | Es mediano | Especificación → tickets con dependencias → un ticket por vez | `/to-spec`, `/to-tickets`, `/implement` |
 | Voy a aprobar una especificación (proyecto mediano o grande) | Pasarla por el `reviewer` (subagente, contexto limpio): qué supuestos no están dichos y qué quedó ambiguo. En uno chico no hace falta | agente `reviewer` |
 | Tengo un bug mío | Anotarlo como ticket; si es chico, diagnosticarlo ahora | `/triage`, `diagnosing-bugs` |
@@ -241,7 +241,7 @@ abierta.
 | Antes de mergear una rama | CI en verde, probarlo en el preview o en pre, y revisión en contexto limpio | `/code-review`, agente `reviewer` |
 | El explorer reporta un problema de seguridad | Es una hipótesis: confirmarla con el agente `security` o con una prueba antes de abrir un ticket | agente `security` |
 | Cambio de riesgo (login, pagos, algo expuesto) | Auditoría de seguridad profunda | `claude-security`, `security-audit-skill` |
-| Antes de publicar | Tests en verde y deploy con revisión previa | agente `devops`; en Cloudflare, el plugin `cloudflare`; `all-deploy` si lo habilitás con `/bibliotecario` |
+| Antes de publicar | Tests en verde y deploy con revisión previa | agente `devops`; en Cloudflare, el plugin `cloudflare`; `all-deploy` si lo habilitás con `/librarian` |
 | Siento que falta algo para que quede perfecto | Releer la definición de hecho; si se cumple, está terminado | — |
 
 Los informes visuales sirven para decidir y entender, no para documentar: lo que

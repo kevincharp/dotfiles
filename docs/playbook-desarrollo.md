@@ -95,13 +95,15 @@ los apruebe.
 
 Un proyecto nuevo vive en local hasta tener un MVP armado; el historial de esa
 etapa es borrador y se publica aplanado. Mientras tanto, rigen las mismas
-reglas (rama por ticket, commits granulares) y se respalda con
-`git bundle create ../<proyecto>.bundle --all` al cerrar cada ticket.
+reglas (rama por ticket, commits granulares). El respaldo lo hace el usuario
+a mano, cada tanto (`respaldar-repos` en Windows copia `~/repositorios` al
+OneDrive).
 
 El primer push se hace cuando se cumple todo esto:
 
 1. **MVP:** hace lo principal y lo probé a mano.
-2. **Clon limpio:** un clon desde el bundle arranca siguiendo el README.
+2. **Clon limpio:** un clon fresco del repo local, en una carpeta aparte,
+   arranca siguiendo el README.
 3. **Pruebas y CI** (si tiene lógica) pasan en local.
 4. **README y `AGENTS.md`** completos: cómo correr, cómo probar, stack.
 5. **Sin ruido:** `.gitignore` completo y los registros de proceso fuera, en

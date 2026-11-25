@@ -1,5 +1,5 @@
 {
-  "cleanupPeriodDays": 30,
+  "cleanupPeriodDays": 14,
   "env": {
     "CLAUDE_CODE_ENABLE_AUTO_MODE": "1"
   },
@@ -16,7 +16,6 @@
     ]
   },
   "model": "sonnet",
-  "outputStyle": "Concise",
   "skillOverrides": {
     "auto-mode-setup": "off"
   },
@@ -115,6 +114,7 @@
       "autoUpdate": false
     }
   },
+  "outputStyle": "Concise",
   "modelSettings": {
     "claude-sonnet-5": {}
   },

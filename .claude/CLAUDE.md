@@ -165,8 +165,12 @@ más de un ticket en curso a la vez.
 - **Dudas sobre cómo trabajar con Claude Code o con agentes:** se resuelven con
   fuentes primarias de Anthropic (documentación, blog de ingeniería), citadas,
   no con opinión; si contradicen al harness, se propone el cambio.
-- Comentarios, docs y mensajes de commit **en español** (los identificadores
-  del código siguen la convención del proyecto/lenguaje).
+- Comentarios, docs y mensajes de commit **en español**.
+- **Código en inglés:** identificadores (funciones, variables, clases) y
+  nombres de archivos de código y scripts (`start-real.bat`, no
+  `iniciar-real.bat`), por convención. Los textos que ve el usuario de la app
+  siguen el idioma del producto. En proyectos existentes, lo nuevo va en
+  inglés; renombrar lo viejo es un ticket aparte.
 - **Deploy: Vercel y Cloudflare son mis plataformas por defecto** (Cloudflare
   para DNS/dominios/Workers/Pages, Vercel para frontends). Ante un despliegue
   nuevo sin destino explícito, proponer una de estas dos antes que otra opción

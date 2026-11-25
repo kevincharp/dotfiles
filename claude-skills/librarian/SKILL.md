@@ -21,8 +21,9 @@ mostrarlos en un formato fijo e instalar solo lo que el usuario elija.
 - Si no alcanza para saber de qué va el proyecto, hacer **una** pregunta y
   esperar la respuesta.
 
-Resumir la necesidad en una línea y sacar de ella 3 a 6 palabras clave (en
-inglés y en español) antes de buscar.
+Resumir la necesidad en una línea y sacar de ella de 4 a 8 palabras clave
+(en inglés y en español): 2 a 4 de la **tarea** y 2 a 4 del **stack** del
+proyecto (lenguajes, frameworks, plataforma). Van juntas en un solo `grep -iE`.
 
 ## 2. Consultar las fuentes
 
@@ -31,7 +32,7 @@ de memoria.
 
 | Fuente | Qué da | Cómo |
 |---|---|---|
-| Instalado | Qué hay activo y en qué alcance | `claude plugin list` |
+| Instalado | Qué hay activo, en **todos** los alcances (usuario y proyecto) | `claude plugin list` |
 | Marketplaces | Qué se instala con un comando | `~/.claude/plugins/marketplaces/*/.claude-plugin/marketplace.json` |
 | Estrellas de GitHub | **Todos** los repos guardados, con su lista | consulta de abajo |
 | Catálogo abierto (skills.sh) | Solo si lo anterior no tiene nada que sirva | `npx skills find <consulta>` |
@@ -62,7 +63,11 @@ recomienda (el `awk` de arriba lo saca).
 
 ## 3. Filtrar y evaluar
 
-- Sacar lo que ya está activo en este proyecto (mencionarlo en una línea).
+- Sacar lo que ya está activo en este proyecto (mencionarlo en una línea, con
+  todos los plugins activos de `claude plugin list`, no solo los que parecen
+  relevantes; alcances user, project y local). Si algo instalado ya cubre lo
+  mismo que un candidato, el candidato no va en ninguna tabla: se nombra solo en
+  "Ya activo acá", con una frase de qué cubre.
 - Quedarse con **3 a 5 finalistas** por tabla; si dos hacen lo mismo,
   recomendar una y nombrar la otra como alternativa. Si no hay nada que sirva,
   escribir "Nada en la biblioteca para esto" en vez de rellenar.
@@ -73,6 +78,15 @@ recomienda (el `awk` de arriba lo saca).
     control de un navegador, ejecución de código con credenciales.
   - **Costo:** plan de pago, claves de API, uso de tokens alto.
   - **Solapamiento** con lo instalado y con los marketplaces.
+  - **Licencia** de cada repo (`gh repo view <repo> --json licenseInfo,stargazerCount`):
+    siempre se informa en la tabla de repos; si `licenseInfo` viene vacío,
+    escribir "sin licencia". Esta regla de licencias es la única: el resto del
+    documento remite a ella.
+    - **Copyleft** (GPL, AGPL), **sin licencia** u **otra** no estándar:
+      leer como referencia de ideas, **no copiar código**, salvo que el
+      proyecto del usuario use esa misma licencia.
+    - **Permisiva** (MIT, Apache, BSD): se puede reutilizar con la atribución
+      que pida la licencia.
 - Para lo que viene de skills.sh, verificar antes de recomendar: fuente oficial
   o conocida, más de 1.000 instalaciones, repo con más de 100 estrellas. Con
   menos, avisarlo como riesgo. Trae código sin revisar.
@@ -81,14 +95,14 @@ recomienda (el `awk` de arriba lo saca).
 
 ```markdown
 **Necesidad:** <una línea>
-**Ya activo acá:** <plugins que cubren parte, o "nada específico">
+**Ya activo acá:** <plugins activos que cubren parte, con qué cubren, o "nada específico">
 
 ### Plugins y skills instalables
 | Plugin | Qué aporta a este proyecto | Skills que trae | Fuente | Recomendación |
 |---|---|---|---|---|
 
 ### Repositorios guardados
-| Repo | Qué es | Por qué podría servir | Riesgos (invasividad, costo, solapamiento) | Lista | Último cambio |
+| Repo | Qué es | Por qué podría servir | Licencia y riesgos (invasividad, costo, solapamiento) | Lista | Último cambio |
 |---|---|---|---|---|---|
 
 **Mi sugerencia:** <qué instalaría y qué repo miraría, en una o dos líneas>
@@ -98,7 +112,9 @@ Respondé, por ejemplo: "instalá X e Y, y analicemos el repo Z".
 
 - **Fuente** dice de dónde salió la fila (`marketplace <nombre>`, `estrellas`,
   `skills.sh`). Una fila sin fuente no va.
-- **Recomendación**: `sí`, `opcional` o `alternativa a <otro>`.
+- **Recomendación**: `sí`, `opcional` o `alternativa a <otro>`. Esta última vale
+  solo frente a otro candidato de la misma tabla, nunca frente a algo ya
+  instalado.
 - Un repo con estrella que no está en ningún marketplace va en la segunda
   tabla: no se instala con un comando.
 
@@ -124,6 +140,23 @@ lo pida. Si el usuario quiere instalarlo como plugin y el repo no publica
 `~/.dotfiles/.claude-plugin/marketplace.json` (commit y push antes de
 instalar).
 
+**Usar un repo como referencia**: el usuario guarda repos también para
+aprender de ellos (ver cómo resolvieron un problema, o hacer algo mejor). Si
+pide analizarlos, hacerlo de **solo lectura** (leer el README y el código con
+`gh repo view <repo>` y `gh api repos/<owner>/<repo>/contents/<ruta>`; no
+clonar ni ejecutar nada), contra las decisiones del proyecto: las que están en
+`AGENTS.md`, `README.md` y `STATUS.local.md`, y lo que el usuario cuente en la
+conversación. Los tickets de GitHub solo se leen si el usuario lo pide. Con
+varios repos, se pueden analizar en paralelo con subagentes.
+Devolver, en este orden:
+1. Cómo resuelve cada repo lo que le importa al proyecto, y qué hace distinto.
+2. Qué vale la pena **adoptar** (la idea; el código solo si la regla de licencias
+   del paso 3 lo permite).
+3. Qué **no copiar**, por seguridad o calidad (por ejemplo historial sin cifrar,
+   peticiones de red inesperadas, ejecución de comandos, ausencia de tests).
+4. Qué dice el repo que el proyecto ya hace mejor.
+Marcar cada afirmación que no se pudo comprobar leyendo el código.
+
 **Descartar un repo**: si el usuario decide que un repo no le sirve, ofrecer
 sumarlo a su lista **Descartados** de GitHub. Es una escritura hacia afuera:
 pedir confirmación primero, y no descartar nada por iniciativa propia. Se suma
@@ -148,4 +181,10 @@ leyendo las listas del repo.
 
 - No instala nada global ni desinstala nada.
 - No edita archivos del repo del usuario ni la documentación de los dotfiles.
-- No juzga si el código de un repo es seguro: solo lee su descripción y README.
+- No publica nada en GitHub (comentarios en tickets, issues nuevos, listas) sin
+  que el usuario lo pida; lo que concluya lo propone y espera el OK. La única
+  escritura que prevé es sumar un repo a **Descartados**, y solo con su
+  confirmación explícita.
+- No certifica que el código de un repo sea seguro. En la recomendación solo lee
+  descripción y README; en el modo referencia lee código y señala riesgos
+  visibles, como observaciones sin garantía.

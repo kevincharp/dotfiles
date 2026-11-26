@@ -7,6 +7,8 @@ lleva solo lo propio del proyecto.
 
 Lo usan sobre todo el Builder y el Reviewer ([`molde-agente.md`](molde-agente.md)):
 sin los comandos de test, el Builder adivina cómo probar el código.
+La sección "Delegación" le dice al orquestador qué subagente hace cada etapa del
+ticket: la delegación automática no está garantizada y hay que pedirla.
 
 **Verificado:** Claude Code lee un `AGENTS.md` de proyecto aunque exista el
 `CLAUDE.md` global (probado en la versión instalada). Si algún día deja de

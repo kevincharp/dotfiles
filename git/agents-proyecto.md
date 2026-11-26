@@ -31,6 +31,20 @@ proyecto no tiene interfaz.>
 3. El cambio quedó simplificado.
 4. Está commiteado.
 
+## Delegación
+
+Cada etapa de un ticket va a su subagente (`.claude/agents/`):
+
+1. Entender: `explorer` investiga dónde vive lo que se toca. Sus hallazgos son
+   pistas, no veredictos.
+2. Implementar: `builder`, un ticket por vez.
+3. Probar: `verifier` corre la app contra los criterios de aceptación, si el
+   ticket toca código.
+4. Revisar: `reviewer` siempre; `security` si toca login, permisos, pagos o
+   algo expuesto.
+
+Si una etapa no se delega, el informe final lo dice y explica por qué.
+
 ## Frontend
 
 <Reglas propias: framework, estilos, componentes, accesibilidad. Borrar la

@@ -29,7 +29,8 @@ proyecto no tiene interfaz.>
 1. Cumple los criterios de aceptación del ticket.
 2. Los tests pasan.
 3. El cambio quedó simplificado.
-4. Está commiteado.
+4. Está commiteado y, si el proyecto ya tiene remoto, pusheado en su rama con
+   el PR abierto.
 
 ## Delegación
 

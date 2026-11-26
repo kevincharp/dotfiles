@@ -34,10 +34,21 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
 - `settings.json` → **symlink** (cambios se versionan al instante).
 - `.claude/hooks/` → scripts de hooks, registrados en `settings.json` con
   `bash ~/.dotfiles/.claude/hooks/<script>`: `block-commands.sh` (`PreToolUse`
-  en Bash; frena `git push`, junto con el `deny` de `permissions`, y las
-  librerías fuera del proyecto: `npm`/`pnpm -g` y `pip` sin la ruta de un
-  entorno virtual en el mismo comando; necesita `jq` para ignorar el texto
-  entre comillas, y sin él un mensaje de commit que diga "push" se bloquea),
+  en Bash; deja pasar solo `git push [-u] <remoto> <tipo/rama>` (`feat/`, `fix/`,
+  `docs/`…) y frena el resto: sin rama explícita, `main`, `HEAD`, tags,
+  refspecs, variables, URLs como remoto y flags de fuerza o borrado. También
+  frena `git remote add|set-url`, alias de git, `gh pr merge|review`,
+  `gh repo edit|delete`, `gh release`, `gh secret`, `gh api` sobre merges,
+  refs o rulesets, claves en el texto de un PR, `sh -c`/`eval`/`xargs` con un
+  push, y las librerías fuera del
+  proyecto: `npm`/`pnpm -g` y `pip` sin la ruta de un entorno virtual en el
+  mismo comando. Necesita `jq` para ignorar el texto entre comillas; sin él, un
+  mensaje de commit que diga "push" se bloquea. Es una red de seguridad, no un
+  muro: no ve variables, alias ni scripts propios (ni `bash script.sh`, ni
+  `python -c`); el respaldo real es la protección de rama en GitHub. Analiza el
+  texto completo del comando: un heredoc que nombre un push o un merge se
+  bloquea, así que esos archivos se escriben con la herramienta de edición. El `deny` de `permissions` repite una parte como
+  segunda capa),
   `read-status.sh` (`SessionStart`; imprime el `STATUS.local.md` del proyecto) y
   `format.sh` (`PostToolUse` en Edit/Write; corre Prettier, ruff o rustfmt sobre
   el archivo recién tocado solo si el proyecto ya exige ese formato — el

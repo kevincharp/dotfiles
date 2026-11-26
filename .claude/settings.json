@@ -10,8 +10,14 @@
   },
   "permissions": {
     "deny": [
-      "Bash(git push)",
-      "Bash(git push *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * main)",
+      "Bash(git push * master)",
+      "Bash(gh pr merge*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh repo edit*)",
+      "Bash(git remote set-url*)",
       "Artifact"
     ]
   },

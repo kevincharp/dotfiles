@@ -788,6 +788,41 @@ while IFS= read -r _hook; do
 done < <(has_cmd jq && jq -r '.hooks[][] | .hooks[]?.command' "$_settings" 2>/dev/null)
 unset _f _skill _mp _settings _hook _script
 
+# Comportamiento del hook que frena los push: solo pasa la rama de un ticket.
+_guard="$_repo_root/.claude/hooks/block-commands.sh"
+if has_cmd jq && [[ -f "$_guard" ]]; then
+    _guard_rc() {
+        printf '{"tool_input":{"command":%s}}' "$(jq -Rn --arg c "$1" '$c')" | bash "$_guard" >/dev/null 2>&1
+        echo $?
+    }
+    _guard_fail=0
+    for _c in 'git push -u origin feat/x' 'git push origin fix/bug-1' 'git push  -u   origin   feat/x' \
+              'git push -u origin feat/main-menu' 'git push -u origin feat/x 2>&1' 'git commit -m "no push"' \
+              'echo "git push"' 'gh pr create --title x --base main' 'gh api graphql -f query=x' 'git pushx' \
+              $'git push -u origin feat/x\ngh pr create --fill' 'git stash push -m wip' \
+              'git config --get remote.origin.url' 'grep -rn "git push" docs/'; do
+        [[ "$(_guard_rc "$_c")" == 0 ]] || { test_fail "hook de push" "debía permitir: $_c"; _guard_fail=1; }
+    done
+    for _c in 'git push' 'git push origin' 'git push origin main' 'git push -u origin master' \
+              'git push -f origin feat/x' 'git push origin feat/x --force' 'git push origin HEAD:main' \
+              'git push origin @' 'git push origin Main' 'git push origin v1.0' 'git push --tags' \
+              'git push origin $BRANCH' 'git push https://x.example/r.git feat/x' '(git push origin main)' \
+              'git push origin feat/x && git push origin main' "sh -c 'git push origin main'" \
+              'eval "git push origin main"' 'git remote set-url origin x' 'gh pr merge 3' 'gh pr  merge 3' \
+              'gh api -X PUT repos/o/r/pulls/3/merge' 'gh repo delete o/r' \
+              'git push origin feat/x "main"' 'git push -u origin feat/x "--force"' 'git "push" origin main' \
+              'gh pr "merge" 3' 'git config remote.origin.url x' 'git -c core.sshCommand=x push origin feat/x' \
+              'gh api graphql -f query="mutation{mergePullRequest(input:{}){x}}"'; do
+        [[ "$(_guard_rc "$_c")" == 2 ]] || { test_fail "hook de push" "debía bloquear: $_c"; _guard_fail=1; }
+    done
+    [[ $_guard_fail -eq 0 ]] && test_ok "hook de push: solo pasa la rama del ticket; frena main, fuerza y gh pr merge"
+    unset -f _guard_rc
+    unset _guard_fail _c
+else
+    test_warn "hook de push" "sin jq: no se probó el comportamiento"
+fi
+unset _guard
+
 unset _repo_root
 
 # ==============================================================================

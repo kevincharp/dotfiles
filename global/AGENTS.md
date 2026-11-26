@@ -13,7 +13,9 @@ crea el bootstrap). Editar acá rige para todos.
   historia larga va a `docs/`.
 - **Sin** línea `Co-Authored-By` ni trailer de coautoría.
 - **Commitear sin pedir autorización** tras cada cambio lógico terminado.
-- **Nunca pushear:** el push lo hace el usuario manualmente.
+- **Push solo de la rama del ticket:** `git push -u origin <rama>`; nunca a
+  `main`/`master`, ni con `--force`, ni sin rama explícita. El push de `main` y
+  los pushes forzados los hace el usuario.
 
 ## Git
 
@@ -21,12 +23,18 @@ crea el bootstrap). Editar acá rige para todos.
   `tipo/descripcion` creada desde `main` (crearla sin pedir permiso), sin ramas
   `dev` de larga vida.
 - **Sin ramas apiladas:** si el ticket anterior no está mergeado en `main`,
-  pedirle al usuario el merge antes de empezar el siguiente; no ramar desde otra
+  pedirle al usuario el merge de su PR antes de empezar el siguiente; no ramar desde otra
   rama de ticket.
-- El merge a `main` lo hace el usuario, igual que el push.
+- **PR por ticket:** al cerrar el ticket, push de su rama (`tipo/descripcion`) y
+  PR con `gh pr create`, sin preguntar: son la excepción a "acción hacia
+  afuera". El cuerpo lleva qué cambió y `Closes #n` si hay issue; en repos
+  públicos, nunca rutas del vault, de `~/.env` ni claves. El merge lo hace el
+  usuario, desde GitHub o el celular: el agente nunca mergea ni aprueba un PR,
+  ni toca el repo con `gh api`. Si el remoto no es GitHub, deja la rama
+  pusheada y avisa. Antes del primer push de un proyecto nuevo no hay remoto:
+  no rige.
 - No reescribir historial ya publicado (rebase/amend de commits pusheados) ni
-  usar `--force`; si un push forzado fuera imprescindible, `--force-with-lease`
-  y solo a pedido.
+  forzar el push: si hiciera falta, lo hace el usuario.
 - No commitear archivos ajenos al cambio (stagear por path, no `git add -A` a
   ciegas).
 
@@ -35,9 +43,9 @@ crea el bootstrap). Editar acá rige para todos.
 - Antes del commit, el ticket pasa por subagentes con contexto limpio:
   `reviewer` siempre (también en tickets de documentación), `verifier` si
   hay código y `security` si toca login, permisos, pagos o algo expuesto.
-- El informe final termina con los comandos de merge, sin `git push`: cuándo
-  se publica lo decide el usuario. Lo que se pueda decidir con estas reglas
-  ya viene decidido y contado, no preguntado. Nombra lo que no se pudo
+- El informe final termina con el enlace al PR (o el nombre de la rama
+  pusheada si no hay PR): cuándo se mergea lo decide el usuario. Lo que se
+  pueda decidir con estas reglas ya viene decidido y contado, no preguntado. Nombra lo que no se pudo
   verificar o correr: un paso omitido o fallido no se informa como conforme.
 - Se decide solo:
   - Observaciones de la revisión fuera del alcance: se suman a un ticket
@@ -45,10 +53,10 @@ crea el bootstrap). Editar acá rige para todos.
     lista del proyecto.
   - Correcciones en archivos `*.local.*`.
 - Cuando el usuario dice que mergeó ("listo" alcanza): comprobarlo con
-  `git branch --merged main` y arrancar el siguiente ticket de la lista.
+  `git fetch origin` y `git branch --merged origin/main`, y arrancar el siguiente ticket de la lista.
 - Se pregunta antes: cambiar el orden o el alcance de un ticket, sumar
-  dependencias, cualquier acción hacia afuera y los tickets que llevan
-  entrevista.
+  dependencias, cualquier acción hacia afuera (salvo el push de la rama del
+  ticket y su PR) y los tickets que llevan entrevista.
 
 ## Worktrees (tickets en paralelo)
 
@@ -129,8 +137,8 @@ más de un ticket en curso a la vez.
 - **Primer push:** el proyecto vive en local hasta el MVP y se publica con el
   historial aplanado en un solo commit, cuando cumple la lista de "Antes del
   primer push" de `~/.dotfiles/docs/playbook-desarrollo.md`. El respaldo lo
-  hace el usuario a mano (`backup-repos` en Windows): no va en los comandos
-  de merge.
+  hace el usuario a mano (`backup-repos` en Windows): no va en el informe
+  final.
 - Si un commit falla por identidad ausente (`useConfigOnly` está activo), es un
   perfil sin aplicar: corregir con `gset-profile <perfil>` — **no** setear
   `user.name`/`user.email` a mano con cualquier valor.

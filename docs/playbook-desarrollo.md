@@ -95,7 +95,8 @@ los apruebe.
 
 Un proyecto nuevo vive en local hasta tener un MVP armado; el historial de esa
 etapa es borrador y se publica aplanado. Mientras tanto, rigen las mismas
-reglas (rama por ticket, commits granulares). El respaldo lo hace el usuario
+reglas (rama por ticket, commits granulares), pero sin push ni PR porque
+no hay remoto. El respaldo lo hace el usuario
 a mano, cada tanto (`backup-repos` en Windows copia `~/repositorios` al
 OneDrive).
 
@@ -116,7 +117,7 @@ El primer push se hace cuando se cumple todo esto:
 8. **Identidad** del perfil correcto en el commit, y remoto con `gremote`.
 
 Excepción: si alguien más tiene que trabajar en el proyecto antes del MVP, se
-pushea antes, con los puntos 2 a 8.
+pushea antes, con los puntos 2 a 8; desde entonces rige el PR por ticket.
 
 ## Trabajo con clientes
 

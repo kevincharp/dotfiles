@@ -1490,15 +1490,15 @@ fi
 if want_tool claude; then
     copy_dotfile ".claude/settings.json"         "$HOME/.claude/settings.json"  "link"
     # Reglas globales para todos los proyectos.
-    copy_dotfile ".claude/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"      "link"
+    copy_dotfile "global/AGENTS.md"               "$HOME/.claude/CLAUDE.md"      "link"
     link_dir ".claude/agents"                    "$HOME/.claude/agents"
 fi
 # Codex y opencode leen el mismo archivo como AGENTS.md.
 if want_tool codex; then
-    copy_dotfile ".claude/CLAUDE.md"         "$HOME/.codex/AGENTS.md"       "link"
+    copy_dotfile "global/AGENTS.md"           "$HOME/.codex/AGENTS.md"       "link"
 fi
 if want_tool opencode; then
-    copy_dotfile ".claude/CLAUDE.md"         "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md"  "link"
+    copy_dotfile "global/AGENTS.md"           "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/AGENTS.md"  "link"
 fi
 
 _omp_themes_dst="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/themes"

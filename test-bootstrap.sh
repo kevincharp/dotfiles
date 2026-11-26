@@ -519,7 +519,7 @@ else
 fi
 # OJO: los paths de $DOTFILES son de Windows (un backslash). En comillas simples
 # '\\' seria DOS backslashes literales y no matchearia nada.
-for _entry in 'yazi\yazi.toml|yazi' '.claude\CLAUDE.md|claude' '.claude\settings.json|claude' 'terminal\settings.json|windows-terminal'; do
+for _entry in 'yazi\yazi.toml|yazi' 'global\AGENTS.md|claude' '.claude\settings.json|claude' 'terminal\settings.json|windows-terminal'; do
     _pat="${_entry%%|*}"; _tool="${_entry##*|}"
     if grep -F "$_pat" "$_bs_ps" | grep -q "Tool='$_tool'"; then
         test_ok "Config de $_tool con Tool='$_tool' (bootstrap.ps1)"

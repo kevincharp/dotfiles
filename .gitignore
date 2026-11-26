@@ -17,7 +17,6 @@ ulauncher/user-themes/*/generated.css
 .claude/*
 !.claude/settings.json
 !.claude/statusline.sh
-!.claude/CLAUDE.md
 # Configs propias (skills/agents/commands/hooks/estilos/workflows) — se versionan si existen
 !.claude/skills/
 !.claude/agents/

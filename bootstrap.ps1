@@ -159,8 +159,9 @@ $DOTFILES = @(
     # En Windows la config de yazi vive en %APPDATA%\yazi\config.
     @{ Src='yazi\yazi.toml';          Dst="$env:APPDATA\yazi\config\yazi.toml"   ; Mode='link'; Tool='yazi' }
     # Claude Code: settings.json por symlink (un /model escribe ahi: revisar el diff).
-    # settings.local.json es por maquina. CLAUDE.md son las reglas globales.
-    @{ Src='.claude\CLAUDE.md';             Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link'; Tool='claude' }
+    # settings.local.json es por maquina. global\AGENTS.md son las reglas globales
+    # (el unico nombre que Claude lee para las globales es ~/.claude/CLAUDE.md).
+    @{ Src='global\AGENTS.md';               Dst="$HOME\.claude\CLAUDE.md"             ; Mode='link'; Tool='claude' }
     @{ Src='.claude\settings.json';         Dst="$HOME\.claude\settings.json"         ; Mode='link'; Tool='claude' }
     # Subagentes propios (equipo estandar): carpeta entera (paridad con link_dir).
     @{ Src='.claude\agents';                Dst="$HOME\.claude\agents"                ; Mode='link'; Tool='claude' }
@@ -1355,9 +1356,9 @@ if ($SkipDotfiles) {
         }
     }
 
-    # --- Codex y opencode leen el mismo CLAUDE.md como AGENTS.md ---
+    # --- Codex y opencode leen el mismo archivo global como AGENTS.md ---
     Sub-Bar 62 "reglas de agentes IA"
-    $agentsSrc  = Join-Path $REPO_ROOT '.claude\CLAUDE.md'
+    $agentsSrc  = Join-Path $REPO_ROOT 'global\AGENTS.md'
     $agentsDsts = @()
     if (Test-ToolWanted 'codex')    { $agentsDsts += (Join-Path $HOME '.codex\AGENTS.md') }
     if (Test-ToolWanted 'opencode') { $agentsDsts += (Join-Path $HOME '.config\opencode\AGENTS.md') }

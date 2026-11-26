@@ -11,8 +11,9 @@ La sección "Delegación" le dice al orquestador qué subagente hace cada etapa 
 ticket: la delegación automática no está garantizada y hay que pedirla.
 
 **Verificado:** Claude Code lee un `AGENTS.md` de proyecto aunque exista el
-`CLAUDE.md` global (probado en la versión instalada). Si algún día deja de
-hacerlo, el arreglo es un `CLAUDE.md` de una línea con `@AGENTS.md`.
+`~/.claude/CLAUDE.md` global, pero **no** si el proyecto tiene un `CLAUDE.md`,
+`.claude/CLAUDE.md` o `CLAUDE.local.md`. Si Claude no lo puede leer en alguna
+sesión, el arreglo es un `CLAUDE.md` de una línea con `@AGENTS.md`.
 
 ## Plantilla
 

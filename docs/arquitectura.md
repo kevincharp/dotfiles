@@ -147,8 +147,9 @@ reglas por área (`.claude/rules/`) — acá el mapa:
 ├── ulauncher/                    # Launcher + temas Liquid Glass (Linux)
 ├── git/                          # gitignore global + plantillas y hook pre-commit para proyectos (ginit)
 ├── yazi/ · fontconfig/ · openlogi/          # Configs puntuales
-├── .claude/                      # Config de Claude Code + reglas de agentes IA
-│                                 #   (CLAUDE.md → symlink también como AGENTS.md
-│                                 #    de Codex y opencode)
+├── .claude/                      # Config de Claude Code (settings, agentes, hooks, rules)
+├── global/                       # AGENTS.md: reglas para TODOS los agentes de IA
+│                                 #   (symlink como ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md
+│                                 #    y ~/.config/opencode/AGENTS.md)
 └── docs/                         # Esta documentación
 ```

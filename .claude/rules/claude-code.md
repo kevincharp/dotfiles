@@ -5,26 +5,25 @@ paths:
   - "claude-skills/**"
   - "docs/agent-skills-catalogo.md"
   - "AGENTS.md"
-  - "CLAUDE.md"
+  - "global/**"
 ---
 
 # Claude Code (`.claude/`)
 
 Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
 
-- `.claude/CLAUDE.md` → **fuente única de reglas para TODOS los agentes de IA**:
-  symlinkeado a `~/.claude/CLAUDE.md` (Claude Code) y, si están instalados, a
-  `~/.codex/AGENTS.md` (Codex) y `~/.config/opencode/AGENTS.md` (opencode).
-  Editar ese archivo cambia las reglas de los tres. Claude Code ≥v2.1.277 lee
-  `AGENTS.md` nativamente, pero solo cuando NO hay ningún `CLAUDE.md` en el
-  working dir o arriba — con nuestro symlink siempre hay uno, así que el
-  mecanismo real sigue siendo el symlink, no la lectura nativa. Para los
-  **proyectos** sí se usa la lectura nativa: verificado que un `AGENTS.md` de
-  proyecto se lee aunque exista el `CLAUDE.md` global.
-- `AGENTS.md` (raíz) → **reglas de este repo**, para cualquier agente. El
-  `CLAUDE.md` de la raíz es una sola línea, `@AGENTS.md`: hace falta porque
-  `.claude/CLAUDE.md` cuenta como `CLAUDE.md` del proyecto y, sin el import,
-  Claude Code ignoraría el `AGENTS.md`. No agregarle contenido.
+- `global/AGENTS.md` → **fuente única de reglas para TODOS los agentes de IA**:
+  symlinkeado a `~/.claude/CLAUDE.md` (Claude Code; ese nombre es el único que
+  lee para las reglas globales) y, si están instalados, a `~/.codex/AGENTS.md`
+  (Codex) y `~/.config/opencode/AGENTS.md` (opencode). Editar ese archivo cambia
+  las reglas de los tres. Vive en `global/` y **no** en `.claude/`: un
+  `.claude/CLAUDE.md` dentro del repo cuenta como `CLAUDE.md` del proyecto y
+  Claude Code dejaría de leer el `AGENTS.md` de este repo (solo lo lee si no hay
+  ningún `CLAUDE.md` en el working dir o arriba; el `~/.claude/CLAUDE.md` global
+  no cuenta). No crear `CLAUDE.md` ni `CLAUDE.local.md` en proyectos que usan
+  `AGENTS.md`: bloquean su lectura nativa.
+- `AGENTS.md` (raíz) → **reglas de este repo**, para cualquier agente. Claude Code
+  lo lee solo, sin `CLAUDE.md` de por medio.
 - `.claude/agents/` → **symlink de carpeta** a `~/.claude/agents/`: subagentes
   propios (explorer, builder, reviewer, devops, security). Agregar uno es
   crear un archivo. Molde, equipo y formato en otras herramientas:
@@ -58,8 +57,8 @@ Versiona la config de Claude Code para portabilidad. Ojo con el manejo distinto:
   de `settings.json`**, o sea del archivo versionado. Registrar y habilitar un
   plugin en Windows queda aplicado en Fedora con un commit; lo único no versionado
   es el clon en `~/.claude/plugins/`, que se rebaja solo. **Las skills globales de
-  `~/.claude/skills/` NO se versionan** (el bootstrap solo symlinkea `CLAUDE.md` y
-  `settings.json`): lo que quieras portable va como plugin, no como carpeta suelta.
+  `~/.claude/skills/` NO se versionan** (el bootstrap solo enlaza las reglas globales,
+  `settings.json` y `agents/`): lo que quieras portable va como plugin, no como carpeta suelta.
 - **`.claude-plugin/marketplace.json` (raíz del repo) — marketplace envoltorio.**
   Muchos repos de skills útiles **no publican `marketplace.json`** (algunos ni
   siquiera `plugin.json`), y sin eso `/plugin marketplace add` no los toma: la

@@ -31,7 +31,7 @@ sp='[[:space:]]'
 branch_re='^(feat|fix|docs|chore|refactor|test|perf|build|ci|style|revert)/[A-Za-z0-9._/-]+$'
 
 # Un verbo de git o gh entre comillas, o una palabra armada con comillas, esconde lo que se ejecuta.
-matches "${start}(git|gh)${sp}+$quoted|${start}git${sp}+-c${sp}*$quoted|${start}gh${sp}+(pr|repo|release|secret|ruleset|alias|extension)${sp}+$quoted|[[:alnum:]]$quoted|${quoted}[[:alnum:]]|${quoted}${sp}+(push|pr${sp}+merge)" &&
+matches "${start}(git|gh)${sp}+$quoted|${start}git${sp}+-c${sp}*$quoted|${start}gh${sp}+(pr|repo|release|secret|ruleset|alias|extension)${sp}+$quoted|${start}(git|gh)${sp}[^|;&]*([[:alnum:]]$quoted|${quoted}[[:alnum:]])|${quoted}${sp}+(push|pr${sp}+merge)" &&
     block "no escribas el comando de git o gh entre comillas ni partido con comillas: escribilo directo."
 
 # Cada `git push` debe ser: [-u|--set-upstream] <remoto> <tipo/descripcion>. Nada de main, HEAD, tags,

@@ -800,7 +800,8 @@ if has_cmd jq && [[ -f "$_guard" ]]; then
               'git push -u origin feat/main-menu' 'git push -u origin feat/x 2>&1' 'git commit -m "no push"' \
               'echo "git push"' 'gh pr create --title x --base main' 'gh api graphql -f query=x' 'git pushx' \
               $'git push -u origin feat/x\ngh pr create --fill' 'git stash push -m wip' \
-              'git config --get remote.origin.url' 'grep -rn "git push" docs/'; do
+              'git config --get remote.origin.url' 'grep -rn "git push" docs/' \
+              'gh api repos/o/r/contents/README.md' 'gh api repos/o/r/branches/main'; do
         [[ "$(_guard_rc "$_c")" == 0 ]] || { test_fail "hook de push" "debía permitir: $_c"; _guard_fail=1; }
     done
     for _c in 'git push' 'git push origin' 'git push origin main' 'git push -u origin master' \

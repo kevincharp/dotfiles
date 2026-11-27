@@ -74,8 +74,11 @@ matches "${start}gh${sp}([^|;&]*${sp})?pr${sp}+(merge|review)" &&
 matches "${start}gh${sp}([^|;&]*${sp})?(repo${sp}+(edit|delete|rename|archive)|release${sp}+(create|delete|edit)|secret|ruleset|alias|extension)" &&
     block "ese cambio en GitHub lo hace el usuario."
 if matches "${start}gh${sp}([^|;&]*${sp})?api${sp}"; then
-    raw_matches '/["'"'"']?(merge|reviews|contents|collaborators|keys|dispatches|rulesets|protection|hooks)|git/(refs|commits)|/branches/|/actions/secrets' &&
-        block "gh api sobre merges, refs, ramas, rulesets, secretos, revisiones o contenido lo hace el usuario."
+    # Leer esas rutas (GET) está bien; escribirlas (-X, o campos -f/-F que vuelven POST) no.
+    if raw_matches '(-X|--method)[[:space:]=]*(PUT|PATCH|DELETE|POST)|[[:space:]](-f|-F|--field|--raw-field|--input)[[:space:]=]' &&
+        raw_matches '/["'"'"']?(merge|reviews|contents|collaborators|keys|dispatches|rulesets|protection|hooks)|git/(refs|commits)|/branches/|/actions/secrets'; then
+        block "gh api que escribe sobre merges, refs, ramas, rulesets, secretos, revisiones o contenido lo hace el usuario."
+    fi
     raw_matches "mutation[^|;&]*(mergePullRequest|enablePullRequestAutoMerge|addPullRequestReview|deleteRef|updateRef|createRef|updateBranchProtectionRule|deleteBranchProtectionRule|deleteRepository|updateRepository|closePullRequest|createCommitOnBranch)" &&
         block "esa mutación de GitHub la hace el usuario."
     raw_matches "(-X|--method)[[:space:]=]*(PATCH|DELETE)" && raw_matches 'repos/[^/ ]+/[^/ ]+([[:space:]]|$)' &&

@@ -46,6 +46,11 @@ Cada etapa de un ticket va a su subagente (`.claude/agents/`):
 
 Si una etapa no se delega, el informe final lo dice y explica por qué.
 
+Un informe de subagente sin resultado por paso (por ejemplo "estoy
+esperando…") no vale: se reanuda al subagente con SendMessage y se le pide el
+informe. Los experimentos de carga y los e2e pesados se corren solos, no en
+paralelo con otro verifier.
+
 ## Frontend
 
 <Reglas propias: framework, estilos, componentes, accesibilidad. Borrar la

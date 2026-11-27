@@ -42,7 +42,9 @@ crea el bootstrap). Editar acá rige para todos.
 
 - Antes del commit, el ticket pasa por subagentes con contexto limpio:
   `reviewer` siempre (también en tickets de documentación), `verifier` si
-  hay código y `security` si toca login, permisos, pagos o algo expuesto.
+  hay código y `security` si toca login, permisos, pagos o algo expuesto. Un
+  informe sin resultado por paso (por ejemplo "estoy esperando…") no vale: se
+  reanuda al subagente con SendMessage y se le pide el informe.
 - El informe final termina con el enlace al PR (o el nombre de la rama
   pusheada si no hay PR): cuándo se mergea lo decide el usuario. Lo que se
   pueda decidir con estas reglas ya viene decidido y contado, no preguntado. Nombra lo que no se pudo
